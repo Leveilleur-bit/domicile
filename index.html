@@ -535,6 +535,98 @@ header {
   margin-left: 6px;
   vertical-align: middle;
 }
+
+/* ── MOBILE FIXES ── */
+@media(max-width:600px){
+
+  /* Header compact */
+  header { padding: 10px 14px; gap:6px; }
+  .logo { font-size: 18px; letter-spacing: 2px; }
+  .logo-sub { display: none; }
+  .house-name-display { display: none; }
+  #hdate { font-size: 10px; }
+  .hbtn { padding: 4px 7px; font-size: 11px; }
+
+  /* Dashboard — 1 colonne */
+  #dash-grid { grid-template-columns: 1fr !important; }
+
+  /* Stats — 2x2 compact */
+  .srow { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .sc { padding: 10px 12px; }
+  .sc-v { font-size: 26px; }
+  .sc-l { font-size: 8px; letter-spacing: 1.5px; }
+
+  /* Taches — layout simplifie */
+  .ti {
+    grid-template-columns: 9px 1fr auto !important;
+    padding: 11px 12px;
+    gap: 8px;
+  }
+
+  /* Boutons action — plus petits */
+  .bi { width: 32px; height: 32px; font-size: 14px; }
+  .ti-acts { gap: 4px; }
+
+  /* Nom de tache — taille normale */
+  .ti-name { font-size: 13px; line-height: 1.5; }
+
+  /* Meta tags — plus petits */
+  .ti-meta { gap: 4px; margin-top: 5px; }
+  .tag { font-size: 8px; padding: 1px 5px; }
+  .date-lbl { font-size: 10px; }
+  .rbadge { font-size: 8px; padding: 1px 5px; }
+
+  /* Cacher les tags piece+cat sur dashboard pour gagner de la place */
+  #du .tag:not(.rbadge), #ds .tag:not(.rbadge) { display: none; }
+
+  /* Formulaire */
+  .fgrid, .fg2, .fg3, .fg4 { grid-template-columns: 1fr !important; }
+  .add-form { padding: 12px; }
+
+  /* Reno header compact */
+  .rphdr { 
+    grid-template-columns: 8px 1fr auto auto !important;
+    padding: 11px 12px;
+    gap: 8px;
+  }
+  .rpw, .rppct, .rpbudget { display: none; }
+
+  /* Pellet grid */
+  .pgrid { grid-template-columns: 1fr !important; }
+  .pval { font-size: 42px; }
+
+  /* Calendrier */
+  .cgrid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Historique */
+  .hi { grid-template-columns: 90px 1fr !important; font-size: 10px; }
+  .hbadge { display: none; }
+
+  /* Settings panel */
+  .settings-panel { padding: 20px 16px 28px; }
+
+  /* Stats */
+  #stats-monthly { overflow-x: auto; }
+
+  /* Tabs */
+  .tabs { gap: 0; }
+  .tab { font-size: 10px; padding: 10px 6px; letter-spacing: 0; }
+  .tbadge { right: 0px; font-size: 7px; }
+
+  /* CPT hero */
+  .cpt-hero { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cpt-card { padding: 14px; }
+  .cpt-card-val { font-size: 28px; }
+
+  /* Section title */
+  .stit { font-size: 12px; letter-spacing: 2px; }
+}
+
+/* Petits ecrans */
+@media(max-width:380px){
+  .tab { font-size: 9px; padding: 9px 4px; }
+  .sc-v { font-size: 22px; }
+}
 </style>
 </head>
 <body>
@@ -574,7 +666,7 @@ header {
     <div class="sc g"><div class="sc-l">Effectuees</div><div class="sc-v" id="s-dn">0</div></div>
     <div class="sc b"><div class="sc-l">Planifiees</div><div class="sc-v" id="s-tot">0</div></div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <div id="dash-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
     <div>
       <div class="stit">A faire maintenant</div>
       <div class="tl" id="d-urg"></div>
