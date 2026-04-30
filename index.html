@@ -18,7 +18,7 @@
   --border:#3a4560;--copper:#c8855a;--cl:#e8a882;
   --amber:#f0c060;--green:#6bbf8e;--red:#e07060;--blue:#7aadcc;
   --text:#dde3f0;--dim:#8892aa;
-} 
+}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;min-height:100vh;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(200,133,90,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(200,133,90,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
@@ -312,6 +312,229 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 .cpt-tabs{display:flex;gap:6px;margin-bottom:14px;}
 .cpt-tab{background:var(--bg2);border:1px solid var(--border);color:var(--dim);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:6px 14px;border-radius:4px;cursor:pointer;transition:all .15s;}
 .cpt-tab.on{background:var(--bg3);border-color:var(--copper);color:var(--copper);}
+
+/* ── DESIGN UPGRADE ── */
+:root {
+  --accent: #c8855a;
+  --accent-light: #e8a882;
+}
+
+/* Meilleure typographie */
+body { letter-spacing: .01em; }
+
+/* Header ameliore */
+header {
+  background: linear-gradient(135deg, rgba(22,27,42,.99), rgba(30,38,55,.99));
+  box-shadow: 0 2px 20px rgba(0,0,0,.4);
+}
+
+/* Tabs plus lisibles */
+.tab { font-size: 11px; letter-spacing: .8px; }
+.tab.on { 
+  background: linear-gradient(180deg, var(--bg3), var(--bg2));
+  font-weight: 500;
+}
+
+/* Cards avec ombre douce */
+.card, .sc, .cpt-card, .pc, .rp, .ti {
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+
+/* Bouton primaire gradient */
+.bp {
+  background: linear-gradient(135deg, var(--accent), #d4956a);
+  box-shadow: 0 2px 8px rgba(200,133,90,.3);
+  transition: all .2s;
+}
+.bp:hover {
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  box-shadow: 0 4px 14px rgba(200,133,90,.4);
+  transform: translateY(-1px);
+}
+.bp:active { transform: translateY(0); }
+
+/* Task items plus spacieux */
+.ti { padding: 13px 15px; border-radius: 8px; }
+.ti:hover { transform: translateX(2px); }
+
+/* Dots plus grands */
+.dot { width: 10px; height: 10px; }
+
+/* Section titles plus stylés */
+.stit {
+  font-size: 13px;
+  letter-spacing: 4px;
+}
+
+/* Stats cards hover */
+.sc:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,.3); }
+
+/* Pellet hero plus immersif */
+.phero {
+  background: linear-gradient(135deg, #1e2535, #2a3348);
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+}
+
+/* Reno projects */
+.rp { border-radius: 8px; }
+.rp.exp { box-shadow: 0 4px 16px rgba(200,133,90,.15); }
+
+/* Empty states */
+.empty { border-radius: 10px; }
+
+/* SETTINGS PANEL */
+.settings-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65);
+  z-index: 300; display: flex; align-items: flex-end;
+  backdrop-filter: blur(4px);
+}
+.settings-overlay.hidden { display: none; }
+.settings-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  padding: 24px 20px 32px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp .3s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.settings-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 3px;
+  color: var(--cl);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-section {
+  margin-bottom: 20px;
+}
+
+.settings-section-lbl {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 10px;
+}
+
+/* Color swatches */
+.color-swatches {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all .2s;
+  position: relative;
+}
+.swatch.active::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #fff;
+  font-weight: bold;
+}
+.swatch:hover { transform: scale(1.15); }
+
+/* Tab order drag */
+.tab-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tab-order-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  cursor: grab;
+  font-size: 12px;
+  color: var(--text);
+  user-select: none;
+}
+.tab-order-item:active { cursor: grabbing; }
+.tab-order-item .drag-icon { color: var(--dim); font-size: 14px; }
+.tab-order-item .tab-emoji { font-size: 16px; }
+
+/* Notification settings */
+.notif-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.notif-toggle-label { font-size: 12px; color: var(--text); }
+.notif-toggle-sub { font-size: 10px; color: var(--dim); margin-top: 2px; }
+.toggle-switch {
+  width: 44px; height: 24px;
+  background: var(--border);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.toggle-switch.on { background: var(--green); }
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px; left: 3px;
+  transition: transform .2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+.toggle-switch.on::after { transform: translateX(20px); }
+
+/* Settings button in header */
+.settings-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--dim);
+  font-size: 16px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all .15s;
+}
+.settings-btn:hover { border-color: var(--copper); color: var(--copper); }
+
+/* House name */
+.house-name-display {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  margin-left: 6px;
+  vertical-align: middle;
+}
 </style>
 </head>
 <body>
@@ -646,6 +869,66 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 </main>
 </div>
 
+<!-- SETTINGS PANEL -->
+<div class="settings-overlay hidden" id="settings-overlay" onclick="closeSettingsOutside(event)">
+  <div class="settings-panel">
+    <div class="settings-title">
+      Parametres
+      <button class="modal-close" onclick="closeSettings()">&#10005;</button>
+    </div>
+
+    <!-- Nom de la maison -->
+    <div class="settings-section">
+      <div class="settings-section-lbl">Nom de la maison</div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="set-house-name" placeholder="Ex: Maison de Bretagne..." style="flex:1;">
+        <button class="bp" onclick="saveHouseName()">OK</button>
+      </div>
+    </div>
+
+    <!-- Couleur d'accent -->
+    <div class="settings-section">
+      <div class="settings-section-lbl">Couleur principale</div>
+      <div class="color-swatches" id="color-swatches">
+        <div class="swatch active" style="background:#c8855a;" data-color="#c8855a" data-light="#e8a882" onclick="setAccentColor(this)"></div>
+        <div class="swatch" style="background:#7aadcc;" data-color="#7aadcc" data-light="#a0cce0" onclick="setAccentColor(this)"></div>
+        <div class="swatch" style="background:#6bbf8e;" data-color="#6bbf8e" data-light="#90d4a8" onclick="setAccentColor(this)"></div>
+        <div class="swatch" style="background:#e07060;" data-color="#e07060" data-light="#f09080" onclick="setAccentColor(this)"></div>
+        <div class="swatch" style="background:#a080cc;" data-color="#a080cc" data-light="#c0a0e0" onclick="setAccentColor(this)"></div>
+        <div class="swatch" style="background:#f0c060;" data-color="#f0c060" data-light="#f8d888" onclick="setAccentColor(this)"></div>
+      </div>
+    </div>
+
+    <!-- Ordre des onglets -->
+    <div class="settings-section">
+      <div class="settings-section-lbl">Ordre des onglets (glisser pour reordonner)</div>
+      <div class="tab-order-list" id="tab-order-list"></div>
+      <button class="bs" style="margin-top:8px;font-size:10px;width:100%;" onclick="resetTabOrder()">Reinitialiser l'ordre</button>
+    </div>
+
+    <!-- Notifications -->
+    <div class="settings-section">
+      <div class="settings-section-lbl">Notifications</div>
+      <div class="notif-toggle">
+        <div>
+          <div class="notif-toggle-label">Rappels de taches</div>
+          <div class="notif-toggle-sub">Notification si taches urgentes ou ce mois</div>
+        </div>
+        <div class="toggle-switch" id="notif-toggle" onclick="toggleNotif()"></div>
+      </div>
+      <div id="notif-time-wrap" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+          <span style="font-size:12px;color:var(--text);">Heure du rappel</span>
+          <input type="time" id="notif-time" value="19:00" style="width:100px;flex:none;" onchange="saveNotifTime()">
+          <span style="font-size:10px;color:var(--dim);">chaque soir</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="bp" style="width:100%;margin-top:8px;" onclick="closeSettings()">Fermer</button>
+  </div>
+</div>
+
 <!-- EDIT MODAL -->
 <div class="modal-overlay hidden" id="edit-modal" onclick="closeModal(event)">
   <div class="modal">
@@ -730,6 +1013,216 @@ function showView(v,tab){
   if(v==='cpt'){renderCpt();}
   if(v==='cal')renderCal();
   if(v==='hist')renderHist();
+}
+
+
+// ── SETTINGS ──
+var SET_KEY = 'domicile_settings_v1';
+var appSettings = {
+  houseName: '',
+  accentColor: '#c8855a',
+  accentLight: '#e8a882',
+  tabOrder: ['dash','tasks','cal','hist','pellet','reno','stats','cpt'],
+  notifEnabled: false,
+  notifTime: '19:00'
+};
+
+var TAB_META = {
+  dash:   { label: 'Tableau de bord', emoji: '&#127968;' },
+  tasks:  { label: 'Taches',          emoji: '&#9989;' },
+  cal:    { label: 'Calendrier',       emoji: '&#128197;' },
+  hist:   { label: 'Historique',       emoji: '&#128203;' },
+  pellet: { label: 'Poele',            emoji: '&#128293;' },
+  reno:   { label: 'Renovation',       emoji: '&#127959;' },
+  stats:  { label: 'Stats',            emoji: '&#128202;' },
+  cpt:    { label: 'Compteurs',        emoji: '&#128268;' }
+};
+
+function loadSettings(){
+  try{
+    var r=localStorage.getItem(SET_KEY);
+    if(r){ var s=JSON.parse(r); Object.keys(appSettings).forEach(function(k){ if(s[k]!==undefined)appSettings[k]=s[k]; }); }
+  }catch(e){}
+  applySettings();
+}
+
+function saveSettings(){
+  localStorage.setItem(SET_KEY,JSON.stringify(appSettings));
+}
+
+function applySettings(){
+  // Accent color
+  document.documentElement.style.setProperty('--copper', appSettings.accentColor);
+  document.documentElement.style.setProperty('--cl', appSettings.accentLight);
+  // House name
+  sv('house-name-display',function(e){
+    e.textContent = appSettings.houseName ? '/ '+appSettings.houseName : '';
+  });
+  // Apply tab order
+  applyTabOrder();
+}
+
+function openSettings(){
+  var o=g('settings-overlay'); if(!o)return;
+  // Populate fields
+  sv('set-house-name',function(e){e.value=appSettings.houseName||'';});
+  // Color swatches
+  var swatches=document.querySelectorAll('.swatch');
+  for(var i=0;i<swatches.length;i++){
+    swatches[i].classList.toggle('active', swatches[i].dataset.color===appSettings.accentColor);
+  }
+  // Tab order list
+  renderTabOrderList();
+  // Notif toggle
+  var tog=g('notif-toggle');
+  if(tog) tog.className='toggle-switch'+(appSettings.notifEnabled?' on':'');
+  var tw=g('notif-time-wrap');
+  if(tw) tw.style.display=appSettings.notifEnabled?'block':'none';
+  var nt=g('notif-time');
+  if(nt) nt.value=appSettings.notifTime||'19:00';
+  o.classList.remove('hidden');
+}
+
+function closeSettings(){
+  var o=g('settings-overlay'); if(o)o.classList.add('hidden');
+}
+
+function closeSettingsOutside(e){
+  if(e.target===g('settings-overlay'))closeSettings();
+}
+
+function saveHouseName(){
+  var inp=g('set-house-name');
+  if(!inp)return;
+  appSettings.houseName=inp.value.trim();
+  saveSettings(); applySettings();
+  toast('Nom sauvegarde');
+}
+
+function setAccentColor(swatch){
+  appSettings.accentColor=swatch.dataset.color;
+  appSettings.accentLight=swatch.dataset.light;
+  var swatches=document.querySelectorAll('.swatch');
+  for(var i=0;i<swatches.length;i++) swatches[i].classList.remove('active');
+  swatch.classList.add('active');
+  saveSettings(); applySettings();
+}
+
+// Tab order
+function renderTabOrderList(){
+  var list=g('tab-order-list'); if(!list)return;
+  list.innerHTML='';
+  var order=appSettings.tabOrder;
+  order.forEach(function(key){
+    var meta=TAB_META[key];
+    if(!meta)return;
+    var item=document.createElement('div');
+    item.className='tab-order-item';
+    item.draggable=true;
+    item.dataset.key=key;
+    item.innerHTML='<span class="drag-icon">&#9776;</span><span class="tab-emoji">'+meta.emoji+'</span><span>'+meta.label+'</span>';
+    item.addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain',key);});
+    item.addEventListener('dragover',function(e){e.preventDefault();item.style.background='var(--bg3)';item.style.borderColor='var(--copper)';});
+    item.addEventListener('dragleave',function(){item.style.background='';item.style.borderColor='';});
+    item.addEventListener('drop',function(e){
+      e.preventDefault();
+      item.style.background=''; item.style.borderColor='';
+      var dragKey=e.dataTransfer.getData('text/plain');
+      var fromIdx=appSettings.tabOrder.indexOf(dragKey);
+      var toIdx=appSettings.tabOrder.indexOf(key);
+      if(fromIdx!==-1&&toIdx!==-1&&fromIdx!==toIdx){
+        appSettings.tabOrder.splice(fromIdx,1);
+        appSettings.tabOrder.splice(toIdx,0,dragKey);
+        saveSettings(); applyTabOrder(); renderTabOrderList();
+      }
+    });
+    list.appendChild(item);
+  });
+}
+
+function applyTabOrder(){
+  var tabsEl=document.querySelector('.tabs'); if(!tabsEl)return;
+  var order=appSettings.tabOrder;
+  var allTabs=tabsEl.querySelectorAll('.tab');
+  // Map tabs by view key
+  var tabMap={};
+  allTabs.forEach(function(t){
+    var oc=t.getAttribute('onclick')||'';
+    var m=oc.match(/showView\('(\w+)'/);
+    if(m) tabMap[m[1]]=t;
+  });
+  // Reorder
+  order.forEach(function(key){
+    if(tabMap[key]) tabsEl.appendChild(tabMap[key]);
+  });
+}
+
+function resetTabOrder(){
+  appSettings.tabOrder=['dash','tasks','cal','hist','pellet','reno','stats','cpt'];
+  saveSettings(); applyTabOrder(); renderTabOrderList();
+  toast('Ordre reinitialise');
+}
+
+// Notifications
+function toggleNotif(){
+  if(!appSettings.notifEnabled){
+    if(!('Notification' in window)){toast('Notifications non supportees');return;}
+    Notification.requestPermission(function(p){
+      if(p==='granted'){
+        appSettings.notifEnabled=true;
+        saveSettings();
+        var tog=g('notif-toggle'); if(tog)tog.className='toggle-switch on';
+        var tw=g('notif-time-wrap'); if(tw)tw.style.display='block';
+        toast('Notifications activees');
+        scheduleNotifCheck();
+      } else { toast('Permission refusee'); }
+    });
+  } else {
+    appSettings.notifEnabled=false;
+    saveSettings();
+    var tog=g('notif-toggle'); if(tog)tog.className='toggle-switch';
+    var tw=g('notif-time-wrap'); if(tw)tw.style.display='none';
+    toast('Notifications desactivees');
+  }
+}
+
+function saveNotifTime(){
+  var nt=g('notif-time'); if(!nt)return;
+  appSettings.notifTime=nt.value;
+  saveSettings();
+  scheduleNotifCheck();
+  toast('Heure sauvegardee : '+nt.value);
+}
+
+function scheduleNotifCheck(){
+  if(!appSettings.notifEnabled)return;
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  // Check every minute if it's time to notify
+  clearInterval(window._notifInterval);
+  window._notifInterval=setInterval(function(){
+    var now=new Date();
+    var hhmm=(now.getHours()<10?'0':'')+now.getHours()+':'+(now.getMinutes()<10?'0':'')+now.getMinutes();
+    if(hhmm===appSettings.notifTime){
+      sendDailyNotif();
+    }
+  }, 60000);
+}
+
+function sendDailyNotif(){
+  var urgent=tasks.filter(function(t){return !t.done&&tstat(t)==='urgent';});
+  var soon=tasks.filter(function(t){return !t.done&&tstat(t)==='soon';});
+  if(!urgent.length&&!soon.length)return;
+  var msg='';
+  if(urgent.length) msg+=urgent.length+' tache'+(urgent.length>1?'s':'')+' en retard. ';
+  if(soon.length)   msg+=soon.length+' tache'+(soon.length>1?'s':'')+' a faire ce mois.';
+  try{
+    new Notification('Domicile - Carnet entretien', {
+      body: msg,
+      icon: 'icon-192.png',
+      tag: 'domicile-daily',
+      requireInteraction: false
+    });
+  }catch(e){}
 }
 
 // TASKS STORAGE
@@ -1540,7 +2033,8 @@ function init(){
   sv('inp-date',function(e){e.value=tod();});
   sv('pmdate',function(e){e.value=tod();});
   sv('cpt-date',function(e){e.value=tod();});
-  loadT();loadP();loadR();loadCpt();
+  loadSettings();loadT();loadP();loadR();loadCpt();
+  scheduleNotifCheck();
   renderAll();
 }
 init();
