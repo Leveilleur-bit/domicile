@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Domicile">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Domicile</title>
+<title>Domicile 30/04/2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -926,6 +926,9 @@ header {
     </div>
 
     <button class="bp" style="width:100%;margin-top:8px;" onclick="closeSettings()">Fermer</button>
+    <div style="text-align:center;margin-top:14px;font-size:10px;color:var(--dim);letter-spacing:1px;">
+      DOMICILE 30/04/2026 &nbsp;&#183;&nbsp; <span id="ver-display"></span>
+    </div>
   </div>
 </div>
 
@@ -987,6 +990,7 @@ header {
 
 <script>
 var TK='dtasks_v4', PK='dpellet_v4', RK='dreno_v4';
+var APP_VERSION = 'v1.0 - 30/04/2026';
 var tasks=[], PD=null, renos=[], tFilter='all', rFilter='all';
 
 // UTILS
@@ -1051,6 +1055,7 @@ function saveSettings(){
 }
 
 function applySettings(){
+  sv('ver-display',function(e){ e.textContent=APP_VERSION; });
   // Accent color
   document.documentElement.style.setProperty('--copper', appSettings.accentColor);
   document.documentElement.style.setProperty('--cl', appSettings.accentLight);
