@@ -20,7 +20,7 @@
   --text:#dde3f0;--dim:#8892aa;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;min-height:100vh;}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;min-height:100vh;letter-spacing:.01em;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(200,133,90,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(200,133,90,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
 #app{position:relative;z-index:1;}
 input,select{background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;width:100%;transition:border-color .2s;}
@@ -87,7 +87,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 .dot.ok{background:var(--green);}
 .dot.done{background:var(--border);}
 .ti-main{min-width:0;}
-.ti-name{font-size:12px;color:var(--text);line-height:1.4;word-break:break-word;}
+.ti-name{font-size:13px;color:var(--text);line-height:1.5;word-break:break-word;font-family:"Inter",system-ui,sans-serif;font-weight:500;}
 .ti-name.dt{text-decoration:line-through;color:var(--dim);}
 .ti-meta{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center;}
 .tag{font-size:9px;letter-spacing:.5px;text-transform:uppercase;padding:1px 6px;border-radius:3px;border:1px solid var(--border);color:var(--dim);}
@@ -627,6 +627,18 @@ header {
   .tab { font-size: 9px; padding: 9px 4px; }
   .sc-v { font-size: 22px; }
 }
+
+/* BULK MANAGEMENT */
+.bulk-panel{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:14px;margin-bottom:12px;display:none;}
+.bulk-panel.open{display:block;}
+.bulk-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04);}
+.bulk-item:last-child{border:none;}
+.bulk-item:hover{background:var(--bg3);}
+.bulk-cb{width:16px;height:16px;accent-color:var(--copper);cursor:pointer;flex-shrink:0;}
+.bulk-item-name{flex:1;color:var(--text);}
+.bulk-item-meta{font-size:10px;color:var(--dim);}
+.bulk-actions{display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);}
+.bulk-select-all{font-size:10px;color:var(--copper);cursor:pointer;text-decoration:underline;background:none;border:none;font-family:inherit;padding:0;}
 </style>
 </head>
 <body>
@@ -641,7 +653,7 @@ header {
     <div id="hdate"></div>
     <button class="hbtn" onclick="exportData()" title="Exporter">&#128229;</button>
     <label class="hbtn" style="cursor:pointer;" title="Importer"><input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(this)">&#128228;</label>
-    <button class="settings-btn" onclick="openSettings()" title="Parametres">&#9881;</button>
+    <button class="settings-btn" id="settings-main-btn" onclick="openSettings()" title="Parametres" style="position:relative;">&#9881;<span id="settings-dot" style="position:absolute;top:-3px;right:-3px;width:8px;height:8px;background:var(--amber);border-radius:50%;display:none;"></span></button>
   </div>
 </header>
 
@@ -660,6 +672,7 @@ header {
 
 <!-- DASHBOARD -->
 <div class="view on" id="view-dash">
+  <div id="onboard-banner"></div>
   <div id="urg-banner"></div>
   <div class="srow">
     <div class="sc r"><div class="sc-l">En retard</div><div class="sc-v" id="s-urg">0</div><div class="sc-s">urgentes</div></div>
@@ -729,6 +742,19 @@ header {
     <button class="fb" onclick="ftask('done',this)">Terminees</button>
     <button class="fb" onclick="ftask('group',this)">Par piece</button>
     <button class="bs" style="font-size:9px;padding:4px 9px;" onclick="addPresets()">+ Modeles</button>
+    <button class="bs" style="font-size:9px;padding:4px 9px;" onclick="openBulk()">&#9998; Gerer</button>
+  </div>
+  <div id="bulk-panel" class="bulk-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:11px;color:var(--dim);">Selectionnez les taches a supprimer</span>
+      <button class="bulk-select-all" onclick="bulkSelectAll()">Tout selectionner</button>
+    </div>
+    <div id="bulk-list"></div>
+    <div class="bulk-actions">
+      <button class="bi del" style="width:auto;padding:0 14px;font-size:11px;" onclick="bulkDelete()">&#10005; Supprimer la selection</button>
+      <button class="bs" style="font-size:11px;" onclick="closeBulk()">Annuler</button>
+      <span id="bulk-count" style="font-size:10px;color:var(--dim);margin-left:auto;align-self:center;"></span>
+    </div>
   </div>
   <div id="task-area"></div>
 </div>
@@ -1264,16 +1290,42 @@ function resetTabOrder(){
 // Notifications
 function toggleNotif(){
   if(!appSettings.notifEnabled){
-    if(!('Notification' in window)){toast('Notifications non supportees');return;}
+    if(!('Notification' in window)){
+      toast('Notifications non supportees sur ce navigateur');
+      return;
+    }
+    if(Notification.permission==='denied'){
+      toast('Notifications bloquees - Activez-les dans les reglages du navigateur');
+      // Show guide
+      sv('notif-time-wrap',function(e){
+        e.style.display='block';
+        e.innerHTML='<div style="background:rgba(224,112,96,.1);border:1px solid rgba(224,112,96,.3);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--red);line-height:1.6;">'
+          +'<strong>Notifications bloquees sur Brave/Chrome</strong><br>'
+          +'1. Appuyez sur l icone cadenas dans la barre d adresse<br>'
+          +'2. Cherchez Notifications et mettez Autoriser<br>'
+          +'3. Rechargez la page et reessayez'
+          +'</div>';
+      });
+      return;
+    }
     Notification.requestPermission(function(p){
       if(p==='granted'){
         appSettings.notifEnabled=true;
         saveSettings();
         var tog=g('notif-toggle'); if(tog)tog.className='toggle-switch on';
         var tw=g('notif-time-wrap'); if(tw)tw.style.display='block';
-        toast('Notifications activees');
+        toast('Notifications activees !');
         scheduleNotifCheck();
-      } else { toast('Permission refusee'); }
+      } else {
+        toast('Permission refusee - Verifiez les reglages Brave');
+        sv('notif-time-wrap',function(e){
+          e.style.display='block';
+          e.innerHTML='<div style="background:rgba(224,112,96,.1);border:1px solid rgba(224,112,96,.3);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--red);line-height:1.6;">'
+            +'<strong>Pour activer sur Brave :</strong><br>'
+            +'Lion Brave > Reglages site > Notifications > Autoriser'
+            +'</div>';
+        });
+      }
     });
   } else {
     appSettings.notifEnabled=false;
@@ -1580,7 +1632,7 @@ function renderHist(){
   el.innerHTML=h;
 }
 
-function renderAll(){saveT();renderStats();renderDash();renderTasks();}
+function renderAll(){saveT();renderStats();renderDash();renderTasks();renderOnboard();}
 
 // PELLET
 function defP(){
@@ -2124,6 +2176,79 @@ function importData(input){
   reader.readAsText(file);
 }
 
+
+// ── GESTION EN LOT ──
+function openBulk(){
+  var panel=g('bulk-panel');
+  if(!panel)return;
+  panel.classList.add('open');
+  renderBulkList();
+}
+function closeBulk(){
+  var panel=g('bulk-panel');
+  if(panel)panel.classList.remove('open');
+}
+function renderBulkList(){
+  var list=g('bulk-list');if(!list)return;
+  var active=tasks.filter(function(t){return!t.done;});
+  active.sort(function(a,b){return a.date.localeCompare(b.date);});
+  if(!active.length){list.innerHTML='<div style="color:var(--dim);font-size:11px;padding:8px 0;">Aucune tache active</div>';return;}
+  var h='';
+  active.forEach(function(t){
+    var st=tstat(t);
+    var dot=st==='urgent'?'var(--red)':st==='soon'?'var(--amber)':'var(--green)';
+    h+='<div class="bulk-item">'
+      +'<input type="checkbox" class="bulk-cb" id="bcb-'+t.id+'" value="'+t.id+'" onchange="updateBulkCount()">'
+      +'<span style="width:8px;height:8px;border-radius:50%;background:'+dot+';flex-shrink:0;display:inline-block;"></span>'
+      +'<span class="bulk-item-name">'+eh(t.name)+'</span>'
+      +'<span class="bulk-item-meta">'+eh(t.room)+' &bull; '+fd(t.date)+'</span>'
+      +'</div>';
+  });
+  list.innerHTML=h;
+  updateBulkCount();
+}
+function bulkSelectAll(){
+  var cbs=document.querySelectorAll('.bulk-cb');
+  var allChecked=true;
+  for(var i=0;i<cbs.length;i++){if(!cbs[i].checked){allChecked=false;break;}}
+  for(var i=0;i<cbs.length;i++){cbs[i].checked=!allChecked;}
+  updateBulkCount();
+}
+function updateBulkCount(){
+  var cbs=document.querySelectorAll('.bulk-cb:checked');
+  sv('bulk-count',function(e){e.textContent=cbs.length?cbs.length+' selectionnee'+(cbs.length>1?'s':''):'';});
+}
+function bulkDelete(){
+  var cbs=document.querySelectorAll('.bulk-cb:checked');
+  if(!cbs.length){toast('Aucune tache selectionnee');return;}
+  if(!confirm('Supprimer '+cbs.length+' tache'+(cbs.length>1?'s':'')+' ?'))return;
+  var ids=[];
+  for(var i=0;i<cbs.length;i++){ids.push(cbs[i].value);}
+  tasks=tasks.filter(function(t){return ids.indexOf(t.id)===-1;});
+  closeBulk();
+  saveT();renderAll();toast(ids.length+' tache'+(ids.length>1?'s':'')+' supprimee'+(ids.length>1?'s':''));
+}
+
+// ── ONBOARDING ──
+function renderOnboard(){
+  var ob=g('onboard-banner');if(!ob)return;
+  var seen=localStorage.getItem('onboard_seen');
+  if(seen){ob.innerHTML='';return;}
+  ob.innerHTML='<div style="background:linear-gradient(135deg,rgba(200,133,90,.12),rgba(200,133,90,.06));border:1px solid rgba(200,133,90,.3);border-radius:8px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">'
+    +'<div><div style="font-size:12px;color:var(--cl);font-weight:500;margin-bottom:3px;">&#9881; Personnalisez votre app !</div>'
+    +'<div style="font-size:11px;color:var(--dim);">Nom de la maison, couleurs, notifications... Tout est dans les Parametres.</div></div>'
+    +'<div style="display:flex;gap:8px;flex-shrink:0;">'
+    +'<button class="bp" style="font-size:10px;padding:7px 12px;" onclick="openSettings();dismissOnboard()">Ouvrir</button>'
+    +'<button class="bs" style="font-size:10px;padding:7px 10px;" onclick="dismissOnboard()">Plus tard</button>'
+    +'</div></div>';
+  // Show amber dot on settings button
+  sv('settings-dot',function(e){e.style.display='block';});
+}
+function dismissOnboard(){
+  localStorage.setItem('onboard_seen','1');
+  sv('onboard-banner',function(e){e.innerHTML='';});
+  sv('settings-dot',function(e){e.style.display='none';});
+}
 // INIT
 function init(){
   var now=new Date();
