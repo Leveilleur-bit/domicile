@@ -435,8 +435,9 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <div id="hdate"></div>
-    <button class="hbtn" onclick="exportData()" title="Sauvegarder mes donnees">&#128229; Exporter</button>
-    <label class="hbtn" style="cursor:pointer;" title="Restaurer depuis une sauvegarde">&#128228; Importer<input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(this)"></label>
+    <button class="hbtn" onclick="exportData()" title="Exporter">&#128229;</button>
+    <label class="hbtn" style="cursor:pointer;" title="Importer">&#128228;<input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(this)"></label>
+    <button id="settings-main-btn" onclick="openSettings()" title="Parametres" style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--dim);font-size:16px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:all .15s;">&#9881;<span id="settings-dot" style="position:absolute;top:-3px;right:-3px;width:8px;height:8px;background:var(--amber);border-radius:50%;display:none;"></span></button>
   </div>
 </header>
 
