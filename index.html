@@ -1722,6 +1722,86 @@ function init(){
   scheduleNotifCheck();
   renderOnboard();
 }
+
+// ── SETTINGS ──
+var SET_KEY='domicile_settings_v1';
+var appSettings={houseName:'',accentColor:'#c8855a',accentLight:'#e8a882',notifEnabled:false,notifTime:'19:00'};
+
+function loadSettings(){
+  try{var r=localStorage.getItem(SET_KEY);if(r){var s=JSON.parse(r);Object.keys(appSettings).forEach(function(k){if(s[k]!==undefined)appSettings[k]=s[k];});}}catch(e){}
+  applySettings();
+}
+function saveSettings(){localStorage.setItem(SET_KEY,JSON.stringify(appSettings));}
+function applySettings(){
+  document.documentElement.style.setProperty('--copper',appSettings.accentColor);
+  document.documentElement.style.setProperty('--cl',appSettings.accentLight);
+  sv('house-name-display',function(e){e.textContent=appSettings.houseName?'/ '+appSettings.houseName:'';});
+}
+function openSettings(){
+  var o=g('settings-overlay');if(!o)return;
+  sv('set-house-name',function(e){e.value=appSettings.houseName||'';});
+  var sw=document.querySelectorAll('.swatch');
+  for(var i=0;i<sw.length;i++)sw[i].classList.toggle('active',sw[i].dataset.color===appSettings.accentColor);
+  var tog=g('notif-toggle');if(tog)tog.className='toggle-switch'+(appSettings.notifEnabled?' on':'');
+  var tw=g('notif-time-wrap');if(tw)tw.style.display=appSettings.notifEnabled?'block':'none';
+  var nt=g('notif-time');if(nt)nt.value=appSettings.notifTime||'19:00';
+  o.classList.remove('hidden');
+  sv('settings-dot',function(e){e.style.display='none';});
+  localStorage.setItem('onboard_seen','1');
+}
+function closeSettings(){var o=g('settings-overlay');if(o)o.classList.add('hidden');}
+function closeSettingsOutside(e){if(e.target===g('settings-overlay'))closeSettings();}
+function saveHouseName(){var i=g('set-house-name');if(!i)return;appSettings.houseName=i.value.trim();saveSettings();applySettings();toast('Nom sauvegarde');}
+function setAccentColor(s){appSettings.accentColor=s.dataset.color;appSettings.accentLight=s.dataset.light;var sw=document.querySelectorAll('.swatch');for(var i=0;i<sw.length;i++)sw[i].classList.remove('active');s.classList.add('active');saveSettings();applySettings();}
+function toggleNotif(){
+  if(!appSettings.notifEnabled){
+    if(!('Notification' in window)){toast('Non supporte');return;}
+    if(Notification.permission==='denied'){
+      toast('Bloque - Activez dans Brave > Reglages site > Notifications');return;
+    }
+    Notification.requestPermission(function(p){
+      if(p==='granted'){appSettings.notifEnabled=true;saveSettings();var tog=g('notif-toggle');if(tog)tog.className='toggle-switch on';sv('notif-time-wrap',function(e){e.style.display='block';});toast('Notifications activees');scheduleNotifCheck();}
+      else{toast('Permission refusee');}
+    });
+  } else {
+    appSettings.notifEnabled=false;saveSettings();
+    var tog=g('notif-toggle');if(tog)tog.className='toggle-switch';
+    var tw=g('notif-time-wrap');if(tw)tw.style.display='none';
+    toast('Notifications desactivees');
+  }
+}
+function saveNotifTime(){var nt=g('notif-time');if(!nt)return;appSettings.notifTime=nt.value;saveSettings();toast('Heure : '+nt.value);}
+function scheduleNotifCheck(){
+  if(!appSettings.notifEnabled)return;
+  clearInterval(window._notifInterval);
+  window._notifInterval=setInterval(function(){
+    var now=new Date();
+    var hhmm=(now.getHours()<10?'0':'')+now.getHours()+':'+(now.getMinutes()<10?'0':'')+now.getMinutes();
+    if(hhmm===appSettings.notifTime)sendDailyNotif();
+  },60000);
+}
+function sendDailyNotif(){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  var urgent=tasks.filter(function(t){return!t.done&&tstat(t)==='urgent';});
+  var soon=tasks.filter(function(t){return!t.done&&tstat(t)==='soon';});
+  if(!urgent.length&&!soon.length)return;
+  var msg=(urgent.length?urgent.length+' tache'+(urgent.length>1?'s':'')+' en retard. ':'')+( soon.length?soon.length+' tache'+(soon.length>1?'s':'')+' ce mois.':'');
+  try{new Notification('Domicile',{body:msg,icon:'icon-192.png',tag:'domicile-daily'});}catch(e){}
+}
+function renderOnboard(){
+  var ob=g('onboard-banner');if(!ob)return;
+  if(localStorage.getItem('onboard_seen')){ob.innerHTML='';return;}
+  ob.innerHTML='<div style="background:linear-gradient(135deg,rgba(200,133,90,.12),rgba(200,133,90,.06));border:1px solid rgba(200,133,90,.3);border-radius:8px;padding:11px 13px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;gap:10px;">'
+    +'<div><div style="font-size:12px;color:var(--cl);margin-bottom:2px;">&#9881; Personnalisez votre app</div>'
+    +'<div style="font-size:11px;color:var(--dim);">Nom, couleurs, notifications...</div></div>'
+    +'<div style="display:flex;gap:6px;flex-shrink:0;">'
+    +'<button class="bp" style="font-size:10px;padding:6px 10px;" onclick="openSettings();dismissOnboard()">Ouvrir</button>'
+    +'<button class="bs" style="font-size:10px;padding:5px 7px;" onclick="dismissOnboard()">&#10005;</button>'
+    +'</div></div>';
+  sv('settings-dot',function(e){e.style.display='block';});
+}
+function dismissOnboard(){localStorage.setItem('onboard_seen','1');sv('onboard-banner',function(e){e.innerHTML='';});sv('settings-dot',function(e){e.style.display='none';});}
+
 // ── TRAVAUX ──
 var TRV_KEY='dtravaux_v1';
 var trvProjs=[];
