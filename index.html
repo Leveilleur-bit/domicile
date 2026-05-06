@@ -448,7 +448,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
       <div class="tl" id="d-sn"></div>
     </div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
     <div>
       <div class="stit">Travaux en cours</div>
       <div id="d-trv-wip"></div>
@@ -458,6 +458,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
       <div id="d-trv-todo"></div>
     </div>
   </div>
+  <div id="d-birthdays"></div>
 </div>
 
 <!-- TASKS -->
@@ -527,11 +528,11 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
       <div><label class="flbl">Titre</label><input type="text" id="evt-title" placeholder="Anniversaire Marie..."></div>
       <div><label class="flbl">Date</label><input type="date" id="evt-date"></div>
       <div><label class="flbl">Type</label>
-        <select id="evt-type"><option value="birthday">&#127881; Anniversaire</option><option value="rdv">&#128197; RDV</option><option value="evt">&#11088; Evenement</option><option value="fete">&#127878; Fete</option></select>
+        <select id="evt-type" onchange="onEvtTypeChange(this)"><option value="birthday">&#127881; Anniversaire</option><option value="rdv">&#128197; RDV</option><option value="evt">&#11088; Evenement</option><option value="fete">&#127878; Fete</option></select>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div><label class="flbl">Rappel</label><select id="evt-reminder"><option value="0">Pas de rappel</option><option value="1">1 jour avant</option><option value="3">3 jours avant</option><option value="7">1 semaine avant</option><option value="30">1 mois avant</option></select></div>
+      <div><label class="flbl">Rappel</label><select id="evt-reminder"><option value="0">Pas de rappel</option><option value="1">1 jour avant</option><option value="3">3 jours avant</option><option value="7">1 semaine avant</option><option value="14">2 semaines avant</option><option value="30">1 mois avant</option></select></div>
       <div><label class="flbl">Recurrence</label><select id="evt-recur"><option value="none">Aucune</option><option value="yearly">Chaque annee</option></select></div>
     </div>
     <button class="bp" onclick="addEvt()">+ Ajouter</button>
@@ -1230,6 +1231,28 @@ function renderHist(){
   el.innerHTML=h;
 }
 
+function renderDashBirthdays(){
+  var el=g('d-birthdays');if(!el)return;
+  var upcoming=getUpcomingBirthdays(30);
+  if(!upcoming.length){el.innerHTML='';return;}
+  var h='<div class="stit">Anniversaires a venir</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:16px;">';
+  upcoming.forEach(function(b){
+    var urgent=b.diff<=3;var soon=b.diff<=7;
+    var color=urgent?'var(--red)':soon?'var(--amber)':'var(--purple)';
+    var diffTxt=b.diff===0?'Aujourd hui !':b.diff===1?'Demain':'dans '+b.diff+' j';
+    h+='<div style="background:var(--bg2);border:1px solid '+(urgent?'rgba(224,112,96,.4)':soon?'rgba(240,192,96,.3)':'rgba(160,128,204,.25)' )+';border-radius:7px;padding:12px;position:relative;overflow:hidden;">'
+      +'<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+color+';"></div>'
+      +'<div style="font-size:18px;margin-bottom:5px;">&#127881;</div>'
+      +'<div style="font-size:12px;color:var(--text);font-family:Inter,sans-serif;font-weight:500;margin-bottom:3px;">'+eh(b.title)+'</div>'
+      +'<div style="font-size:11px;color:'+color+';">'+diffTxt+'</div>'
+      +'<div style="font-size:10px;color:var(--dim);margin-top:2px;">'+b.date.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+'</div>'
+      +'</div>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+
 function renderAll(){saveT();renderStats();renderDash();renderTasks();}
 
 // PELLET
@@ -1845,13 +1868,44 @@ function scheduleNotifCheck(){
     if(hhmm===appSettings.notifTime)sendDailyNotif();
   },60000);
 }
+function getUpcomingBirthdays(days){
+  var today=new Date();today.setHours(0,0,0,0);
+  var result=[];
+  events.forEach(function(e){
+    if(e.type!=='birthday')return;
+    var d=new Date(e.date);
+    // Pour recurrence annuelle, utiliser l annee courante
+    var thisYear=new Date(today.getFullYear(),d.getMonth(),d.getDate());
+    thisYear.setHours(0,0,0,0);
+    // Si deja passe cette annee, regarder l annee prochaine
+    if(thisYear<today)thisYear.setFullYear(today.getFullYear()+1);
+    var diff=Math.floor((thisYear-today)/86400000);
+    if(diff<=days)result.push({title:e.title,diff:diff,date:thisYear});
+  });
+  result.sort(function(a,b){return a.diff-b.diff;});
+  return result;
+}
+
 function sendDailyNotif(){
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   var urgent=tasks.filter(function(t){return!t.done&&tstat(t)==='urgent';});
   var soon=tasks.filter(function(t){return!t.done&&tstat(t)==='soon';});
-  if(!urgent.length&&!soon.length)return;
-  var msg=(urgent.length?urgent.length+' tache'+(urgent.length>1?'s':'')+' en retard. ':'')+( soon.length?soon.length+' tache'+(soon.length>1?'s':'')+' ce mois.':'');
-  try{new Notification('Domicile',{body:msg,icon:'icon-192.png',tag:'domicile-daily'});}catch(e){}
+  // Anniversaires dans les 7 jours avec rappel configure
+  var bdayReminders=events.filter(function(e){
+    if(!e.reminder||e.type!=='birthday')return false;
+    var d=new Date(e.date);
+    var today=new Date();today.setHours(0,0,0,0);
+    var thisYear=new Date(today.getFullYear(),d.getMonth(),d.getDate());
+    thisYear.setHours(0,0,0,0);
+    if(thisYear<today)thisYear.setFullYear(today.getFullYear()+1);
+    return Math.floor((thisYear-today)/86400000)===parseInt(e.reminder);
+  });
+  if(!urgent.length&&!soon.length&&!bdayReminders.length)return;
+  var msg='';
+  if(urgent.length)msg+=urgent.length+' tache'+(urgent.length>1?'s':'')+' en retard. ';
+  if(soon.length)msg+=soon.length+' tache'+(soon.length>1?'s':'')+' ce mois. ';
+  bdayReminders.forEach(function(e){msg+='Anniversaire de '+e.title+' dans '+e.reminder+' jour'+(e.reminder>1?'s':'')+' ! ';});
+  try{new Notification('Domicile',{body:msg.trim(),icon:'icon-192.png',tag:'domicile-daily'});}catch(e){}
 }
 function renderOnboard(){
   var ob=g('onboard-banner');if(!ob)return;
@@ -2169,6 +2223,12 @@ function calTab(tab,btn){
   for(var i=0;i<calFltrs.length;i++)calFltrs[i].classList.remove('on');
   btn.classList.add('on');
   renderCal();
+}
+
+function onEvtTypeChange(sel){
+  var rem=g('evt-reminder');if(!rem)return;
+  if(sel.value==='birthday'&&rem.value==='0')rem.value='7';
+  if(sel.value==='rdv'&&rem.value==='0')rem.value='1';
 }
 
 function addEvt(){
