@@ -447,14 +447,21 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   <button class="tab" data-view="travaux" onclick="showView('travaux',this)"><span style="font-size:14px;display:block;">&#127959;</span>Travaux</button>
   <button class="tab" data-view="cal" onclick="showView('cal',this)"><span style="font-size:14px;display:block;">&#128197;</span>Calendrier</button>
   <button id="more-btn" onclick="toggleMore()" style="flex:0 0 44px;background:transparent;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:8px 4px;">&#8943;</button>
-  <div id="more-menu" style="display:none;position:absolute;top:100%;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px;min-width:155px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:fu .15s ease;">
+  <div id="more-menu" style="display:none;position:fixed;top:96px;right:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:165px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.7);">
     <div onclick="showView('notes',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128203; Notes</div>
     <div onclick="showView('cpt',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128268; Compteurs</div>
     <div onclick="showView('stats',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128202; Stats</div>
     <div onclick="showView('hist',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128203; Historique</div>
   </div>
 </div>
-
+</div>
+<div id="more-menu" style="display:none;position:fixed;top:96px;right:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:165px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.6);">
+  <div onclick="showView('cal',this);toggleMore()" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text);">&#128197; Calendrier</div>
+  <div onclick="showView('cpt',this);toggleMore()" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text);">&#128268; Compteurs</div>
+  <div onclick="showView('stats',this);toggleMore()" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text);">&#128202; Stats</div>
+  <div onclick="showView('hist',this);toggleMore()" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text);">&#128203; Historique</div>
+  <div onclick="showView('notes',this);toggleMore()" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text);">&#128203; Notes</div>
+</div>
 <main>
 
 <!-- DASHBOARD -->
@@ -846,7 +853,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 </div>
 
 <!-- EDIT MODAL -->
-<div class="modal-overlay hidden" id="edit-modal" onclick="closeModal(event)">
+<div class="modal-overlay hidden" id="edit-modal" onclick="closeModal(event)" style="display:none;">
   <div class="modal">
     <button class="modal-close" onclick="closeEditModal()">&#10005;</button>
     <div class="modal-title">Modifier la tache</div>
@@ -900,7 +907,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 </div>
 
 <!-- NOTE MODAL -->
-<div id="note-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeNoteModal(event)">
+<div id="note-modal" class="hidden" style="display:none;" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeNoteModal(event)">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:18px 16px 26px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:fu .3s ease;border-top:3px solid var(--copper);">
     <div style="font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:16px;letter-spacing:3px;color:var(--cl);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
       <span id="note-modal-title">Nouvelle note</span>
@@ -928,6 +935,48 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     </div>
   </div>
 </div>
+<!-- SETTINGS PANEL -->
+<div id="settings-overlay" onclick="closeSettingsOutside(event)" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:20px 18px 32px;width:100%;max-width:580px;max-height:88vh;overflow-y:auto;animation:fu .3s ease;">
+    <div style="font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:18px;letter-spacing:3px;color:var(--cl);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+      Parametres <button class="bi" onclick="closeSettings()">&#10005;</button>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Nom de la maison</div>
+      <div style="display:flex;gap:7px;"><input type="text" id="set-house-name" placeholder="Ex: Notre maison..." style="flex:1;"><button class="bp" onclick="saveHouseName()">OK</button></div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Couleur principale</div>
+      <div id="color-swatches" style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="width:32px;height:32px;border-radius:50%;background:#c8855a;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch active" data-color="#c8855a" data-light="#e8a882" onclick="setAccentColor(this)"></div>
+        <div style="width:32px;height:32px;border-radius:50%;background:#7aadcc;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#7aadcc" data-light="#a0cce0" onclick="setAccentColor(this)"></div>
+        <div style="width:32px;height:32px;border-radius:50%;background:#6bbf8e;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#6bbf8e" data-light="#90d4a8" onclick="setAccentColor(this)"></div>
+        <div style="width:32px;height:32px;border-radius:50%;background:#e07060;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#e07060" data-light="#f09080" onclick="setAccentColor(this)"></div>
+        <div style="width:32px;height:32px;border-radius:50%;background:#a080cc;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#a080cc" data-light="#c0a0e0" onclick="setAccentColor(this)"></div>
+        <div style="width:32px;height:32px;border-radius:50%;background:#f0c060;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#f0c060" data-light="#f8d888" onclick="setAccentColor(this)"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Notifications</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:12px;color:var(--text);">Rappels de taches</div>
+          <div style="font-size:10px;color:var(--dim);">Notification si taches urgentes</div>
+        </div>
+        <div class="toggle-switch" id="notif-toggle" onclick="toggleNotif()"></div>
+      </div>
+      <div id="notif-time-wrap" style="display:none;">
+        <div style="display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 12px;">
+          <span style="font-size:11px;color:var(--text);">Heure du rappel</span>
+          <input type="time" id="notif-time" value="19:00" style="width:95px;flex:none;" onchange="saveNotifTime()">
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:10px;color:var(--dim);margin-top:14px;">DOMICILE v2.0 - 06/05/2026</div>
+    <button class="bp" style="width:100%;margin-top:10px;" onclick="closeSettings()">Fermer</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1968,11 +2017,11 @@ function openSettings(){
   var tog=g('notif-toggle');if(tog)tog.className='toggle-switch'+(appSettings.notifEnabled?' on':'');
   var tw=g('notif-time-wrap');if(tw)tw.style.display=appSettings.notifEnabled?'block':'none';
   var nt=g('notif-time');if(nt)nt.value=appSettings.notifTime||'19:00';
-  o.classList.remove('hidden');
+  o.classList.remove('hidden');o.style.display='flex';
   sv('settings-dot',function(e){e.style.display='none';});
   localStorage.setItem('onboard_seen','1');
 }
-function closeSettings(){var o=g('settings-overlay');if(o)o.classList.add('hidden');}
+function closeSettings(){var o=g('settings-overlay');if(o){o.classList.add('hidden');o.style.display='none';}}
 function closeSettingsOutside(e){if(e.target===g('settings-overlay'))closeSettings();}
 function saveHouseName(){var i=g('set-house-name');if(!i)return;appSettings.houseName=i.value.trim();saveSettings();applySettings();toast('Nom sauvegarde');}
 function setAccentColor(s){appSettings.accentColor=s.dataset.color;appSettings.accentLight=s.dataset.light;var sw=document.querySelectorAll('.swatch');for(var i=0;i<sw.length;i++)sw[i].classList.remove('active');s.classList.add('active');saveSettings();applySettings();}
@@ -2301,7 +2350,7 @@ function openNoteEditor(id){
 
 function closeNoteModal(e){
   if(!e||e.target===g('note-modal')){
-    var m=g('note-modal');if(m)m.classList.add('hidden');
+    var m=g('note-modal');if(m){m.classList.add('hidden');m.style.display='none';}
     noteEditId=null;noteTmpCl=[];
   }
 }
@@ -2438,7 +2487,18 @@ function renderTodayEvents(){
 function toggleMore(){
   var m=g('more-menu');if(!m)return;
   var isOpen=m.style.display==='block';
-  m.style.display=isOpen?'none':'block';
+  if(!isOpen){
+    var btn=g('more-btn');
+    if(btn){
+      var rect=btn.getBoundingClientRect();
+      m.style.top=(rect.bottom+6)+'px';
+      m.style.right=Math.max(4,window.innerWidth-rect.right-4)+'px';
+      m.style.left='auto';
+    }
+    m.style.display='block';
+  } else {
+    m.style.display='none';
+  }
 }
 document.addEventListener('click',function(e){
   var m=g('more-menu'),b=g('more-btn');
