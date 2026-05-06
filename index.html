@@ -379,6 +379,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   #notes-grid{grid-template-columns:1fr 1fr!important;}
 }
 @media(max-width:380px){#notes-grid{grid-template-columns:1fr!important;}}
+.hidden{display:none!important;}
 </style>
 </head>
 <body>
@@ -844,7 +845,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 </div>
 
 <!-- NOTE MODAL -->
-<div id="note-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" class="hidden" onclick="closeNoteModal(event)">
+<div id="note-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeNoteModal(event)">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:18px 16px 26px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:fu .3s ease;border-top:3px solid var(--copper);">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--cl);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
       <span id="note-modal-title">Nouvelle note</span>
@@ -1943,7 +1944,7 @@ function openNoteEditor(id){
     if(delBtn)delBtn.style.display='none';
   }
   toggleNoteType();renderClItems();
-  m.classList.remove('hidden');
+  m.classList.remove('hidden');m.style.display='flex';
 }
 
 function closeNoteModal(e){
