@@ -393,6 +393,36 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 .trv-mini-pct{font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:14px;letter-spacing:1px;flex-shrink:0;}
 .trv-mini-pct.wip{color:var(--amber);}
 .trv-mini-pct.todo{color:var(--blue);}
+
+/* Compteurs dashboard */
+.cpt-dash{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:14px;margin-bottom:14px;}
+.cpt-dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cpt-dash-title{font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:13px;letter-spacing:3px;color:var(--copper);}
+.cpt-dash-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.cpt-dash-card{background:var(--bg3);border-radius:5px;padding:10px 12px;position:relative;overflow:hidden;}
+.cpt-dash-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.cpt-dash-card.elec::before{background:var(--amber);}
+.cpt-dash-card.eau::before{background:var(--blue);}
+.cpt-dash-ico{font-size:16px;margin-bottom:3px;}
+.cpt-dash-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:3px;}
+.cpt-dash-val{font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:24px;line-height:1;letter-spacing:2px;}
+.cpt-dash-card.elec .cpt-dash-val{color:var(--amber);}
+.cpt-dash-card.eau .cpt-dash-val{color:var(--blue);}
+.cpt-dash-delta{font-size:10px;margin-top:3px;}
+.cpt-dash-card.elec .cpt-dash-delta{color:var(--amber);}
+.cpt-dash-card.eau .cpt-dash-delta{color:var(--blue);}
+.cpt-dash-date{font-size:9px;color:var(--dim);margin-top:1px;}
+/* Mini bar chart */
+.cpt-mini-chart{display:flex;align-items:flex-end;gap:3px;height:50px;margin-bottom:6px;}
+.cpt-mini-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.cpt-mini-bar{width:100%;border-radius:2px 2px 0 0;min-height:2px;transition:height .3s;}
+.cpt-mini-bar.elec{background:linear-gradient(180deg,#ffe066,var(--amber));}
+.cpt-mini-bar.eau{background:linear-gradient(180deg,#66d4f0,var(--blue));}
+.cpt-mini-lbl{font-size:8px;color:var(--dim);white-space:nowrap;}
+/* Rappel releve */
+.releve-banner{background:rgba(122,173,204,.1);border:1px solid rgba(122,173,204,.3);border-radius:6px;padding:9px 13px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:var(--blue);}
+.releve-banner button{background:var(--blue);border:none;border-radius:4px;color:#fff;font-family:'DM Mono',monospace;font-size:10px;padding:5px 10px;cursor:pointer;}
+@media(max-width:600px){.cpt-dash-cards{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
 <body>
@@ -459,6 +489,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     </div>
   </div>
   <div id="d-birthdays"></div>
+  <div id="d-cpt-releve"></div>
 </div>
 
 <!-- TASKS -->
@@ -1253,7 +1284,111 @@ function renderDashBirthdays(){
   el.innerHTML=h;
 }
 
-function renderAll(){saveT();renderStats();renderDash();renderTasks();}
+function renderDashCpt(){
+  var el=g('d-cpt-releve');if(!el)return;
+  var today=new Date();
+  var isFirst=today.getDate()===1;
+  var elecData=cptData.elec||[];
+  var eauData=cptData.eau||[];
+  var hasData=elecData.length>0||eauData.length>0;
+  if(!hasData&&!isFirst){el.innerHTML='';return;}
+  var h='<div class="cpt-dash">';
+  h+='<div class="cpt-dash-header"><span class="cpt-dash-title">Compteurs</span>';
+  h+='<button class="bs" style="font-size:9px;padding:4px 9px;" onclick="goToCpt()">Voir tout</button></div>';
+  if(isFirst){
+    var lastElec=elecData.length?elecData[elecData.length-1]:null;
+    var lastEau=eauData.length?eauData[eauData.length-1]:null;
+    var lastMonth=new Date(today.getFullYear(),today.getMonth()-1,1);
+    var needsElec=!lastElec||new Date(lastElec.date)<lastMonth;
+    var needsEau=!lastEau||new Date(lastEau.date)<lastMonth;
+    if(needsElec||needsEau){
+      h+='<div class="releve-banner">'
+        +'<span>&#128197; 1er du mois - Pensez a relever vos compteurs'+(needsElec?' &#9889;':'')+(needsEau?' &#128167;':'')+'</span>'
+        +'<button onclick="goToCpt()">Saisir</button>'
+        +'</div>';
+    }
+  }
+  h+='<div class="cpt-dash-cards">';
+  var lastE=elecData.length?elecData[elecData.length-1]:null;
+  var prevE=elecData.length>=2?elecData[elecData.length-2]:null;
+  var deltaE=lastE&&prevE?lastE.index-prevE.index:null;
+  h+='<div class="cpt-dash-card elec">'
+    +'<div class="cpt-dash-ico">&#9889;</div>'
+    +'<div class="cpt-dash-lbl">Electricite</div>'
+    +'<div class="cpt-dash-val">'+(lastE?lastE.index.toLocaleString('fr-FR'):'-')+'</div>'
+    +(deltaE!==null?'<div class="cpt-dash-delta">'+(deltaE>=0?'+':'')+deltaE+' kWh</div>':'')
+    +'<div class="cpt-dash-date">'+(lastE?fd(lastE.date):'Aucun releve')+'</div>'
+    +'</div>';
+  var lastW=eauData.length?eauData[eauData.length-1]:null;
+  var prevW=eauData.length>=2?eauData[eauData.length-2]:null;
+  var deltaW=lastW&&prevW?lastW.index-prevW.index:null;
+  h+='<div class="cpt-dash-card eau">'
+    +'<div class="cpt-dash-ico">&#128167;</div>'
+    +'<div class="cpt-dash-lbl">Eau</div>'
+    +'<div class="cpt-dash-val">'+(lastW?lastW.index.toLocaleString('fr-FR'):'-')+'</div>'
+    +(deltaW!==null?'<div class="cpt-dash-delta">'+(deltaW>=0?'+':'')+deltaW+' m3</div>':'')
+    +'<div class="cpt-dash-date">'+(lastW?fd(lastW.date):'Aucun releve')+'</div>'
+    +'</div>';
+  h+='</div>';
+  if(elecData.length>=2||eauData.length>=2){
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    h+='<div>';
+    if(elecData.length>=2){
+      var econsos=[];
+      for(var ei=1;ei<elecData.length;ei++){var ed=new Date(elecData[ei].date);econsos.push({val:elecData[ei].index-elecData[ei-1].index,lbl:(ed.getMonth()+1)+'/'+String(ed.getFullYear()).slice(2)});}
+      var recentE=econsos.slice(-6);var maxE=1;recentE.forEach(function(r){if(r.val>maxE)maxE=r.val;});
+      h+='<div style="font-size:9px;color:var(--amber);letter-spacing:1px;margin-bottom:4px;">&#9889; kWh</div>';
+      h+='<div class="cpt-mini-chart">';
+      recentE.forEach(function(r){var hh=Math.round(r.val/maxE*44);h+='<div class="cpt-mini-bar-wrap"><div class="cpt-mini-bar elec" style="height:'+hh+'px;" title="'+r.val+' kWh"></div><div class="cpt-mini-lbl">'+r.lbl+'</div></div>';});
+      h+='</div>';
+    }
+    h+='</div><div>';
+    if(eauData.length>=2){
+      var wconsos=[];
+      for(var wi=1;wi<eauData.length;wi++){var wd=new Date(eauData[wi].date);wconsos.push({val:eauData[wi].index-eauData[wi-1].index,lbl:(wd.getMonth()+1)+'/'+String(wd.getFullYear()).slice(2)});}
+      var recentW=wconsos.slice(-6);var maxW=1;recentW.forEach(function(r){if(r.val>maxW)maxW=r.val;});
+      h+='<div style="font-size:9px;color:var(--blue);letter-spacing:1px;margin-bottom:4px;">&#128167; m3</div>';
+      h+='<div class="cpt-mini-chart">';
+      recentW.forEach(function(r){var hh=Math.round(r.val/maxW*44);h+='<div class="cpt-mini-bar-wrap"><div class="cpt-mini-bar eau" style="height:'+hh+'px;" title="'+r.val+' m3"></div><div class="cpt-mini-lbl">'+r.lbl+'</div></div>';});
+      h+='</div>';
+    }
+    h+='</div></div>';
+  }
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function goToCpt(){
+  var mm=g('more-menu');if(mm)mm.style.display='block';
+  var divs=document.querySelectorAll('#more-menu div');
+  for(var i=0;i<divs.length;i++){
+    if((divs[i].getAttribute('onclick')||'').indexOf("'cpt'")>=0){divs[i].click();return;}
+  }
+}
+
+function renderDashBirthdays(){
+  var el=g('d-birthdays');if(!el)return;
+  var upcoming=getUpcomingBirthdays(30);
+  if(!upcoming.length){el.innerHTML='';return;}
+  var h='<div class="stit">Anniversaires a venir</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:14px;">';
+  upcoming.forEach(function(b){
+    var color=b.diff<=3?'var(--red)':b.diff<=7?'var(--amber)':'var(--purple)';
+    var bc=b.diff<=3?'rgba(224,112,96,.3)':b.diff<=7?'rgba(240,192,96,.25)':'rgba(160,128,204,.2)';
+    var diffTxt=b.diff===0?'Aujourd hui !':b.diff===1?'Demain':'dans '+b.diff+'j';
+    h+='<div style="background:var(--bg2);border:1px solid '+bc+';border-radius:7px;padding:11px;position:relative;overflow:hidden;">'
+      +'<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+color+';"></div>'
+      +'<div style="font-size:16px;margin-bottom:4px;">&#127881;</div>'
+      +'<div style="font-size:12px;color:var(--text);font-family:Inter,sans-serif;font-weight:500;margin-bottom:2px;">'+eh(b.title)+'</div>'
+      +'<div style="font-size:11px;color:'+color+';">'+diffTxt+'</div>'
+      +'<div style="font-size:9px;color:var(--dim);margin-top:2px;">'+b.date.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+'</div>'
+      +'</div>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderOnboard();}
 
 // PELLET
 function defP(){
@@ -1550,7 +1685,7 @@ function addReleve(){
   cptData[type].push({id:uid(),date:date,index:idx,note:note});
   cptData[type].sort(function(a,b){return a.date.localeCompare(b.date);});
   g('cpt-index').value='';g('cpt-note').value='';
-  saveCpt();renderCpt();toast('Releve enregistre');
+  saveCpt();renderCpt();renderDashCpt();toast('Releve enregistre');
 }
 
 function switchCptTab(tab,btn){
@@ -1900,11 +2035,23 @@ function sendDailyNotif(){
     if(thisYear<today)thisYear.setFullYear(today.getFullYear()+1);
     return Math.floor((thisYear-today)/86400000)===parseInt(e.reminder);
   });
-  if(!urgent.length&&!soon.length&&!bdayReminders.length)return;
+  // Rappel releve compteurs le 1er du mois
+  var today2=new Date();
+  var isFirst2=today2.getDate()===1;
+  var needsCptReleve=false;
+  if(isFirst2){
+    var elecD=cptData.elec||[];var eauD=cptData.eau||[];
+    var lastMonth2=new Date(today2.getFullYear(),today2.getMonth()-1,1);
+    var lastE2=elecD.length?elecD[elecD.length-1]:null;
+    var lastW2=eauD.length?eauD[eauD.length-1]:null;
+    needsCptReleve=(!lastE2||new Date(lastE2.date)<lastMonth2)||(!lastW2||new Date(lastW2.date)<lastMonth2);
+  }
+  if(!urgent.length&&!soon.length&&!bdayReminders.length&&!needsCptReleve)return;
   var msg='';
   if(urgent.length)msg+=urgent.length+' tache'+(urgent.length>1?'s':'')+' en retard. ';
   if(soon.length)msg+=soon.length+' tache'+(soon.length>1?'s':'')+' ce mois. ';
   bdayReminders.forEach(function(e){msg+='Anniversaire de '+e.title+' dans '+e.reminder+' jour'+(e.reminder>1?'s':'')+' ! ';});
+  if(needsCptReleve)msg+='Pensez a relever vos compteurs eau et electricite !';
   try{new Notification('Domicile',{body:msg.trim(),icon:'icon-192.png',tag:'domicile-daily'});}catch(e){}
 }
 function renderOnboard(){
