@@ -380,6 +380,19 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 }
 @media(max-width:380px){#notes-grid{grid-template-columns:1fr!important;}}
 .hidden{display:none!important;}
+
+/* Travaux dash cards */
+.trv-mini{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:5px;display:flex;align-items:center;gap:9px;transition:border-color .15s,background .15s;cursor:pointer;}
+.trv-mini:hover{border-color:rgba(200,133,90,.4);background:var(--bg3);}
+.trv-mini-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.trv-mini-dot.wip{background:var(--amber);}
+.trv-mini-dot.todo{background:var(--blue);}
+.trv-mini-dot.paused{background:var(--dim);}
+.trv-mini-name{font-size:12px;color:var(--text);font-family:'Inter',system-ui,sans-serif;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.trv-mini-info{font-size:10px;color:var(--dim);white-space:nowrap;}
+.trv-mini-pct{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;flex-shrink:0;}
+.trv-mini-pct.wip{color:var(--amber);}
+.trv-mini-pct.todo{color:var(--blue);}
 </style>
 </head>
 <body>
@@ -425,7 +438,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <div class="sc g"><div class="sc-l">Effectuees</div><div class="sc-v" id="s-dn">0</div></div>
     <div class="sc b"><div class="sc-l">Planifiees</div><div class="sc-v" id="s-tot">0</div></div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
     <div>
       <div class="stit">A faire maintenant</div>
       <div class="tl" id="d-urg"></div>
@@ -433,6 +446,16 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <div>
       <div class="stit">Ce mois-ci</div>
       <div class="tl" id="d-sn"></div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div>
+      <div class="stit">Travaux en cours</div>
+      <div id="d-trv-wip"></div>
+    </div>
+    <div>
+      <div class="stit">Travaux a prevoir</div>
+      <div id="d-trv-todo"></div>
     </div>
   </div>
 </div>
@@ -1086,6 +1109,48 @@ function renderDash(){
   var sn=tasks.filter(function(t){return!t.done&&tstat(t)==='soon';}).sort(function(a,b){return a.date.localeCompare(b.date);});
   sv('d-urg',function(e){e.innerHTML=urg.length?urg.map(thtml).join(''):'<div class="empty"><div class="eico">&#10003;</div>Aucune tache urgente</div>';});
   sv('d-sn',function(e){e.innerHTML=sn.length?sn.map(thtml).join(''):'<div class="empty"><div class="eico">&#9671;</div>Rien ce mois-ci</div>';});
+  renderDashTravaux();
+}
+
+function trvMiniHtml(p,cls){
+  var pct=trvPct(p);
+  var zone=p.zone?'<span style="font-size:9px;color:var(--dim);">'+eh(p.zone)+'</span>':'';
+  var spent=trvSpent(p);
+  var info=spent?spent+' EUR depense':(p.budget?'Est. '+p.budget+' EUR':'');
+  return '<div class="trv-mini" onclick="goTrv()">'
+    +'<span class="trv-mini-dot '+cls+'"></span>'
+    +'<div style="flex:1;min-width:0;">'
+    +'<div class="trv-mini-name">'+eh(p.name)+'</div>'
+    +'<div style="display:flex;gap:6px;margin-top:2px;align-items:center;">'+zone
+    +(info?'<span style="font-size:9px;color:var(--copper);">'+info+'</span>':'')
+    +'</div></div>'
+    +'<span class="trv-mini-pct '+cls+'">'+pct+'%</span>'
+    +'</div>';
+}
+
+function renderDashTravaux(){
+  var wip=trvProjs.filter(function(p){return p.status==='wip';});
+  var todo=trvProjs.filter(function(p){return p.status==='todo';});
+  var po={high:0,medium:1,low:2};
+  wip.sort(function(a,b){return (po[a.priority]||1)-(po[b.priority]||1);});
+  todo.sort(function(a,b){return (po[a.priority]||1)-(po[b.priority]||1);});
+  sv('d-trv-wip',function(e){
+    if(!wip.length){e.innerHTML='<div class="empty"><div class="eico">&#127959;</div>Aucun travaux en cours</div>';return;}
+    e.innerHTML=wip.slice(0,3).map(function(p){return trvMiniHtml(p,'wip');}).join('');
+    if(wip.length>3)e.innerHTML+='<div style="font-size:10px;color:var(--dim);padding:5px 10px;">+ '+(wip.length-3)+' autre'+(wip.length-3>1?'s':'')+'</div>';
+  });
+  sv('d-trv-todo',function(e){
+    if(!todo.length){e.innerHTML='<div class="empty"><div class="eico">&#128203;</div>Aucun travaux planifie</div>';return;}
+    e.innerHTML=todo.slice(0,3).map(function(p){return trvMiniHtml(p,'todo');}).join('');
+    if(todo.length>3)e.innerHTML+='<div style="font-size:10px;color:var(--dim);padding:5px 10px;">+ '+(todo.length-3)+' autre'+(todo.length-3>1?'s':'')+'</div>';
+  });
+}
+
+function goTrv(){
+  var tabs=document.querySelectorAll('.tab');
+  for(var i=0;i<tabs.length;i++){
+    if(tabs[i].dataset&&tabs[i].dataset.view==='travaux'){showView('travaux',tabs[i]);return;}
+  }
 }
 
 function renderTasks(){
