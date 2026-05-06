@@ -402,10 +402,10 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   <button class="tab" data-view="tasks" onclick="showView('tasks',this)"><span style="font-size:14px;display:block;">&#9989;</span>Taches<span class="tbadge" id="bdg-tasks"></span></button>
   <button class="tab" data-view="pellet" onclick="showView('pellet',this)"><span style="font-size:14px;display:block;">&#128293;</span>Poele</button>
   <button class="tab" data-view="travaux" onclick="showView('travaux',this)"><span style="font-size:14px;display:block;">&#127959;</span>Travaux</button>
-  <button class="tab" data-view="notes" onclick="showView('notes',this)"><span style="font-size:14px;display:block;">&#128203;</span>Notes</button>
+  <button class="tab" data-view="cal" onclick="showView('cal',this)"><span style="font-size:14px;display:block;">&#128197;</span>Calendrier</button>
   <button id="more-btn" onclick="toggleMore()" style="flex:0 0 44px;background:transparent;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:8px 4px;">&#8943;</button>
   <div id="more-menu" style="display:none;position:absolute;top:100%;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px;min-width:155px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:fu .15s ease;">
-    <div onclick="showView('cal',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128197; Calendrier</div>
+    <div onclick="showView('notes',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128203; Notes</div>
     <div onclick="showView('cpt',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128268; Compteurs</div>
     <div onclick="showView('stats',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128202; Stats</div>
     <div onclick="showView('hist',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128203; Historique</div>
@@ -892,17 +892,20 @@ function sv(id,fn){var e=g(id);if(e)fn(e);}
 
 // NAV
 function showView(v,tab){
-  var vs=document.querySelectorAll('.view'),ts=document.querySelectorAll('.tab');
+  var vs=document.querySelectorAll('.view');
   for(var i=0;i<vs.length;i++)vs[i].classList.remove('on');
-  for(var i=0;i<ts.length;i++)ts[i].classList.remove('on');
+  var tabs=document.querySelectorAll('.tab');
+  for(var i=0;i<tabs.length;i++)tabs[i].classList.remove('on');
   var el=g('view-'+v);if(el)el.classList.add('on');
-  tab.classList.add('on');
+  if(tab)tab.classList.add('on');
   if(v==='pellet')renderP();
   if(v==='reno')renderR();
-  if(v==='stats')renderStats2();
-  if(v==='cpt'){renderCpt();}
+  if(v==='travaux')renderTrv();
+  if(v==='notes')renderNotes();
   if(v==='cal')renderCal();
   if(v==='hist')renderHist();
+  if(v==='stats')renderStats2();
+  if(v==='cpt')renderCpt();
 }
 
 // TASKS STORAGE
@@ -1709,12 +1712,15 @@ function importData(input){
 // INIT
 function init(){
   var now=new Date();
-  sv('hdate',function(e){e.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});});
+  sv('hdate',function(e){e.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});});
   sv('inp-date',function(e){e.value=tod();});
   sv('pmdate',function(e){e.value=tod();});
   sv('cpt-date',function(e){e.value=tod();});
-  loadT();loadP();loadR();loadCpt();
-  renderAll();
+  sv('evt-date',function(e){e.value=tod();});
+  loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();
+  renderAll();renderTodayEvents();
+  scheduleNotifCheck();
+  renderOnboard();
 }
 // ── TRAVAUX ──
 var TRV_KEY='dtravaux_v1';
@@ -2088,23 +2094,7 @@ document.addEventListener('click',function(e){
 });
 
 // ── UPDATE showView to handle new tabs ──
-var _origShowView=showView;
-showView=function(v,el){
-  var vs=document.querySelectorAll('.view');
-  for(var i=0;i<vs.length;i++)vs[i].classList.remove('on');
-  var tabs=document.querySelectorAll('.tab');
-  for(var i=0;i<tabs.length;i++)tabs[i].classList.remove('on');
-  var vEl=g('view-'+v);if(vEl)vEl.classList.add('on');
-  if(el)el.classList.add('on');
-  if(v==='pellet')renderP();
-  if(v==='reno')renderR();
-  if(v==='travaux')renderTrv();
-  if(v==='notes')renderNotes();
-  if(v==='cal')renderCal();
-  if(v==='hist')renderHist();
-  if(v==='stats')renderStats2();
-  if(v==='cpt')renderCpt();
-};
+// showView unified above
 
 // ── UPDATE exportData to include new data ──
 var _origExport=exportData;
@@ -2175,21 +2165,7 @@ renderCal=function(){
   cg.innerHTML=h;
 };
 
-// ── UPDATE init ──
-var _origInit=init;
-init=function(){
-  var now=new Date();
-  sv('hdate',function(e){e.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});});
-  sv('inp-date',function(e){e.value=tod();});
-  sv('pmdate',function(e){e.value=tod();});
-  sv('cpt-date',function(e){e.value=tod();});
-  sv('evt-date',function(e){e.value=tod();});
-  loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();
-  renderAll();renderTodayEvents();
-  scheduleNotifCheck();
-};
-init();
-
+// init consolidated above
 init();
 </script>
 </body>
