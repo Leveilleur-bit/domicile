@@ -1195,18 +1195,21 @@ function renderDash(){
 }
 
 function trvMiniHtml(p,cls){
-  var pct=trvPct(p);
   var zone=p.zone?'<span style="font-size:9px;color:var(--dim);">'+eh(p.zone)+'</span>':'';
   var spent=trvSpent(p);
-  var info=spent?spent+' EUR depense':(p.budget?'Est. '+p.budget+' EUR':'');
+  var info=spent?spent+' EUR':( p.budget?'Est. '+p.budget+' EUR':'');
+  var SLBL={todo:'A planifier',wip:'En cours',paused:'En pause','done-s':'Termine'};
+  var SCOL={todo:'var(--blue)',wip:'var(--amber)',paused:'var(--dim)','done-s':'var(--green)'};
+  var sLabel=SLBL[p.status]||p.status;
+  var sColor=SCOL[p.status]||'var(--dim)';
   return '<div class="trv-mini" onclick="goTrv()">'
     +'<span class="trv-mini-dot '+cls+'"></span>'
     +'<div style="flex:1;min-width:0;">'
     +'<div class="trv-mini-name">'+eh(p.name)+'</div>'
-    +'<div style="display:flex;gap:6px;margin-top:2px;align-items:center;">'+zone
+    +'<div style="display:flex;gap:6px;margin-top:3px;align-items:center;">'+zone
     +(info?'<span style="font-size:9px;color:var(--copper);">'+info+'</span>':'')
     +'</div></div>'
-    +'<span class="trv-mini-pct '+cls+'">'+pct+'%</span>'
+    +'<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(0,0,0,.2);color:'+sColor+';white-space:nowrap;flex-shrink:0;">'+sLabel+'</span>'
     +'</div>';
 }
 
