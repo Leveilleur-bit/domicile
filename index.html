@@ -598,20 +598,24 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:5px;display:flex;justify-content:space-between;"><span>Budget global</span><span id="trv-budget-display">0 EUR</span></div>
     <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;"><div id="trv-budget-bar" style="height:100%;border-radius:3px;background:var(--green);width:0%;transition:width .4s;"></div></div>
   </div>
-  <div class="card" style="margin-bottom:12px;">
-    <div class="stit" style="font-size:11px;">Nouveau projet</div>
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div><label class="flbl">Nom</label><input type="text" id="trv-name" placeholder="Ex: Ravalement facade..."></div>
-      <div><label class="flbl">Zone</label><select id="trv-zone"><option>General</option><option>Cuisine</option><option>Salon</option><option>Chambre</option><option>Salle de bain</option><option>Cave</option><option>Garage</option><option>Jardin</option><option>Toiture</option><option>Facade</option><option>Exterieur</option></select></div>
-      <div><label class="flbl">Statut</label><select id="trv-status"><option value="todo">A planifier</option><option value="wip">En cours</option><option value="paused">En pause</option></select></div>
-      <div><label class="flbl">Priorite</label><select id="trv-priority"><option value="high">Haute</option><option value="medium" selected>Moyenne</option><option value="low">Basse</option></select></div>
+  <div class="add-form" style="margin-bottom:12px;">
+    <div class="add-quick">
+      <input type="text" id="trv-name" placeholder="Nom du projet...">
+      <button class="bp" onclick="addTrv()">+</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div><label class="flbl">Budget estime (EUR)</label><input type="number" id="trv-budget" placeholder="0" min="0"></div>
-      <div><label class="flbl">Entreprise / Contact</label><input type="text" id="trv-contact" placeholder="Nom, tel..."></div>
-      <div><label class="flbl">Notes</label><input type="text" id="trv-notes" placeholder="Details..."></div>
+    <button class="add-expand-btn" onclick="toggleTrvDetail()">Plus d options...</button>
+    <div class="add-detail" id="trv-detail">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;margin-bottom:8px;">
+        <div><label class="flbl">Zone</label><select id="trv-zone"><option>General</option><option>Cuisine</option><option>Salon</option><option>Chambre</option><option>Salle de bain</option><option>Cave</option><option>Garage</option><option>Jardin</option><option>Toiture</option><option>Facade</option><option>Exterieur</option></select></div>
+        <div><label class="flbl">Statut</label><select id="trv-status"><option value="todo">A planifier</option><option value="wip">En cours</option><option value="paused">En pause</option></select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div><label class="flbl">Budget estime (EUR)</label><input type="number" id="trv-budget" placeholder="0" min="0"></div>
+        <div><label class="flbl">Notes</label><input type="text" id="trv-notes" placeholder="Details..."></div>
+      </div>
+      <input type="hidden" id="trv-contact" value="">
+      <input type="hidden" id="trv-priority" value="medium">
     </div>
-    <button class="bp" onclick="addTrv()">+ Creer le projet</button>
   </div>
   <div class="fltrs" id="trvfltrs">
     <button class="fb on" onclick="fTrv('all',this)">Tous</button>
@@ -1106,6 +1110,12 @@ function quickAdd(){
   saveT();renderAll();toast('Tache ajoutee');
 }
 
+function toggleTrvDetail(){
+  var d=g('trv-detail'),b=document.querySelector('.add-form .add-expand-btn');
+  if(!d)return;
+  if(d.classList.contains('open')){d.classList.remove('open');if(b)b.textContent='Plus d options...';}
+  else{d.classList.add('open');if(b)b.textContent='Moins d options';}
+}
 function toggleDetail(){
   var d=g('add-detail'),b=document.querySelector('.add-expand-btn');
   if(!d)return;
@@ -2141,7 +2151,10 @@ function renderTrv(){
   sv('trv-wip',function(e){e.textContent=wip;});
   sv('trv-done',function(e){e.textContent=dn;});
   sv('trv-spent',function(e){e.textContent=totalSpent>=1000?(totalSpent/1000).toFixed(1)+'k':totalSpent;});
-  sv('trv-budget-display',function(e){e.textContent=totalSpent+' EUR depense / '+totalEst+' EUR estime';});
+  sv('trv-budget-display',function(e){
+    var pct=totalEst>0?Math.round(totalSpent/totalEst*100):0;
+    e.textContent=totalSpent+' EUR depense'+(totalEst?' / '+totalEst+' EUR estime':'');
+  });
   sv('trv-budget-bar',function(e){
     var pct=totalEst>0?Math.min(100,Math.round(totalSpent/totalEst*100)):0;
     e.style.width=pct+'%';
@@ -2149,81 +2162,65 @@ function renderTrv(){
   });
   var list=g('trv-list');if(!list)return;
   var SLBL={todo:'A planifier',wip:'En cours',paused:'En pause','done-s':'Termine'};
+  var SCOL={todo:'var(--blue)',wip:'var(--amber)',paused:'var(--dim)','done-s':'var(--green)'};
   var filt=trvFilter==='all'?trvProjs.slice():trvProjs.filter(function(p){return p.status===trvFilter;});
   var po={high:0,medium:1,low:2},so={wip:0,todo:1,paused:2,'done-s':3};
   filt.sort(function(a,b){var sd=(so[a.status]||0)-(so[b.status]||0);return sd!==0?sd:(po[a.priority]||1)-(po[b.priority]||1);});
-  if(!filt.length){list.innerHTML='<div class="empty"><div class="eico">&#127959;</div>'+(trvProjs.length===0?'Aucun projet - creez votre premier chantier !':'Aucun projet dans ce filtre')+'</div>';return;}
+  if(!filt.length){
+    list.innerHTML='<div class="empty"><div class="eico">&#127959;</div>'+(trvProjs.length===0?'Aucun projet. Creez votre premier chantier !':'Aucun projet dans ce filtre')+'</div>';
+    return;
+  }
   var h='';
   filt.forEach(function(p){
-    var pct=trvPct(p);
-    var bc=pct===100?'var(--green)':pct>=50?'var(--amber)':'var(--blue)';
     var spent=trvSpent(p);
-    var dc=(p.steps||[]).filter(function(s){return s.done;}).length;
-    var tc=(p.steps||[]).length;
+    var est=parseFloat(p.budget)||0;
     var priCls={high:'high',medium:'medium',low:'low'}[p.priority]||'medium';
     var bc2={todo:'todo',wip:'wip',paused:'paused','done-s':'done-s'}[p.status]||'todo';
-    var stepsH='';
-    (p.steps||[]).forEach(function(s){
-      stepsH+='<div class="trv-step">'
-        +'<div class="trv-chk'+(s.done?' chk':'')+'" onclick="trvCheckStep(\''+p.id+'\',\''+s.id+'\')">'+( s.done?'&#10003;':'')+'</div>'
-        +'<span class="trv-sname'+(s.done?' ds':'')+'">'+eh(s.name)+'</span>'
-        +'<span style="font-size:10px;color:var(--dim);">'+(s.who?eh(s.who):'')+'</span>'
-        +'<button class="bi del" style="width:22px;height:22px;font-size:10px;" onclick="trvDelStep(\''+p.id+'\',\''+s.id+'\')">&#10005;</button>'
-        +'</div>';
-    });
-    var bdgH='';
+    var sColor=SCOL[p.status]||'var(--dim)';
+    // Achats HTML
+    var achatsH='';
     (p.budget_lines||[]).forEach(function(b){
-      bdgH+='<div class="bdg-line">'
-        +'<span class="bdg-type '+b.type+'">'+b.type+'</span>'
-        +'<span style="flex:1;color:var(--text);">'+eh(b.label)+'</span>'
+      achatsH+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;margin-bottom:4px;">'
+        +'<span style="font-size:11px;flex:1;color:var(--text);">'+eh(b.label)+'</span>'
         +'<span style="font-size:10px;color:var(--dim);">'+fd(b.date)+'</span>'
-        +'<span class="bdg-amt '+b.type+'">'+b.amount+' EUR</span>'
-        +'<button class="bi del" style="width:20px;height:20px;font-size:10px;" onclick="trvDelBdg(\''+p.id+'\',\''+b.id+'\')">&#10005;</button>'
+        +'<span style="font-family:Bebas Neue,sans-serif;font-size:15px;color:var(--copper);">'+b.amount+' EUR</span>'
+        +'<button class="bi del" style="width:22px;height:22px;font-size:10px;" onclick="trvDelBdg(\x27"+p.id+"\x27,\x27"+b.id+"\x27)">&#10005;</button>'
         +'</div>';
     });
+    var totalAchats=(p.budget_lines||[]).reduce(function(s,b){return s+(parseFloat(b.amount)||0);},0);
+    var notesH=p.notes?'<div style="font-size:11px;color:var(--dim);padding:6px 9px;background:var(--bg3);border-radius:4px;border-left:3px solid var(--copper);margin-bottom:9px;">'+eh(p.notes)+'</div>':'';
     var sopt='';
-    ['todo','wip','paused','done-s'].forEach(function(v){
-      sopt+='<option value="'+v+'"'+(p.status===v?' selected':'')+'>'+SLBL[v]+'</option>';
-    });
-    var notesH=p.notes?'<div style="font-size:11px;color:var(--dim);padding:6px 9px;background:var(--bg3);border-radius:4px;border-left:3px solid var(--copper);margin-bottom:8px;">'+eh(p.notes)+'</div>':'';
-    var contH=p.contact?'<div style="font-size:11px;color:var(--blue);margin-bottom:8px;">&#128222; '+eh(p.contact)+'</div>':'';
+    ['todo','wip','paused','done-s'].forEach(function(v){sopt+='<option value="'+v+'"'+(p.status===v?' selected':'')+'>'+SLBL[v]+'</option>';});
     h+='<div class="trv-proj'+(p._o?' exp':'')+'" id="trp-'+p.id+'">'
-      +'<div class="trv-hdr" onclick="trvToggle(\''+p.id+'\')">'
+      +'<div class="trv-hdr" onclick="trvToggle(\x27"+p.id+"\x27)">'
       +'<span class="trv-pri '+priCls+'"></span>'
-      +'<span class="trv-name'+(p.status==='done-s'?' dp':'')+'">'+eh(p.name)+'<span style="font-size:10px;color:var(--dim);"> - '+eh(p.zone)+'</span></span>'
-      +'<span class="trv-sb '+bc2+'">'+SLBL[p.status]+'</span>'
-      +'<div class="trv-pw"><div class="trv-pb" style="width:'+pct+'%;background:'+bc+'"></div></div>'
-      +'<span class="trv-pct">'+pct+'%</span>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div class="trv-name'+(p.status==='done-s'?' dp':'')+'">'+eh(p.name)+'</div>'
+      +'<div style="font-size:10px;color:var(--dim);margin-top:1px;">'+eh(p.zone)+(totalAchats?'<span style="color:var(--copper);margin-left:6px;">'+totalAchats+' EUR</span>':'')+(est&&!totalAchats?'<span style="color:var(--dim);margin-left:6px;">Est. '+est+' EUR</span>':'')+'</div>'
+      +'</div>'
+      +'<span style="font-size:9px;padding:3px 8px;border-radius:10px;background:rgba(0,0,0,.25);color:'+sColor+';white-space:nowrap;flex-shrink:0;">'+SLBL[p.status]+'</span>'
       +'<span class="trv-chev">&#9660;</span>'
       +'</div>'
-      +'<div class="trv-body">'+notesH+contH
-      +'<div class="trv-itabs">'
-      +'<button class="trv-itab on" onclick="trvTab(this,\'ts-'+p.id+'\',\'trp-'+p.id+'\')">&#9989; Etapes ('+dc+'/'+tc+')</button>'
-      +'<button class="trv-itab" onclick="trvTab(this,\'tb-'+p.id+'\',\'trp-'+p.id+'\')">&#128179; Budget ('+(spent?spent+' EUR':'estime '+( p.budget||0)+' EUR')+')</button>'
+      +'<div class="trv-body">'+notesH
+      +'<div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">'
+      +'<select onchange="trvStat(\x27"+p.id+"\x27,this.value)" style="padding:5px 8px;font-size:11px;width:auto;">'+sopt+'</select>'
+      +(est?'<span style="font-size:10px;color:var(--dim);">Budget: '+est+' EUR</span>':'')
+      +'<button class="bi del" style="margin-left:auto;" onclick="trvDel(\x27"+p.id+"\x27)">&#10005; Supprimer</button>'
       +'</div>'
-      +'<div class="trv-sec on" id="ts-'+p.id+'">'
-      +stepsH
-      +(tc===0?'<div style="font-size:10px;color:var(--dim);padding:5px 0;font-style:italic;">Aucune etape</div>':'')
-      +'<div class="addrow">'
-      +'<input type="text" id="tsn-'+p.id+'" placeholder="Etape...">'
-      +'<input type="text" id="tswho-'+p.id+'" class="ci" placeholder="Qui?">'
-      +'<button class="bp" style="padding:7px 10px;font-size:10px;" onclick="trvAddStep(\''+p.id+'\')">+</button>'
-      +'</div></div>'
-      +'<div class="trv-sec" id="tb-'+p.id+'">'
-      +bdgH
-      +'<div class="addrow">'
-      +'<input type="text" id="tbdgl-'+p.id+'" placeholder="Libelle..." style="flex:2;">'
-      +'<select id="tbdgt-'+p.id+'" style="flex:0 0 85px;padding:7px 6px;font-size:11px;"><option value="devis">Devis</option><option value="facture">Facture</option><option value="achat">Achat</option></select>'
-      +'<input type="number" id="tbdga-'+p.id+'" class="ci" placeholder="EUR" min="0">'
-      +'<button class="bp" style="padding:7px 10px;font-size:10px;" onclick="trvAddBdg(\''+p.id+'\')">+</button>'
-      +'</div></div>'
-      +'<div style="display:flex;gap:7px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">'
-      +'<select onchange="trvStat(\''+p.id+'\',this.value)" style="padding:5px 8px;font-size:11px;width:auto;">'+sopt+'</select>'
-      +'<button class="bi del" style="margin-left:auto;" onclick="trvDel(\''+p.id+'\')">&#10005; Supprimer</button>'
-      +'</div></div></div>';
+      // Achats
+      +'<div style="margin-bottom:6px;">'
+      +(achatsH||'<div style="font-size:10px;color:var(--dim);font-style:italic;padding:4px 0;">Aucun achat saisi</div>')
+      +'</div>'
+      +'<div style="display:flex;gap:5px;align-items:center;">'
+      +'<input type="text" id="tbdgl-'+p.id+'" placeholder="Achat (ex: peinture, vis...)" style="flex:1;padding:7px 9px;font-size:11px;">'
+      +'<input type="number" id="tbdga-'+p.id+'" placeholder="EUR" min="0" style="width:75px;padding:7px 9px;font-size:11px;flex:none;">'
+      +'<button class="bp" style="padding:7px 11px;font-size:11px;white-space:nowrap;" onclick="trvAddBdg(\x27"+p.id+"\x27)">+ Ajouter</button>'
+      +'</div>'
+      +'</div></div>';
   });
   list.innerHTML=h;
 }
+
 
 function trvTab(btn,secId,projId){
   var proj=g(projId);if(!proj)return;
@@ -2261,12 +2258,13 @@ function trvCheckStep(pid,sid){
 }
 function trvDelStep(pid,sid){var p=trvProjs.find(function(x){return x.id===pid;});if(p){p.steps=p.steps.filter(function(x){return x.id!==sid;});p._o=true;}saveTrv();renderTrv();toast('Supprime');}
 function trvAddBdg(pid){
-  var le=g('tbdgl-'+pid),te=g('tbdgt-'+pid),ae=g('tbdga-'+pid);
-  if(!le||!le.value.trim()||!ae||!ae.value){toast('Libelle et montant requis');return;}
+  var le=g('tbdgl-'+pid),ae=g('tbdga-'+pid);
+  if(!le||!le.value.trim()){toast('Libelle requis');return;}
+  var montant=ae&&ae.value?parseFloat(ae.value):0;
   var p=trvProjs.find(function(x){return x.id===pid;});if(!p)return;
   if(!p.budget_lines)p.budget_lines=[];
-  p.budget_lines.push({id:uid(),label:le.value.trim(),type:te?te.value:'facture',amount:parseFloat(ae.value)||0,date:tod()});
-  p._o=true;le.value='';ae.value='';saveTrv();renderTrv();toast('Ajoute');
+  p.budget_lines.push({id:uid(),label:le.value.trim(),type:'achat',amount:montant,date:tod()});
+  p._o=true;le.value='';if(ae)ae.value='';saveTrv();renderTrv();toast('Achat ajoute');
 }
 function trvDelBdg(pid,bid){var p=trvProjs.find(function(x){return x.id===pid;});if(p){p.budget_lines=(p.budget_lines||[]).filter(function(x){return x.id!==bid;});p._o=true;}saveTrv();renderTrv();toast('Supprime');}
 function trvDel(id){if(!confirm('Supprimer ce projet ?'))return;trvProjs=trvProjs.filter(function(x){return x.id!==id;});saveTrv();renderTrv();toast('Supprime');}
@@ -2583,6 +2581,12 @@ renderCal=function(){
 
 // init consolidated above
 init();
+
+if('serviceWorker' in navigator && location.protocol !== 'file:'){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
