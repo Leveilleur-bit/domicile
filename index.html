@@ -762,54 +762,6 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   </div>
 </div>
 
-<!-- RENOVATION -->
-<div class="view" id="view-reno">
-  <div class="rhero">
-    <div class="sc b"><div class="sc-l">Projets</div><div class="sc-v" id="rt">0</div></div>
-    <div class="sc a"><div class="sc-l">En cours</div><div class="sc-v" id="rw">0</div></div>
-    <div class="sc g"><div class="sc-l">Termines</div><div class="sc-v" id="rd">0</div></div>
-    <div class="sc r" style="--r:var(--copper);"><div class="sc-l">Budget</div><div class="sc-v" id="rb" style="color:var(--copper);">0</div></div>
-  </div>
-  <div class="rbar-wrap">
-    <span class="rbarlbl">Avancement global</span>
-    <div class="rbarbg"><div class="rbarfill" id="rgb" style="width:0%"></div></div>
-    <span class="rpct" id="rgp">0%</span>
-  </div>
-  <div class="card" style="margin-bottom:12px;">
-    <div class="stit" style="font-size:12px;">Nouveau projet</div>
-    <div class="fgrid fg4" style="margin-bottom:8px;">
-      <div><label class="flbl">Nom</label><input type="text" id="rn" placeholder="Ex: Refaire salle de bain..."></div>
-      <div><label class="flbl">Zone</label>
-        <select id="rz">
-          <option>Cuisine</option><option>Salon</option><option>Chambre</option>
-          <option>Salle de bain</option><option>Cave</option><option>Garage</option>
-          <option>Jardin</option><option>Toiture</option><option>Facade</option><option>General</option>
-        </select>
-      </div>
-      <div><label class="flbl">Statut</label>
-        <select id="rst"><option value="todo">A faire</option><option value="wip">En cours</option><option value="paused">En pause</option></select>
-      </div>
-      <div><label class="flbl">Priorite</label>
-        <select id="rpr"><option value="high">Haute</option><option value="medium" selected>Moyenne</option><option value="low">Basse</option></select>
-      </div>
-    </div>
-    <div class="fgrid fg2" style="margin-bottom:8px;">
-      <div><label class="flbl">Budget (EUR)</label><input type="number" id="rbi" placeholder="0" min="0"></div>
-      <div><label class="flbl">Notes</label><input type="text" id="rno" placeholder="Entreprise, materiaux..."></div>
-    </div>
-    <button class="bp" onclick="addReno()">+ Creer le projet</button>
-  </div>
-  <div class="fltrs" id="rftrs">
-    <button class="fb on" onclick="fReno('all',this)">Tous</button>
-    <button class="fb" onclick="fReno('todo',this)">A faire</button>
-    <button class="fb" onclick="fReno('wip',this)">En cours</button>
-    <button class="fb" onclick="fReno('paused',this)">En pause</button>
-    <button class="fb" onclick="fReno('done-s',this)">Termines</button>
-  </div>
-  <div id="rlist"></div>
-</div>
-
-
 <!-- STATS -->
 <div class="view" id="view-stats">
   <div class="stit">Statistiques annuelles</div>
@@ -1131,7 +1083,6 @@ function showView(v,tab){
   var el=g('view-'+v);if(el)el.classList.add('on');
   if(tab)tab.classList.add('on');
   if(v==='pellet')renderP();
-  if(v==='reno')renderR();
   if(v==='travaux')renderTrv();
   if(v==='notes')renderNotes();
   if(v==='cal')renderCal();
@@ -1209,6 +1160,7 @@ function thtml(t){
   var ub=t.done?'<button class="bi" onclick="mUndone(\''+t.id+'\')">&#8617;</button>':'';
   var dlb='<button class="bi del" onclick="dTask(\''+t.id+'\')">&#10005;</button>';
   var dcls='date-lbl'+(st==='urgent'?' urgent':st==='soon'?' soon':'');
+  var priIco=t.priority==='high'?'<span style="font-size:10px;">&#128308; </span>':t.priority==='low'?'<span style="font-size:10px;opacity:.5;">&#9898; </span>':'';
   return '<div class="ti"><span class="dot '+st+'"></span>'
     +'<div class="ti-main"><div class="ti-name'+(t.done?' dt':'')+'" onclick="openEdit(\''+t.id+'\')" title="Modifier">'+eh(t.name)+notes+prest+clast+'</div>'
     +'<div class="ti-meta"><span class="tag">'+eh(t.room)+'</span><span class="tag">'+eh(t.cat)+'</span>'+rec+'<span class="'+dcls+'">'+dl+'</span></div></div>'
@@ -1321,7 +1273,8 @@ function goTasks(){
 }
 
 function renderDash(){
-  var urg=tasks.filter(function(t){return!t.done&&tstat(t)==='urgent';}).sort(function(a,b){return a.date.localeCompare(b.date);});
+  var priOrd={high:0,normal:1,low:2};
+  var urg=tasks.filter(function(t){return!t.done&&tstat(t)==='urgent';}).sort(function(a,b){return (priOrd[a.priority||'normal']||1)-(priOrd[b.priority||'normal']||1)||a.date.localeCompare(b.date);});
   var sn=tasks.filter(function(t){return!t.done&&tstat(t)==='soon';}).sort(function(a,b){return a.date.localeCompare(b.date);});
   sv('d-urg',function(e){e.innerHTML=urg.length?urg.map(thtml).join(''):'<div class="empty"><div class="eico">&#10003;</div>Aucune tache urgente</div>';});
   sv('d-sn',function(e){e.innerHTML=sn.length?sn.map(thtml).join(''):'<div class="empty"><div class="eico">&#9671;</div>Rien ce mois-ci</div>';});
@@ -1449,27 +1402,6 @@ function renderHist(){
   el.innerHTML=h;
 }
 
-function renderDashBirthdays(){
-  var el=g('d-birthdays');if(!el)return;
-  var upcoming=getUpcomingBirthdays(30);
-  if(!upcoming.length){el.innerHTML='';return;}
-  var h='<div class="stit">Anniversaires a venir</div>'
-    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:16px;">';
-  upcoming.forEach(function(b){
-    var urgent=b.diff<=3;var soon=b.diff<=7;
-    var color=urgent?'var(--red)':soon?'var(--amber)':'var(--purple)';
-    var diffTxt=b.diff===0?'Aujourd hui !':b.diff===1?'Demain':'dans '+b.diff+' j';
-    h+='<div style="background:var(--bg2);border:1px solid '+(urgent?'rgba(224,112,96,.4)':soon?'rgba(240,192,96,.3)':'rgba(160,128,204,.25)' )+';border-radius:7px;padding:12px;position:relative;overflow:hidden;">'
-      +'<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+color+';"></div>'
-      +'<div style="font-size:18px;margin-bottom:5px;">&#127881;</div>'
-      +'<div style="font-size:12px;color:var(--text);font-family:Inter,sans-serif;font-weight:500;margin-bottom:3px;">'+eh(b.title)+'</div>'
-      +'<div style="font-size:11px;color:'+color+';">'+diffTxt+'</div>'
-      +'<div style="font-size:10px;color:var(--dim);margin-top:2px;">'+b.date.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+'</div>'
-      +'</div>';
-  });
-  h+='</div>';
-  el.innerHTML=h;
-}
 
 function renderDashCpt(){
   var el=g('d-cpt-releve');if(!el)return;
@@ -1575,7 +1507,7 @@ function renderDashBirthdays(){
   el.innerHTML=h;
 }
 
-function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderOnboard();}
+function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();}
 
 // PELLET
 function defP(){
@@ -1623,6 +1555,14 @@ function renderP(){
   sv('pstk',function(e){e.textContent=s;});
   sv('pskg',function(e){e.textContent=skg+' kg';});
   sv('pthr',function(e){e.value=th;});
+  var price=PD.price||0;
+  sv('pprice',function(e){e.value=price>0?price:'';});
+  sv('pbudget-chauff',function(e){
+    if(!price){e.textContent='Renseignez le prix/sac pour le budget';e.style.color='var(--dim)';return;}
+    var coutSaison=(c*(price)).toFixed(0);
+    var coutAn=((PD.tgt||80)*price).toFixed(0);
+    e.innerHTML='<span style="color:var(--copper);font-weight:500;">'+coutSaison+' EUR</span> cette saison<br><span style="color:var(--dim);">Objectif saison : '+coutAn+' EUR</span>';
+  });
   sv('pcstk',function(e){e.className='pc '+(s===0||s<=th?'low':s<=th*2?'med':'grn');});
   sv('palert',function(e){
     if(s<=th){e.style.display='flex';e.className='palert';
@@ -1656,6 +1596,7 @@ function pUsed(d){if(!PD)return;PD.cnt=Math.max(0,(PD.cnt||0)+d);if(d>0)PD.stk=M
 function pStock(d){if(!PD)return;PD.stk=Math.max(0,(PD.stk||0)+d);saveP();renderP();toast(d>0?'+'+d+' sac'+(d>1?'s':'')+' en stock':'Mis a jour');}
 function savePT(){if(!PD)return;var v=parseInt(g('ptgt').value);if(v>0){PD.tgt=v;saveP();renderP();}}
 function savePThr(){if(!PD)return;var v=parseInt(g('pthr').value);if(v>0){PD.thr=v;saveP();renderP();}}
+function savePPrice(){if(!PD)return;var v=parseFloat(g('pprice').value);if(!isNaN(v)&&v>=0){PD.price=v;saveP();renderP();}}
 function pClose(){
   if(!PD||!(PD.cnt>0)){toast('Aucun sac enregistre');return;}
   var sl=slbl(PD.sk),idx=-1;
@@ -1680,100 +1621,7 @@ function loadR(){try{renos=JSON.parse(localStorage.getItem(RK))||[];}catch(e){re
 function saveR(){localStorage.setItem(RK,JSON.stringify(renos));}
 function rpct(p){if(!p.steps||!p.steps.length)return p.status==='done-s'?100:0;return Math.round(p.steps.filter(function(s){return s.done;}).length/p.steps.length*100);}
 
-function renderR(){
-  var tot=renos.length,wip=renos.filter(function(p){return p.status==='wip';}).length;
-  var dn=renos.filter(function(p){return p.status==='done-s';}).length;
-  var bdg=renos.reduce(function(s,p){return s+(parseFloat(p.budget)||0);},0);
-  sv('rt',function(e){e.textContent=tot;});
-  sv('rw',function(e){e.textContent=wip;});
-  sv('rd',function(e){e.textContent=dn;});
-  sv('rb',function(e){e.textContent=bdg>=1000?(bdg/1000).toFixed(1)+'k':bdg;});
-  var gp=tot===0?0:Math.round(renos.reduce(function(s,p){return s+rpct(p);},0)/tot);
-  sv('rgb',function(e){e.style.width=gp+'%';});
-  sv('rgp',function(e){e.textContent=gp+'%';e.style.color=gp>=80?'var(--green)':gp>=40?'var(--amber)':'var(--blue)';});
-  var list=g('rlist');if(!list)return;
-  var filt=rFilter==='all'?renos.slice():renos.filter(function(p){return p.status===rFilter;});
-  var po={high:0,medium:1,low:2},so={wip:0,todo:1,paused:2,'done-s':3};
-  filt.sort(function(a,b){var sd=(so[a.status]||0)-(so[b.status]||0);return sd!==0?sd:(po[a.priority]||1)-(po[b.priority]||1);});
-  if(!filt.length){list.innerHTML='<div class="empty"><div class="eico">&#x1F3D7;</div>'+(renos.length===0?'Aucun projet - creez votre premier chantier !':'Aucun projet dans ce filtre')+'</div>';return;}
-  var SLBL={todo:'A faire',wip:'En cours',paused:'En pause','done-s':'Termine'};
-  var h='';
-  filt.forEach(function(p){
-    var pct=rpct(p),bc=pct===100?'var(--green)':pct>=50?'var(--amber)':'var(--blue)';
-    var dc=(p.steps||[]).filter(function(s){return s.done;}).length,tc=(p.steps||[]).length;
-    var tcost=(p.steps||[]).reduce(function(s,st){return s+(parseFloat(st.cost)||0);},0)+(parseFloat(p.budget)||0);
-    var subs='';
-    (p.steps||[]).forEach(function(s){
-      var cc=s.done?'rchk chk':'rchk';
-      subs+='<div class="rsub"><div class="'+cc+'" onclick="rCheck(\''+p.id+'\',\''+s.id+'\')">'+( s.done?'&#10003;':'')+'</div>'
-        +'<span class="rsname'+(s.done?' ds':'')+'">'+eh(s.name)+'</span>'
-        +'<span class="rscost">'+(s.cost?s.cost+' EUR':'')+'</span>'
-        +'<button class="bi del" style="width:22px;height:22px;font-size:10px;" onclick="rDelS(\''+p.id+'\',\''+s.id+'\')">&#10005;</button>'
-        +'</div>';
-    });
-    var sopt='';
-    ['todo','wip','paused','done-s'].forEach(function(v){sopt+='<option value="'+v+'"'+(p.status===v?' selected':'')+'>'+SLBL[v]+'</option>';});
-    var pc2=p.status==='done-s'?'rpname dp':'rpname';
-    var bc2={todo:'todo',wip:'wip',paused:'paused','done-s':'done-s'}[p.status]||'todo';
-    var noSt=tc===0?'<div style="font-size:10px;color:var(--dim);padding:5px 0;font-style:italic;">Aucune etape - ajoutez-en ci-dessous</div>':'';
-    var bsp=tcost>0?'<span class="rpbudget">'+tcost+' EUR</span>':'<span></span>';
-    var nh=p.notes?'<div class="rnotes">'+eh(p.notes)+'</div>':'';
-    var projcls='rp'+(p._o?' exp':'');
-    h+='<div class="'+projcls+'" id="rp-'+p.id+'">'
-      +'<div class="rphdr" onclick="rToggle(\''+p.id+'\')">'
-      +'<span class="rpri '+(p.priority||'medium')+'"></span>'
-      +'<span class="'+pc2+'">'+eh(p.name)+' <span style="font-size:10px;color:var(--dim);">- '+eh(p.zone)+'</span></span>'
-      +'<span class="rsbadge '+bc2+'">'+SLBL[p.status]+'</span>'
-      +'<div style="display:flex;align-items:center;gap:6px;"><div class="rpw"><div class="rpb" style="width:'+pct+'%;background:'+bc+';"></div></div><span class="rppct">'+pct+'%</span></div>'
-      +bsp
-      +'<span class="rchev">&#9660;</span>'
-      +'</div>'
-      +'<div class="rpbody">'+nh
-      +'<div class="ract">'
-      +'<select onchange="rStat(\''+p.id+'\',this.value)" style="padding:5px 8px;font-size:11px;width:auto;">'+sopt+'</select>'
-      +'<span style="font-size:10px;color:var(--dim);">'+dc+'/'+tc+' etape'+(tc!==1?'s':'')+'</span>'
-      +'<button class="bi del" style="margin-left:auto;" onclick="rDel(\''+p.id+'\')">&#10005; Supprimer</button>'
-      +'</div>'
-      +'<div id="rps-'+p.id+'">'+subs+'</div>'+noSt
-      +'<div class="addrow">'
-      +'<input type="text" id="rsn-'+p.id+'" placeholder="Etape...">'
-      +'<input type="number" id="rsc-'+p.id+'" class="ci" placeholder="Cout" min="0">'
-      +'<button class="bp" style="padding:7px 10px;font-size:10px;white-space:nowrap;" onclick="rAddS(\''+p.id+'\')">+ Etape</button>'
-      +'</div>'
-      +'</div></div>';
-  });
-  list.innerHTML=h;
-}
 
-function addReno(){
-  var n=g('rn').value.trim();if(!n){toast('Nom requis');return;}
-  renos.unshift({id:uid(),name:n,zone:g('rz').value,status:g('rst').value,priority:g('rpr').value,budget:g('rbi').value||0,notes:g('rno').value.trim(),steps:[],_o:true});
-  g('rn').value='';g('rbi').value='';g('rno').value='';
-  saveR();renderR();toast('Projet cree');
-}
-function rToggle(id){var p=renos.find(function(x){return x.id===id;});if(p)p._o=!p._o;saveR();renderR();}
-function rStat(id,st){var p=renos.find(function(x){return x.id===id;});if(p){p.status=st;p._o=true;}saveR();renderR();toast('Statut mis a jour');}
-function rAddS(pid){
-  var ne=g('rsn-'+pid),ce=g('rsc-'+pid);
-  if(!ne||!ne.value.trim()){toast('Nom requis');return;}
-  var p=renos.find(function(x){return x.id===pid;});if(!p)return;
-  if(!p.steps)p.steps=[];
-  p.steps.push({id:uid(),name:ne.value.trim(),cost:ce?ce.value:'',done:false});
-  p._o=true;if(p.status==='todo')p.status='wip';
-  ne.value='';if(ce)ce.value='';
-  saveR();renderR();toast('Etape ajoutee');
-}
-function rCheck(pid,sid){
-  var p=renos.find(function(x){return x.id===pid;});if(!p)return;
-  var s=p.steps.find(function(x){return x.id===sid;});if(s)s.done=!s.done;
-  p._o=true;
-  if(p.steps.length&&p.steps.every(function(x){return x.done;})){p.status='done-s';toast('Projet complete !');}
-  else if(p.status==='done-s'&&!p.steps.every(function(x){return x.done;})){p.status='wip';}
-  saveR();renderR();
-}
-function rDelS(pid,sid){var p=renos.find(function(x){return x.id===pid;});if(p){p.steps=p.steps.filter(function(x){return x.id!==sid;});p._o=true;}saveR();renderR();toast('Etape supprimee');}
-function rDel(id){if(!confirm('Supprimer ce projet ?'))return;renos=renos.filter(function(x){return x.id!==id;});saveR();renderR();toast('Supprime');}
-function fReno(f,btn){rFilter=f;var bs=g('rftrs').querySelectorAll('.fb');for(var i=0;i<bs.length;i++)bs[i].classList.remove('on');btn.classList.add('on');renderR();}
 
 // EDITION TACHE
 var editId=null;
@@ -1831,6 +1679,7 @@ function saveEdit(){
   if(d&&d.value)t.date=d.value;
   if(rc)t.recur=rc.value;
   if(no)t.notes=no.value.trim();
+  var ep2=g('edit-priority');if(ep2)t.priority=ep2.value;
   var pr=document.getElementById('edit-prest');
   var ca2=document.getElementById('edit-cost-ann');
   var cl=document.getElementById('edit-cost-last');
@@ -2202,6 +2051,7 @@ function getUpcomingBirthdays(days){
     thisYear.setHours(0,0,0,0);
     // Si deja passe cette annee, regarder l annee prochaine
     if(thisYear<today)thisYear.setFullYear(today.getFullYear()+1);
+    if(isNaN(thisYear.getTime()))return;
     var diff=Math.floor((thisYear-today)/86400000);
     if(diff<=days)result.push({title:e.title,diff:diff,date:thisYear});
   });
@@ -2469,6 +2319,16 @@ function renderTrv(){
     var bc2={todo:'todo',wip:'wip',paused:'paused','done-s':'done-s'}[p.status]||'todo';
     var sColor=SCOL[p.status]||'var(--dim)';
     // Achats HTML
+    var stepsH='';
+    var dc=(p.steps||[]).filter(function(s){return s.done;}).length;
+    var tc=(p.steps||[]).length;
+    (p.steps||[]).forEach(function(s,si){
+      stepsH+='<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;">'
+        +'<div style="width:15px;height:15px;border-radius:3px;background:'+(s.done?'var(--green)':'var(--bg3)')+';border:'+(s.done?'none':'1.5px solid var(--border)')+';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:var(--bg);flex-shrink:0;" onclick="trvCheckStep_idx("+pidx+",\x27"+s.id+"\x27)">'+( s.done?'&#10003;':'')+'</div>'
+        +'<span style="flex:1;font-size:11px;'+(s.done?'text-decoration:line-through;color:var(--dim);':'color:var(--text);')+'">'+eh(s.name)+'</span>'
+        +'<button style="background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--dim);width:20px;height:20px;cursor:pointer;font-size:10px;" onclick="trvDelStep_idx("+pidx+",\x27"+s.id+"\x27)">&#10005;</button>'
+        +'</div>';
+    });
     var achatsH='';
     (p.budget_lines||[]).forEach(function(b){
       achatsH+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;margin-bottom:4px;">'
@@ -2788,19 +2648,14 @@ function renderTodayEvents(){
 // ── MORE MENU ──
 function toggleMore(){
   var m=g('more-menu');if(!m)return;
-  var isOpen=m.style.display==='block';
-  if(!isOpen){
-    var btn=g('more-btn');
-    if(btn){
-      var rect=btn.getBoundingClientRect();
-      m.style.top=(rect.bottom+6)+'px';
-      m.style.right=Math.max(4,window.innerWidth-rect.right-4)+'px';
-      m.style.left='auto';
-    }
-    m.style.display='block';
-  } else {
-    m.style.display='none';
+  if(m.style.display==='block'){m.style.display='none';return;}
+  var btn=g('more-btn');
+  if(btn){
+    var rect=btn.getBoundingClientRect();
+    m.style.top=(rect.bottom+4)+'px';
+    m.style.right=Math.max(4,window.innerWidth-rect.right)+'px';
   }
+  m.style.display='block';
 }
 document.addEventListener('click',function(e){
   var m=g('more-menu'),b=g('more-btn');
@@ -2861,7 +2716,7 @@ renderCal=function(){
     var me=calViewTab!=='tasks'?events.filter(function(e){
       var d=new Date(e.date);
       if(e.recur==='yearly')return d.getMonth()===i;
-      return d.getFullYear()===now.getFullYear()&&d.getMonth()===i;
+      return d.getFullYear()===now.getFullYear()&&d.getMonth()===i&&d.getDate()>0;
     }):[];
     var ip=i<now.getMonth(),th='';
     if(!mt.length&&!me.length){th='<span style="font-size:9px;color:var(--dim);">-</span>';}
@@ -2880,6 +2735,10 @@ renderCal=function(){
 };
 
 // init consolidated above
+function trvAddStep_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvAddStep(id);}
+function trvCheckStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvCheckStep(id,sid);}
+function trvDelStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelStep(id,sid);}
+
 init();
 
 if('serviceWorker' in navigator && location.protocol !== 'file:'){
