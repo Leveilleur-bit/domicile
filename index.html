@@ -1507,6 +1507,31 @@ function renderDashBirthdays(){
   el.innerHTML=h;
 }
 
+function delNoteItemInline(nid,iid){
+  var n=notes.find(function(x){return x.id===nid;});
+  if(!n||!n.items)return;
+  n.items=n.items.filter(function(x){return x.id!==iid;});
+  n.updatedAt=tod();
+  saveNotes();renderNotes();
+}
+function toggleNoteItem(nid,iid){
+  var n=notes.find(function(x){return x.id===nid;});
+  if(!n||!n.items)return;
+  var item=n.items.find(function(x){return x.id===iid;});
+  if(item){item.done=!item.done;n.updatedAt=tod();}
+  saveNotes();renderNotes();
+}
+function addNoteItemInline(nid){
+  var inp=g('cl-add-'+nid);
+  if(!inp||!inp.value.trim())return;
+  var n=notes.find(function(x){return x.id===nid;});
+  if(!n)return;
+  if(!n.items)n.items=[];
+  n.items.push({id:uid(),text:inp.value.trim(),done:false});
+  n.updatedAt=tod();
+  saveNotes();renderNotes();
+}
+
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();}
 
 // PELLET
@@ -1554,6 +1579,14 @@ function renderP(){
   var s=PD.stk||0,th=PD.thr||10,skg=s*(PD.kgs||15);
   sv('pstk',function(e){e.textContent=s;});
   sv('pskg',function(e){e.textContent=skg+' kg';});
+  sv('plastresupply',function(e){
+    if(PD.lastResupply){
+      e.innerHTML='Dernier ravitaillement : <span style="color:var(--cl);">'+fd(PD.lastResupply)+'</span>'
+        +(PD.lastResupplyQty?' (+'+PD.lastResupplyQty+' sacs)':'');
+    } else {
+      e.textContent='Aucun ravitaillement enregistre';
+    }
+  });
   sv('pthr',function(e){e.value=th;});
   var price=PD.price||0;
   sv('pprice',function(e){e.value=price>0?price:'';});
@@ -1593,7 +1626,13 @@ function renderP(){
 }
 
 function pUsed(d){if(!PD)return;PD.cnt=Math.max(0,(PD.cnt||0)+d);if(d>0)PD.stk=Math.max(0,(PD.stk||0)-d);else if(d<0)PD.stk=(PD.stk||0)+Math.abs(d);saveP();renderP();var s=PD.stk||0,th=PD.thr||10;if(d>0&&s<=th&&s>0)toast(d+' sac'+(d>1?'s':'')+' utilise - Stock bas: '+s);else if(d>0&&s===0)toast('Stock epuise !');else if(d>0)toast('+'+d+' sac'+(d>1?'s':'')+' utilise');else toast('Correction appliquee');}
-function pStock(d){if(!PD)return;PD.stk=Math.max(0,(PD.stk||0)+d);saveP();renderP();toast(d>0?'+'+d+' sac'+(d>1?'s':'')+' en stock':'Mis a jour');}
+function pStock(d){
+  if(!PD)return;
+  PD.stk=Math.max(0,(PD.stk||0)+d);
+  if(d>0){PD.lastResupply=tod();PD.lastResupplyQty=(PD.lastResupplyQty||0)+d;}
+  saveP();renderP();
+  toast(d>0?'+'+d+' sac'+(d>1?'s':'')+' en stock':'Mis a jour');
+}
 function savePT(){if(!PD)return;var v=parseInt(g('ptgt').value);if(v>0){PD.tgt=v;saveP();renderP();}}
 function savePThr(){if(!PD)return;var v=parseInt(g('pthr').value);if(v>0){PD.thr=v;saveP();renderP();}}
 function savePPrice(){if(!PD)return;var v=parseFloat(g('pprice').value);if(!isNaN(v)&&v>=0){PD.price=v;saveP();renderP();}}
@@ -2184,9 +2223,17 @@ function renderBudget(){
   var monthly=[];
   for(var mi=0;mi<12;mi++){
     var mFixes=charges.reduce(function(s,ch){
-      if(ch.freq==='monthly')return s+(parseFloat(ch.amount)||0);
-      if(ch.freq==='quarterly'&&mi%3===0)return s+(parseFloat(ch.amount)||0);
-      if(ch.freq==='yearly'&&mi===0)return s+(parseFloat(ch.amount)||0);
+      var amt=parseFloat(ch.amount)||0;
+      if(ch.freq==='monthly')return s+amt;
+      if(ch.freq==='quarterly'){
+        var base=ch.date?new Date(ch.date).getMonth():0;
+        // Afficher sur le mois de creation + tous les 3 mois
+        if((mi-base+12)%3===0)return s+amt;
+      }
+      if(ch.freq==='yearly'){
+        var chM=ch.date?new Date(ch.date).getMonth():0;
+        if(mi===chM)return s+amt;
+      }
       return s;
     },0);
     var mTravaux=trvProjs.reduce(function(s,p){
@@ -2463,11 +2510,18 @@ function renderNotes(){
     var preview='';
     if(n.type==='checklist'&&Array.isArray(n.items)){
       var done=n.items.filter(function(i){return i.done;}).length;
-      preview='<div style="font-size:10px;color:var(--dim);margin-top:3px;">'+done+'/'+n.items.length+' elements</div>';
-      n.items.slice(0,3).forEach(function(item){
-        preview+='<div class="cl-item-preview"><span>'+(item.done?'&#9989;':'&#9744;')+'</span><span style="'+(item.done?'text-decoration:line-through;color:var(--dim);':'')+'">' +eh(item.text)+'</span></div>';
+      preview='<div style="font-size:10px;color:var(--dim);margin-top:3px;margin-bottom:4px;">'+done+'/'+n.items.length+' element'+(n.items.length>1?'s':'')+'</div>';
+      n.items.forEach(function(item){
+        preview+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);">'
+          +'<span style="font-size:12px;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();toggleNoteItem(\x27'+n.id+'\x27,\x27'+item.id+'\x27)">'+(item.done?'&#9989;':'&#9744;')+'</span>'
+          +'<span style="flex:1;font-size:11px;'+(item.done?'text-decoration:line-through;color:var(--dim);':'color:var(--text);')+'">'+eh(item.text)+'</span>'
+          +'<span style="font-size:10px;color:var(--dim);cursor:pointer;padding:2px 4px;" onclick="event.stopPropagation();delNoteItemInline(\x27'+n.id+'\x27,\x27'+item.id+'\x27)">&#10005;</span>'
+          +'</div>';
       });
-      if(n.items.length>3)preview+='<div style="font-size:9px;color:var(--dim);">+ '+(n.items.length-3)+' autres</div>';
+      preview+='<div style="display:flex;gap:4px;margin-top:5px;" onclick="event.stopPropagation();">'
+        +'<input type="text" id="cl-add-'+n.id+'" placeholder="Ajouter un element..." style="flex:1;padding:4px 7px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);" onkeydown="if(event.key===\x27Enter\x27)addNoteItemInline(\x27'+n.id+'\x27)">'
+        +'<button onclick="event.stopPropagation();addNoteItemInline(\x27'+n.id+'\x27)" style="background:var(--copper);border:none;border-radius:4px;color:var(--bg);font-size:13px;width:26px;height:26px;cursor:pointer;flex-shrink:0;">+</button>'
+        +'</div>';
     } else {
       preview='<div class="note-preview">'+eh(n.content||'')+'</div>';
     }
