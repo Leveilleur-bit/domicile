@@ -460,13 +460,6 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 .charge-amount{font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:16px;color:var(--text);white-space:nowrap;}
 .charge-annual{font-size:10px;color:var(--dim);white-space:nowrap;}
 @media(max-width:600px){.bdg-hero{grid-template-columns:1fr 1fr;}}
-
-/* Conges */
-.ctask.conge{border-color:var(--green);color:var(--green);background:rgba(107,191,142,.12);}
-.ctask.conge-start{border-color:var(--green);color:var(--green);background:rgba(107,191,142,.2);font-weight:500;}
-.ctask.conge-day{border-color:rgba(107,191,142,.4);color:var(--green);background:rgba(107,191,142,.08);border-left:2px solid var(--green);}
-.conge-list-item{display:flex;align-items:center;gap:8px;padding:8px 11px;background:rgba(107,191,142,.08);border:1px solid rgba(107,191,142,.25);border-radius:5px;margin-bottom:5px;font-size:11px;}
-.conge-list-item:hover{border-color:rgba(107,191,142,.5);}
 </style>
 </head>
 <body>
@@ -606,7 +599,6 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <button class="fb on" onclick="calTab('all',this)">&#128197; Tout</button>
     <button class="fb" onclick="calTab('tasks',this)">&#9989; Entretien</button>
     <button class="fb" onclick="calTab('events',this)">&#127881; Evenements</button>
-    <button class="fb" onclick="calTab('conges',this)">&#127964; Conges</button>
   </div>
   <div class="card" style="margin-bottom:12px;">
     <div class="stit" style="font-size:11px;">Ajouter un evenement</div>
@@ -623,22 +615,8 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     </div>
     <button class="bp" onclick="addEvt()">+ Ajouter</button>
   </div>
-  <!-- Formulaire conges -->
-  <div class="card" style="margin-bottom:12px;">
-    <div class="stit" style="font-size:11px;">&#127964; Ajouter des conges</div>
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div><label class="flbl">Libelle</label><input type="text" id="conge-name" placeholder="Vacances ete, Noel..."></div>
-      <div><label class="flbl">Du</label><input type="date" id="conge-start" onchange="updateCongeDuration()"></div>
-      <div><label class="flbl">Au</label><input type="date" id="conge-end" onchange="updateCongeDuration()"></div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <button class="bp" onclick="addConge()">+ Ajouter</button>
-      <span style="font-size:10px;color:var(--dim);" id="conge-duration"></span>
-    </div>
-  </div>
   <div class="stit">Vue annuelle</div>
-  <div id="conges-list-cal" style="margin-bottom:12px;"></div>
-<div class="cgrid" id="cg"></div>
+  <div class="cgrid" id="cg"></div>
 </div>
 
 <!-- HISTORY -->
@@ -783,6 +761,54 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <button class="bp" onclick="addMaint()">+ Planifier</button>
   </div>
 </div>
+
+<!-- RENOVATION -->
+<div class="view" id="view-reno">
+  <div class="rhero">
+    <div class="sc b"><div class="sc-l">Projets</div><div class="sc-v" id="rt">0</div></div>
+    <div class="sc a"><div class="sc-l">En cours</div><div class="sc-v" id="rw">0</div></div>
+    <div class="sc g"><div class="sc-l">Termines</div><div class="sc-v" id="rd">0</div></div>
+    <div class="sc r" style="--r:var(--copper);"><div class="sc-l">Budget</div><div class="sc-v" id="rb" style="color:var(--copper);">0</div></div>
+  </div>
+  <div class="rbar-wrap">
+    <span class="rbarlbl">Avancement global</span>
+    <div class="rbarbg"><div class="rbarfill" id="rgb" style="width:0%"></div></div>
+    <span class="rpct" id="rgp">0%</span>
+  </div>
+  <div class="card" style="margin-bottom:12px;">
+    <div class="stit" style="font-size:12px;">Nouveau projet</div>
+    <div class="fgrid fg4" style="margin-bottom:8px;">
+      <div><label class="flbl">Nom</label><input type="text" id="rn" placeholder="Ex: Refaire salle de bain..."></div>
+      <div><label class="flbl">Zone</label>
+        <select id="rz">
+          <option>Cuisine</option><option>Salon</option><option>Chambre</option>
+          <option>Salle de bain</option><option>Cave</option><option>Garage</option>
+          <option>Jardin</option><option>Toiture</option><option>Facade</option><option>General</option>
+        </select>
+      </div>
+      <div><label class="flbl">Statut</label>
+        <select id="rst"><option value="todo">A faire</option><option value="wip">En cours</option><option value="paused">En pause</option></select>
+      </div>
+      <div><label class="flbl">Priorite</label>
+        <select id="rpr"><option value="high">Haute</option><option value="medium" selected>Moyenne</option><option value="low">Basse</option></select>
+      </div>
+    </div>
+    <div class="fgrid fg2" style="margin-bottom:8px;">
+      <div><label class="flbl">Budget (EUR)</label><input type="number" id="rbi" placeholder="0" min="0"></div>
+      <div><label class="flbl">Notes</label><input type="text" id="rno" placeholder="Entreprise, materiaux..."></div>
+    </div>
+    <button class="bp" onclick="addReno()">+ Creer le projet</button>
+  </div>
+  <div class="fltrs" id="rftrs">
+    <button class="fb on" onclick="fReno('all',this)">Tous</button>
+    <button class="fb" onclick="fReno('todo',this)">A faire</button>
+    <button class="fb" onclick="fReno('wip',this)">En cours</button>
+    <button class="fb" onclick="fReno('paused',this)">En pause</button>
+    <button class="fb" onclick="fReno('done-s',this)">Termines</button>
+  </div>
+  <div id="rlist"></div>
+</div>
+
 
 <!-- STATS -->
 <div class="view" id="view-stats">
@@ -1055,7 +1081,33 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
         <div style="width:32px;height:32px;border-radius:50%;background:#6bbf8e;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#6bbf8e" data-light="#90d4a8" onclick="setAccentColor(this)"></div>
         <div style="width:32px;height:32px;border-radius:50%;background:#e07060;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#e07060" data-light="#f09080" onclick="setAccentColor(this)"></div>
         <div style="width:32px;height:32px;border-radius:50%;background:#a080cc;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#a080cc" data-light="#c0a0e0" onclick="setAccentColor(this)"></div>
-        <div style="width:32px;h
+        <div style="width:32px;height:32px;border-radius:50%;background:#f0c060;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#f0c060" data-light="#f8d888" onclick="setAccentColor(this)"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Notifications</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:12px;color:var(--text);">Rappels de taches</div>
+          <div style="font-size:10px;color:var(--dim);">Notification si taches urgentes</div>
+        </div>
+        <div class="toggle-switch" id="notif-toggle" onclick="toggleNotif()"></div>
+      </div>
+      <div id="notif-time-wrap" style="display:none;">
+        <div style="display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 12px;">
+          <span style="font-size:11px;color:var(--text);">Heure du rappel</span>
+          <input type="time" id="notif-time" value="19:00" style="width:95px;flex:none;" onchange="saveNotifTime()">
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:10px;color:var(--dim);margin-top:14px;">DOMICILE v2.0 - 06/05/2026</div>
+    <button class="bp" style="width:100%;margin-top:10px;" onclick="closeSettings()">Fermer</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
 var TK='dtasks_v4', PK='dpellet_v4', RK='dreno_v4';
 var tasks=[], PD=null, renos=[], tFilter='all', rFilter='all';
 
@@ -1079,6 +1131,7 @@ function showView(v,tab){
   var el=g('view-'+v);if(el)el.classList.add('on');
   if(tab)tab.classList.add('on');
   if(v==='pellet')renderP();
+  if(v==='reno')renderR();
   if(v==='travaux')renderTrv();
   if(v==='notes')renderNotes();
   if(v==='cal')renderCal();
@@ -1156,7 +1209,6 @@ function thtml(t){
   var ub=t.done?'<button class="bi" onclick="mUndone(\''+t.id+'\')">&#8617;</button>':'';
   var dlb='<button class="bi del" onclick="dTask(\''+t.id+'\')">&#10005;</button>';
   var dcls='date-lbl'+(st==='urgent'?' urgent':st==='soon'?' soon':'');
-  var priIco=t.priority==='high'?'<span style="font-size:10px;">&#128308; </span>':t.priority==='low'?'<span style="font-size:10px;opacity:.5;">&#9898; </span>':'';
   return '<div class="ti"><span class="dot '+st+'"></span>'
     +'<div class="ti-main"><div class="ti-name'+(t.done?' dt':'')+'" onclick="openEdit(\''+t.id+'\')" title="Modifier">'+eh(t.name)+notes+prest+clast+'</div>'
     +'<div class="ti-meta"><span class="tag">'+eh(t.room)+'</span><span class="tag">'+eh(t.cat)+'</span>'+rec+'<span class="'+dcls+'">'+dl+'</span></div></div>'
@@ -1269,8 +1321,7 @@ function goTasks(){
 }
 
 function renderDash(){
-  var priOrd={high:0,normal:1,low:2};
-  var urg=tasks.filter(function(t){return!t.done&&tstat(t)==='urgent';}).sort(function(a,b){return (priOrd[a.priority||'normal']||1)-(priOrd[b.priority||'normal']||1)||a.date.localeCompare(b.date);});
+  var urg=tasks.filter(function(t){return!t.done&&tstat(t)==='urgent';}).sort(function(a,b){return a.date.localeCompare(b.date);});
   var sn=tasks.filter(function(t){return!t.done&&tstat(t)==='soon';}).sort(function(a,b){return a.date.localeCompare(b.date);});
   sv('d-urg',function(e){e.innerHTML=urg.length?urg.map(thtml).join(''):'<div class="empty"><div class="eico">&#10003;</div>Aucune tache urgente</div>';});
   sv('d-sn',function(e){e.innerHTML=sn.length?sn.map(thtml).join(''):'<div class="empty"><div class="eico">&#9671;</div>Rien ce mois-ci</div>';});
@@ -1398,6 +1449,27 @@ function renderHist(){
   el.innerHTML=h;
 }
 
+function renderDashBirthdays(){
+  var el=g('d-birthdays');if(!el)return;
+  var upcoming=getUpcomingBirthdays(30);
+  if(!upcoming.length){el.innerHTML='';return;}
+  var h='<div class="stit">Anniversaires a venir</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:16px;">';
+  upcoming.forEach(function(b){
+    var urgent=b.diff<=3;var soon=b.diff<=7;
+    var color=urgent?'var(--red)':soon?'var(--amber)':'var(--purple)';
+    var diffTxt=b.diff===0?'Aujourd hui !':b.diff===1?'Demain':'dans '+b.diff+' j';
+    h+='<div style="background:var(--bg2);border:1px solid '+(urgent?'rgba(224,112,96,.4)':soon?'rgba(240,192,96,.3)':'rgba(160,128,204,.25)' )+';border-radius:7px;padding:12px;position:relative;overflow:hidden;">'
+      +'<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+color+';"></div>'
+      +'<div style="font-size:18px;margin-bottom:5px;">&#127881;</div>'
+      +'<div style="font-size:12px;color:var(--text);font-family:Inter,sans-serif;font-weight:500;margin-bottom:3px;">'+eh(b.title)+'</div>'
+      +'<div style="font-size:11px;color:'+color+';">'+diffTxt+'</div>'
+      +'<div style="font-size:10px;color:var(--dim);margin-top:2px;">'+b.date.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+'</div>'
+      +'</div>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
 
 function renderDashCpt(){
   var el=g('d-cpt-releve');if(!el)return;
@@ -1503,108 +1575,7 @@ function renderDashBirthdays(){
   el.innerHTML=h;
 }
 
-function delNoteItemInline(nid,iid){
-  var n=notes.find(function(x){return x.id===nid;});
-  if(!n||!n.items)return;
-  n.items=n.items.filter(function(x){return x.id!==iid;});
-  n.updatedAt=tod();
-  saveNotes();renderNotes();
-}
-function toggleNoteItem(nid,iid){
-  var n=notes.find(function(x){return x.id===nid;});
-  if(!n||!n.items)return;
-  var item=n.items.find(function(x){return x.id===iid;});
-  if(item){item.done=!item.done;n.updatedAt=tod();}
-  saveNotes();renderNotes();
-}
-function addNoteItemInline(nid){
-  var inp=g('cl-add-'+nid);
-  if(!inp||!inp.value.trim())return;
-  var n=notes.find(function(x){return x.id===nid;});
-  if(!n)return;
-  if(!n.items)n.items=[];
-  n.items.push({id:uid(),text:inp.value.trim(),done:false});
-  n.updatedAt=tod();
-  saveNotes();renderNotes();
-}
-
-// ── CONGES ──
-var CONGE_KEY='domicile_conges_v1';
-var conges=[];
-
-function loadConges(){try{conges=JSON.parse(localStorage.getItem(CONGE_KEY))||[];}catch(e){conges=[];}}
-function saveConges(){localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
-
-function addConge(){
-  var name=g('conge-name'),start=g('conge-start'),end=g('conge-end');
-  if(!name||!name.value.trim()){toast('Libelle requis');return;}
-  if(!start||!start.value){toast('Date de debut requise');return;}
-  if(!end||!end.value){toast('Date de fin requise');return;}
-  if(start.value>end.value){toast('La fin doit etre apres le debut');return;}
-  conges.push({id:uid(),name:name.value.trim(),start:start.value,end:end.value});
-  name.value='';
-  saveConges();renderCal();
-  var days=Math.round((new Date(end.value)-new Date(start.value))/86400000)+1;
-  toast('Conges ajoutes - '+days+' jour'+(days>1?'s':''));
-}
-
-function delConge(id){
-  conges=conges.filter(function(x){return x.id!==id;});
-  saveConges();renderCal();toast('Supprime');
-}
-
-function dateInConge(dateStr){
-  // Retourne le conge si la date est dans une periode
-  for(var i=0;i<conges.length;i++){
-    if(dateStr>=conges[i].start&&dateStr<=conges[i].end)return conges[i];
-  }
-  return null;
-}
-
-function congesInMonth(year,month){
-  // Retourne les jours de conges dans un mois donné
-  var result=[];
-  var seen={};
-  conges.forEach(function(cg){
-    var start=new Date(cg.start);
-    var end=new Date(cg.end);
-    // Parcourir chaque jour du congé
-    var d=new Date(start);
-    var isFirst=true;
-    while(d<=end){
-      if(d.getFullYear()===year&&d.getMonth()===month){
-        var ds=d.toISOString().split('T')[0];
-        if(!seen[cg.id]){
-          // Premier jour du congé dans ce mois
-          result.push({id:cg.id,name:cg.name,date:ds,isFirst:true,start:cg.start,end:cg.end});
-          seen[cg.id]=true;
-        }
-      }
-      d.setDate(d.getDate()+1);
-      isFirst=false;
-    }
-  });
-  return result;
-}
-
-// Calculer durée à l'affichage du formulaire
-function updateCongeDuration(){
-  var s=g('conge-start'),e=g('conge-end'),disp=g('conge-duration');
-  if(!s||!e||!disp||!s.value||!e.value)return;
-  var days=Math.round((new Date(e.value)-new Date(s.value))/86400000)+1;
-  if(days>0)disp.textContent=days+' jour'+(days>1?'s':'');
-  else disp.textContent='';
-}
-
-function delCongeConfirm(id){
-  var cg=conges.find(function(x){return x.id===id;});
-  if(!cg)return;
-  if(confirm('Supprimer "'+cg.name+'" ('+fd(cg.start)+' - '+fd(cg.end)+') ?')){
-    delConge(id);
-  }
-}
-
-function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();}
+function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderOnboard();}
 
 // PELLET
 function defP(){
@@ -1651,23 +1622,7 @@ function renderP(){
   var s=PD.stk||0,th=PD.thr||10,skg=s*(PD.kgs||15);
   sv('pstk',function(e){e.textContent=s;});
   sv('pskg',function(e){e.textContent=skg+' kg';});
-  sv('plastresupply',function(e){
-    if(PD.lastResupply){
-      e.innerHTML='Dernier ravitaillement : <span style="color:var(--cl);">'+fd(PD.lastResupply)+'</span>'
-        +(PD.lastResupplyQty?' (+'+PD.lastResupplyQty+' sacs)':'');
-    } else {
-      e.textContent='Aucun ravitaillement enregistre';
-    }
-  });
   sv('pthr',function(e){e.value=th;});
-  var price=PD.price||0;
-  sv('pprice',function(e){e.value=price>0?price:'';});
-  sv('pbudget-chauff',function(e){
-    if(!price){e.textContent='Renseignez le prix/sac pour le budget';e.style.color='var(--dim)';return;}
-    var coutSaison=(c*(price)).toFixed(0);
-    var coutAn=((PD.tgt||80)*price).toFixed(0);
-    e.innerHTML='<span style="color:var(--copper);font-weight:500;">'+coutSaison+' EUR</span> cette saison<br><span style="color:var(--dim);">Objectif saison : '+coutAn+' EUR</span>';
-  });
   sv('pcstk',function(e){e.className='pc '+(s===0||s<=th?'low':s<=th*2?'med':'grn');});
   sv('palert',function(e){
     if(s<=th){e.style.display='flex';e.className='palert';
@@ -1698,16 +1653,9 @@ function renderP(){
 }
 
 function pUsed(d){if(!PD)return;PD.cnt=Math.max(0,(PD.cnt||0)+d);if(d>0)PD.stk=Math.max(0,(PD.stk||0)-d);else if(d<0)PD.stk=(PD.stk||0)+Math.abs(d);saveP();renderP();var s=PD.stk||0,th=PD.thr||10;if(d>0&&s<=th&&s>0)toast(d+' sac'+(d>1?'s':'')+' utilise - Stock bas: '+s);else if(d>0&&s===0)toast('Stock epuise !');else if(d>0)toast('+'+d+' sac'+(d>1?'s':'')+' utilise');else toast('Correction appliquee');}
-function pStock(d){
-  if(!PD)return;
-  PD.stk=Math.max(0,(PD.stk||0)+d);
-  if(d>0){PD.lastResupply=tod();PD.lastResupplyQty=(PD.lastResupplyQty||0)+d;}
-  saveP();renderP();
-  toast(d>0?'+'+d+' sac'+(d>1?'s':'')+' en stock':'Mis a jour');
-}
+function pStock(d){if(!PD)return;PD.stk=Math.max(0,(PD.stk||0)+d);saveP();renderP();toast(d>0?'+'+d+' sac'+(d>1?'s':'')+' en stock':'Mis a jour');}
 function savePT(){if(!PD)return;var v=parseInt(g('ptgt').value);if(v>0){PD.tgt=v;saveP();renderP();}}
 function savePThr(){if(!PD)return;var v=parseInt(g('pthr').value);if(v>0){PD.thr=v;saveP();renderP();}}
-function savePPrice(){if(!PD)return;var v=parseFloat(g('pprice').value);if(!isNaN(v)&&v>=0){PD.price=v;saveP();renderP();}}
 function pClose(){
   if(!PD||!(PD.cnt>0)){toast('Aucun sac enregistre');return;}
   var sl=slbl(PD.sk),idx=-1;
@@ -1732,7 +1680,100 @@ function loadR(){try{renos=JSON.parse(localStorage.getItem(RK))||[];}catch(e){re
 function saveR(){localStorage.setItem(RK,JSON.stringify(renos));}
 function rpct(p){if(!p.steps||!p.steps.length)return p.status==='done-s'?100:0;return Math.round(p.steps.filter(function(s){return s.done;}).length/p.steps.length*100);}
 
+function renderR(){
+  var tot=renos.length,wip=renos.filter(function(p){return p.status==='wip';}).length;
+  var dn=renos.filter(function(p){return p.status==='done-s';}).length;
+  var bdg=renos.reduce(function(s,p){return s+(parseFloat(p.budget)||0);},0);
+  sv('rt',function(e){e.textContent=tot;});
+  sv('rw',function(e){e.textContent=wip;});
+  sv('rd',function(e){e.textContent=dn;});
+  sv('rb',function(e){e.textContent=bdg>=1000?(bdg/1000).toFixed(1)+'k':bdg;});
+  var gp=tot===0?0:Math.round(renos.reduce(function(s,p){return s+rpct(p);},0)/tot);
+  sv('rgb',function(e){e.style.width=gp+'%';});
+  sv('rgp',function(e){e.textContent=gp+'%';e.style.color=gp>=80?'var(--green)':gp>=40?'var(--amber)':'var(--blue)';});
+  var list=g('rlist');if(!list)return;
+  var filt=rFilter==='all'?renos.slice():renos.filter(function(p){return p.status===rFilter;});
+  var po={high:0,medium:1,low:2},so={wip:0,todo:1,paused:2,'done-s':3};
+  filt.sort(function(a,b){var sd=(so[a.status]||0)-(so[b.status]||0);return sd!==0?sd:(po[a.priority]||1)-(po[b.priority]||1);});
+  if(!filt.length){list.innerHTML='<div class="empty"><div class="eico">&#x1F3D7;</div>'+(renos.length===0?'Aucun projet - creez votre premier chantier !':'Aucun projet dans ce filtre')+'</div>';return;}
+  var SLBL={todo:'A faire',wip:'En cours',paused:'En pause','done-s':'Termine'};
+  var h='';
+  filt.forEach(function(p){
+    var pct=rpct(p),bc=pct===100?'var(--green)':pct>=50?'var(--amber)':'var(--blue)';
+    var dc=(p.steps||[]).filter(function(s){return s.done;}).length,tc=(p.steps||[]).length;
+    var tcost=(p.steps||[]).reduce(function(s,st){return s+(parseFloat(st.cost)||0);},0)+(parseFloat(p.budget)||0);
+    var subs='';
+    (p.steps||[]).forEach(function(s){
+      var cc=s.done?'rchk chk':'rchk';
+      subs+='<div class="rsub"><div class="'+cc+'" onclick="rCheck(\''+p.id+'\',\''+s.id+'\')">'+( s.done?'&#10003;':'')+'</div>'
+        +'<span class="rsname'+(s.done?' ds':'')+'">'+eh(s.name)+'</span>'
+        +'<span class="rscost">'+(s.cost?s.cost+' EUR':'')+'</span>'
+        +'<button class="bi del" style="width:22px;height:22px;font-size:10px;" onclick="rDelS(\''+p.id+'\',\''+s.id+'\')">&#10005;</button>'
+        +'</div>';
+    });
+    var sopt='';
+    ['todo','wip','paused','done-s'].forEach(function(v){sopt+='<option value="'+v+'"'+(p.status===v?' selected':'')+'>'+SLBL[v]+'</option>';});
+    var pc2=p.status==='done-s'?'rpname dp':'rpname';
+    var bc2={todo:'todo',wip:'wip',paused:'paused','done-s':'done-s'}[p.status]||'todo';
+    var noSt=tc===0?'<div style="font-size:10px;color:var(--dim);padding:5px 0;font-style:italic;">Aucune etape - ajoutez-en ci-dessous</div>':'';
+    var bsp=tcost>0?'<span class="rpbudget">'+tcost+' EUR</span>':'<span></span>';
+    var nh=p.notes?'<div class="rnotes">'+eh(p.notes)+'</div>':'';
+    var projcls='rp'+(p._o?' exp':'');
+    h+='<div class="'+projcls+'" id="rp-'+p.id+'">'
+      +'<div class="rphdr" onclick="rToggle(\''+p.id+'\')">'
+      +'<span class="rpri '+(p.priority||'medium')+'"></span>'
+      +'<span class="'+pc2+'">'+eh(p.name)+' <span style="font-size:10px;color:var(--dim);">- '+eh(p.zone)+'</span></span>'
+      +'<span class="rsbadge '+bc2+'">'+SLBL[p.status]+'</span>'
+      +'<div style="display:flex;align-items:center;gap:6px;"><div class="rpw"><div class="rpb" style="width:'+pct+'%;background:'+bc+';"></div></div><span class="rppct">'+pct+'%</span></div>'
+      +bsp
+      +'<span class="rchev">&#9660;</span>'
+      +'</div>'
+      +'<div class="rpbody">'+nh
+      +'<div class="ract">'
+      +'<select onchange="rStat(\''+p.id+'\',this.value)" style="padding:5px 8px;font-size:11px;width:auto;">'+sopt+'</select>'
+      +'<span style="font-size:10px;color:var(--dim);">'+dc+'/'+tc+' etape'+(tc!==1?'s':'')+'</span>'
+      +'<button class="bi del" style="margin-left:auto;" onclick="rDel(\''+p.id+'\')">&#10005; Supprimer</button>'
+      +'</div>'
+      +'<div id="rps-'+p.id+'">'+subs+'</div>'+noSt
+      +'<div class="addrow">'
+      +'<input type="text" id="rsn-'+p.id+'" placeholder="Etape...">'
+      +'<input type="number" id="rsc-'+p.id+'" class="ci" placeholder="Cout" min="0">'
+      +'<button class="bp" style="padding:7px 10px;font-size:10px;white-space:nowrap;" onclick="rAddS(\''+p.id+'\')">+ Etape</button>'
+      +'</div>'
+      +'</div></div>';
+  });
+  list.innerHTML=h;
+}
 
+function addReno(){
+  var n=g('rn').value.trim();if(!n){toast('Nom requis');return;}
+  renos.unshift({id:uid(),name:n,zone:g('rz').value,status:g('rst').value,priority:g('rpr').value,budget:g('rbi').value||0,notes:g('rno').value.trim(),steps:[],_o:true});
+  g('rn').value='';g('rbi').value='';g('rno').value='';
+  saveR();renderR();toast('Projet cree');
+}
+function rToggle(id){var p=renos.find(function(x){return x.id===id;});if(p)p._o=!p._o;saveR();renderR();}
+function rStat(id,st){var p=renos.find(function(x){return x.id===id;});if(p){p.status=st;p._o=true;}saveR();renderR();toast('Statut mis a jour');}
+function rAddS(pid){
+  var ne=g('rsn-'+pid),ce=g('rsc-'+pid);
+  if(!ne||!ne.value.trim()){toast('Nom requis');return;}
+  var p=renos.find(function(x){return x.id===pid;});if(!p)return;
+  if(!p.steps)p.steps=[];
+  p.steps.push({id:uid(),name:ne.value.trim(),cost:ce?ce.value:'',done:false});
+  p._o=true;if(p.status==='todo')p.status='wip';
+  ne.value='';if(ce)ce.value='';
+  saveR();renderR();toast('Etape ajoutee');
+}
+function rCheck(pid,sid){
+  var p=renos.find(function(x){return x.id===pid;});if(!p)return;
+  var s=p.steps.find(function(x){return x.id===sid;});if(s)s.done=!s.done;
+  p._o=true;
+  if(p.steps.length&&p.steps.every(function(x){return x.done;})){p.status='done-s';toast('Projet complete !');}
+  else if(p.status==='done-s'&&!p.steps.every(function(x){return x.done;})){p.status='wip';}
+  saveR();renderR();
+}
+function rDelS(pid,sid){var p=renos.find(function(x){return x.id===pid;});if(p){p.steps=p.steps.filter(function(x){return x.id!==sid;});p._o=true;}saveR();renderR();toast('Etape supprimee');}
+function rDel(id){if(!confirm('Supprimer ce projet ?'))return;renos=renos.filter(function(x){return x.id!==id;});saveR();renderR();toast('Supprime');}
+function fReno(f,btn){rFilter=f;var bs=g('rftrs').querySelectorAll('.fb');for(var i=0;i<bs.length;i++)bs[i].classList.remove('on');btn.classList.add('on');renderR();}
 
 // EDITION TACHE
 var editId=null;
@@ -1790,7 +1831,6 @@ function saveEdit(){
   if(d&&d.value)t.date=d.value;
   if(rc)t.recur=rc.value;
   if(no)t.notes=no.value.trim();
-  var ep2=g('edit-priority');if(ep2)t.priority=ep2.value;
   var pr=document.getElementById('edit-prest');
   var ca2=document.getElementById('edit-cost-ann');
   var cl=document.getElementById('edit-cost-last');
@@ -2070,7 +2110,6 @@ function importData(input){
       if(Array.isArray(data.renos)){renos=data.renos;saveR();}
       if(data.compteurs&&typeof data.compteurs==='object'){cptData=data.compteurs;saveCpt();}
       if(data.budget&&typeof data.budget==='object'){charges=data.budget.charges||[];depenses=data.budget.depenses||[];saveBudget();}
-      if(Array.isArray(data.conges)){conges=data.conges;saveConges();}
       renderAll();
       toast('Sauvegarde restauree - '+tasks.length+' taches, '+renos.length+' projets');
     }catch(err){
@@ -2089,7 +2128,7 @@ function init(){
   sv('pmdate',function(e){e.value=tod();});
   sv('cpt-date',function(e){e.value=tod();});
   sv('evt-date',function(e){e.value=tod();});
-  loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();
+  loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
@@ -2163,7 +2202,6 @@ function getUpcomingBirthdays(days){
     thisYear.setHours(0,0,0,0);
     // Si deja passe cette annee, regarder l annee prochaine
     if(thisYear<today)thisYear.setFullYear(today.getFullYear()+1);
-    if(isNaN(thisYear.getTime()))return;
     var diff=Math.floor((thisYear-today)/86400000);
     if(diff<=days)result.push({title:e.title,diff:diff,date:thisYear});
   });
@@ -2296,17 +2334,9 @@ function renderBudget(){
   var monthly=[];
   for(var mi=0;mi<12;mi++){
     var mFixes=charges.reduce(function(s,ch){
-      var amt=parseFloat(ch.amount)||0;
-      if(ch.freq==='monthly')return s+amt;
-      if(ch.freq==='quarterly'){
-        var base=ch.date?new Date(ch.date).getMonth():0;
-        // Afficher sur le mois de creation + tous les 3 mois
-        if((mi-base+12)%3===0)return s+amt;
-      }
-      if(ch.freq==='yearly'){
-        var chM=ch.date?new Date(ch.date).getMonth():0;
-        if(mi===chM)return s+amt;
-      }
+      if(ch.freq==='monthly')return s+(parseFloat(ch.amount)||0);
+      if(ch.freq==='quarterly'&&mi%3===0)return s+(parseFloat(ch.amount)||0);
+      if(ch.freq==='yearly'&&mi===0)return s+(parseFloat(ch.amount)||0);
       return s;
     },0);
     var mTravaux=trvProjs.reduce(function(s,p){
@@ -2439,16 +2469,6 @@ function renderTrv(){
     var bc2={todo:'todo',wip:'wip',paused:'paused','done-s':'done-s'}[p.status]||'todo';
     var sColor=SCOL[p.status]||'var(--dim)';
     // Achats HTML
-    var stepsH='';
-    var dc=(p.steps||[]).filter(function(s){return s.done;}).length;
-    var tc=(p.steps||[]).length;
-    (p.steps||[]).forEach(function(s,si){
-      stepsH+='<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;">'
-        +'<div style="width:15px;height:15px;border-radius:3px;background:'+(s.done?'var(--green)':'var(--bg3)')+';border:'+(s.done?'none':'1.5px solid var(--border)')+';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:var(--bg);flex-shrink:0;" onclick="trvCheckStep_idx("+pidx+",\x27"+s.id+"\x27)">'+( s.done?'&#10003;':'')+'</div>'
-        +'<span style="flex:1;font-size:11px;'+(s.done?'text-decoration:line-through;color:var(--dim);':'color:var(--text);')+'">'+eh(s.name)+'</span>'
-        +'<button style="background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--dim);width:20px;height:20px;cursor:pointer;font-size:10px;" onclick="trvDelStep_idx("+pidx+",\x27"+s.id+"\x27)">&#10005;</button>'
-        +'</div>';
-    });
     var achatsH='';
     (p.budget_lines||[]).forEach(function(b){
       achatsH+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;margin-bottom:4px;">'
@@ -2583,18 +2603,11 @@ function renderNotes(){
     var preview='';
     if(n.type==='checklist'&&Array.isArray(n.items)){
       var done=n.items.filter(function(i){return i.done;}).length;
-      preview='<div style="font-size:10px;color:var(--dim);margin-top:3px;margin-bottom:4px;">'+done+'/'+n.items.length+' element'+(n.items.length>1?'s':'')+'</div>';
-      n.items.forEach(function(item){
-        preview+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);">'
-          +'<span style="font-size:12px;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();toggleNoteItem(\x27'+n.id+'\x27,\x27'+item.id+'\x27)">'+(item.done?'&#9989;':'&#9744;')+'</span>'
-          +'<span style="flex:1;font-size:11px;'+(item.done?'text-decoration:line-through;color:var(--dim);':'color:var(--text);')+'">'+eh(item.text)+'</span>'
-          +'<span style="font-size:10px;color:var(--dim);cursor:pointer;padding:2px 4px;" onclick="event.stopPropagation();delNoteItemInline(\x27'+n.id+'\x27,\x27'+item.id+'\x27)">&#10005;</span>'
-          +'</div>';
+      preview='<div style="font-size:10px;color:var(--dim);margin-top:3px;">'+done+'/'+n.items.length+' elements</div>';
+      n.items.slice(0,3).forEach(function(item){
+        preview+='<div class="cl-item-preview"><span>'+(item.done?'&#9989;':'&#9744;')+'</span><span style="'+(item.done?'text-decoration:line-through;color:var(--dim);':'')+'">' +eh(item.text)+'</span></div>';
       });
-      preview+='<div style="display:flex;gap:4px;margin-top:5px;" onclick="event.stopPropagation();">'
-        +'<input type="text" id="cl-add-'+n.id+'" placeholder="Ajouter un element..." style="flex:1;padding:4px 7px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);" onkeydown="if(event.key===\x27Enter\x27)addNoteItemInline(\x27'+n.id+'\x27)">'
-        +'<button onclick="event.stopPropagation();addNoteItemInline(\x27'+n.id+'\x27)" style="background:var(--copper);border:none;border-radius:4px;color:var(--bg);font-size:13px;width:26px;height:26px;cursor:pointer;flex-shrink:0;">+</button>'
-        +'</div>';
+      if(n.items.length>3)preview+='<div style="font-size:9px;color:var(--dim);">+ '+(n.items.length-3)+' autres</div>';
     } else {
       preview='<div class="note-preview">'+eh(n.content||'')+'</div>';
     }
@@ -2775,14 +2788,19 @@ function renderTodayEvents(){
 // ── MORE MENU ──
 function toggleMore(){
   var m=g('more-menu');if(!m)return;
-  if(m.style.display==='block'){m.style.display='none';return;}
-  var btn=g('more-btn');
-  if(btn){
-    var rect=btn.getBoundingClientRect();
-    m.style.top=(rect.bottom+4)+'px';
-    m.style.right=Math.max(4,window.innerWidth-rect.right)+'px';
+  var isOpen=m.style.display==='block';
+  if(!isOpen){
+    var btn=g('more-btn');
+    if(btn){
+      var rect=btn.getBoundingClientRect();
+      m.style.top=(rect.bottom+6)+'px';
+      m.style.right=Math.max(4,window.innerWidth-rect.right-4)+'px';
+      m.style.left='auto';
+    }
+    m.style.display='block';
+  } else {
+    m.style.display='none';
   }
-  m.style.display='block';
 }
 document.addEventListener('click',function(e){
   var m=g('more-menu'),b=g('more-btn');
@@ -2795,7 +2813,7 @@ document.addEventListener('click',function(e){
 // ── UPDATE exportData to include new data ──
 var _origExport=exportData;
 exportData=function(){
-  var data={version:2,date:new Date().toISOString(),tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,notes:notes,events:events,compteurs:cptData,budget:{charges:charges,depenses:depenses},conges:conges};
+  var data={version:2,date:new Date().toISOString(),tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,notes:notes,events:events,compteurs:cptData,budget:{charges:charges,depenses:depenses}};
   var json=JSON.stringify(data,null,2);
   var blob=new Blob([json],{type:'application/json'});
   var url=URL.createObjectURL(blob);
@@ -2837,87 +2855,23 @@ renderCal=function(){
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
   var now=new Date(),cg=g('cg');if(!cg)return;
   var h='';
-  // Map globale pour retrouver la tache par index
-  window._calTaskMap={};
-  var taskIdx=0;
   for(var i=0;i<12;i++){
     var mt=calViewTab!=='events'?tasks.filter(function(t){var d=new Date(t.date);return d.getFullYear()===now.getFullYear()&&d.getMonth()===i;}):[];
     mt.sort(function(a,b){return a.date.localeCompare(b.date);});
     var me=calViewTab!=='tasks'?events.filter(function(e){
       var d=new Date(e.date);
       if(e.recur==='yearly')return d.getMonth()===i;
-      return d.getFullYear()===now.getFullYear()&&d.getMonth()===i&&d.getDate()>0;
+      return d.getFullYear()===now.getFullYear()&&d.getMonth()===i;
     }):[];
-    // Congés du mois
-    var mc=( calViewTab==='all'||calViewTab==='conges')?congesInMonth(now.getFullYear(),i):[];
     var ip=i<now.getMonth(),th='';
     if(!mt.length&&!me.length){th='<span style="font-size:9px;color:var(--dim);">-</span>';}
     mt.forEach(function(t){
       var sc=t.done?'done':(ip&&!t.done?'urgent':tstat(t));
-      var tidx=taskIdx++;
-      window._calTaskMap[tidx]=t.id;
-      th+='<div class="ctask '+sc+'" onclick="calOpenTask('+tidx+')" style="cursor:pointer;" title="'+eh(t.name)+'">'+eh(t.name)+'</div>';
+      th+='<div class="ctask '+sc+'" onclick="openEdit(\''+t.id+'\')" title="'+eh(t.name)+'">'+eh(t.name)+'</div>';
     });
     me.forEach(function(e){
       var ico={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'}[e.type]||'&#11088;';
-      th+='<div class="ctask '+e.type+'" onclick="openEvtMenu(\x27'+e.id+'\x27)" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'</div>';
-    });
-    // Afficher les congés du mois
-    mc.forEach(function(cg){
-      var days=Math.round((new Date(cg.end)-new Date(cg.start))/86400000)+1;
-      th='<div class="ctask conge-start" style="cursor:pointer;" onclick="delCongeConfirm(\x27'+cg.id+'\x27)" title="Cliquer pour supprimer">&#127964; '+eh(cg.name)+' ('+days+'j)</div>'+th;
-    });
-    var ec=me.length+mc.length;
-    h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'" style="display:flex;align-items:center;justify-content:space-between;">'+MN[i]+(ec?'<span style="font-size:9px;color:var(--purple);">'+ec+'</span>':'')+'</div><div class="cbody">'+th+'</div></div>';
-  }
-  cg.innerHTML=h;
-  // Liste des congés
-  var cl=g('conges-list-cal');
-  if(cl){
-    if(!conges.length){cl.innerHTML='';return;}
-    var lh='<div class="stit">Conges planifies</div>';
-    conges.sort(function(a,b){return a.start.localeCompare(b.start);}).forEach(function(cg2){
-      var days=Math.round((new Date(cg2.end)-new Date(cg2.start))/86400000)+1;
-      lh+='<div class="conge-list-item">'
-        +'<span style="font-size:16px;">&#127964;</span>'
-        +'<div style="flex:1;">'
-        +'<div style="font-size:12px;color:var(--text);font-family:Inter,sans-serif;font-weight:500;">'+eh(cg2.name)+'</div>'
-        +'<div style="font-size:10px;color:var(--dim);">'+fd(cg2.start)+' au '+fd(cg2.end)+' &mdash; '+days+' jour'+(days>1?'s':'')+'</div>'
-        +'</div>'
-        +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="delCongeConfirm(\x27'+cg2.id+'\x27)">&#10005;</button>'
-        +'</div>';
-    });
-    cl.innerHTML=lh;
-  }
-};
-
-// init consolidated above
-function trvAddStep_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvAddStep(id);}
-function trvCheckStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvCheckStep(id,sid);}
-function trvDelStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelStep(id,sid);}
-
-function calOpenTask(idx){
-  var id=window._calTaskMap&&window._calTaskMap[idx];
-  if(id)openEdit(id);
-}
-
-init();
-
-if('serviceWorker' in navigator && location.protocol !== 'file:'){
-  window.addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
-  });
-}
-var(--dim);">-</span>';}
-    mt.forEach(function(t){
-      var sc=t.done?'done':(ip&&!t.done?'urgent':tstat(t));
-      var tidx=taskIdx++;
-      window._calTaskMap[tidx]=t.id;
-      th+='<div class="ctask '+sc+'" onclick="calOpenTask('+tidx+')" style="cursor:pointer;" title="'+eh(t.name)+'">'+eh(t.name)+'</div>';
-    });
-    me.forEach(function(e){
-      var ico={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'}[e.type]||'&#11088;';
-      th+='<div class="ctask '+e.type+'" onclick="openEvtMenu(\x27'+e.id+'\x27)" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'</div>';
+      th+='<div class="ctask '+e.type+'" onclick="openEvtMenu(\''+e.id+'\')" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'</div>';
     });
     var ec=me.length;
     h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'" style="display:flex;align-items:center;justify-content:space-between;">'+MN[i]+(ec?'<span style="font-size:9px;color:var(--purple);">'+ec+'</span>':'')+'</div><div class="cbody">'+th+'</div></div>';
@@ -2926,15 +2880,6 @@ var(--dim);">-</span>';}
 };
 
 // init consolidated above
-function trvAddStep_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvAddStep(id);}
-function trvCheckStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvCheckStep(id,sid);}
-function trvDelStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelStep(id,sid);}
-
-function calOpenTask(idx){
-  var id=window._calTaskMap&&window._calTaskMap[idx];
-  if(id)openEdit(id);
-}
-
 init();
 
 if('serviceWorker' in navigator && location.protocol !== 'file:'){
