@@ -904,11 +904,13 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   <!-- Depenses ponctuelles manuelles -->
   <div class="stit" style="margin-top:14px;">Depenses ponctuelles</div>
   <div class="card" style="padding:12px;margin-bottom:10px;">
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:7px;margin-bottom:8px;align-items:end;">
-      <div><label class="flbl">Libelle</label><input type="text" id="dep-name" placeholder="Achat, reparation..."></div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:7px;margin-bottom:8px;align-items:end;">
+      <div><label class="flbl">Libelle</label><input type="text" id="dep-name" placeholder="Achat, courses..."></div>
       <div><label class="flbl">Montant (EUR)</label><input type="number" id="dep-amount" placeholder="0" min="0"></div>
+      <div><label class="flbl">Date</label><input type="date" id="dep-date"></div>
       <div><label class="flbl">Categorie</label>
         <select id="dep-cat">
+          <option value="courses">Courses</option>
           <option value="travaux">Travaux</option>
           <option value="entretien">Entretien</option>
           <option value="equipement">Equipement</option>
@@ -953,6 +955,37 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
       <div style="display:flex;gap:8px;">
         <button class="bs" onclick="closeEvtModal()">Annuler</button>
         <button class="bp" onclick="saveEvt()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- DEP EDIT MODAL -->
+<div id="dep-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeDepModal(event)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:18px 16px 28px;width:100%;max-width:560px;animation:fu .3s ease;border-top:3px solid var(--copper);">
+    <div style="font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:16px;letter-spacing:3px;color:var(--cl);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+      <span>Modifier la depense</span><button class="bi" onclick="closeDepModal()">&#10005;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Libelle</label><input type="text" id="dm-name"></div>
+      <div><label class="flbl">Montant (EUR)</label><input type="number" id="dm-amount" min="0"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div><label class="flbl">Date</label><input type="date" id="dm-date"></div>
+      <div><label class="flbl">Categorie</label>
+        <select id="dm-cat">
+          <option value="courses">Courses</option>
+          <option value="travaux">Travaux</option>
+          <option value="entretien">Entretien</option>
+          <option value="equipement">Equipement</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px;">
+      <button class="bi del" style="width:auto;padding:0 12px;font-size:11px;" onclick="deleteDepEdit()">&#10005; Supprimer</button>
+      <div style="display:flex;gap:8px;">
+        <button class="bs" onclick="closeDepModal()">Annuler</button>
+        <button class="bp" onclick="saveDepEdit()">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -1277,8 +1310,30 @@ function renderStats(){
   var sn=ac.filter(function(t){return tstat(t)==='soon';});
   sv('s-urg',function(e){e.textContent=urg.length;});
   sv('s-sn',function(e){e.textContent=sn.length;});
-  sv('s-dn',function(e){e.textContent=tasks.filter(function(t){return t.done;}).length;});
-  sv('s-tot',function(e){e.textContent=ac.length;});
+  // Budget mois
+  var now2=new Date();
+  var mFixes2=charges.reduce(function(s,ch){
+    var amt=parseFloat(ch.amount)||0;
+    if(ch.freq==='monthly')return s+amt;
+    if(ch.freq==='quarterly'){var base2=ch.date?new Date(ch.date).getMonth():0;if((now2.getMonth()-base2+12)%3===0)return s+amt;}
+    if(ch.freq==='yearly'){var chM2=ch.date?new Date(ch.date).getMonth():0;if(now2.getMonth()===chM2)return s+amt;}
+    return s;
+  },0);
+  var mDeps2=depenses.filter(function(d){return new Date(d.date).getMonth()===now2.getMonth()&&new Date(d.date).getFullYear()===now2.getFullYear();}).reduce(function(s,d){return s+(d.amount||0);},0);
+  var mTotal2=Math.round(mFixes2+mDeps2);
+  sv('s-budget',function(e){e.textContent=mTotal2>999?(mTotal2/1000).toFixed(1)+'k':mTotal2;});
+  sv('s-budget-sub',function(e){e.textContent='EUR ce mois';});
+  // Prochain entretien
+  var upcoming=tasks.filter(function(t){return!t.done;}).sort(function(a,b){return a.date.localeCompare(b.date);});
+  if(upcoming.length){
+    var nx=upcoming[0];
+    var daysLeft=Math.ceil((new Date(nx.date)-new Date())/(86400000));
+    sv('s-next',function(e){e.textContent=daysLeft<=0?'Auj':daysLeft+'j';e.style.color=daysLeft<=0?'var(--red)':daysLeft<=7?'var(--amber)':'var(--green)';});
+    sv('s-next-name',function(e){e.textContent=nx.name;});
+  } else {
+    sv('s-next',function(e){e.textContent='✓';e.style.color='var(--green)';});
+    sv('s-next-name',function(e){e.textContent='Tout est fait !';});
+  }
   // Badges
   sv('bdg-dash',function(e){e.textContent=urg.length;e.className=urg.length?'tbadge show':'tbadge';});
   sv('bdg-tasks',function(e){e.textContent=urg.length;e.className=urg.length?'tbadge show':'tbadge';});
@@ -1598,6 +1653,45 @@ function deleteEvt(){
   evtEditId=null;
   renderCal();renderTodayEvents();renderDashBirthdays();
   toast('Supprime');
+}
+
+var depEditId=null;
+function openDepEdit(id){
+  var d=depenses.find(function(x){return x.id===id;});if(!d)return;
+  depEditId=id;
+  var m=g('dep-modal');if(!m)return;
+  sv('dm-name',function(e){e.value=d.name||'';});
+  sv('dm-amount',function(e){e.value=d.amount||0;});
+  sv('dm-date',function(e){e.value=d.date||tod();});
+  sv('dm-cat',function(e){e.value=d.cat||'autre';});
+  m.classList.remove('hidden');m.style.display='flex';
+}
+function closeDepModal(ev){
+  if(ev&&ev.target!==g('dep-modal'))return;
+  var m=g('dep-modal');if(m){m.classList.add('hidden');m.style.display='none';}
+  depEditId=null;
+}
+function saveDepEdit(){
+  if(!depEditId)return;
+  var d=depenses.find(function(x){return x.id===depEditId;});if(!d)return;
+  var n=g('dm-name');if(n&&n.value.trim())d.name=n.value.trim();
+  var a=g('dm-amount');if(a)d.amount=parseFloat(a.value)||0;
+  var dt=g('dm-date');if(dt&&dt.value)d.date=dt.value;
+  var cat=g('dm-cat');if(cat)d.cat=cat.value;
+  saveBudget();
+  var m=g('dep-modal');if(m){m.classList.add('hidden');m.style.display='none';}
+  depEditId=null;
+  renderBudget();toast('Depense mise a jour');
+}
+function deleteDepEdit(){
+  if(!depEditId)return;
+  var d=depenses.find(function(x){return x.id===depEditId;});
+  if(!d||!confirm('Supprimer "'+d.name+'" ?'))return;
+  depenses=depenses.filter(function(x){return x.id!==depEditId;});
+  saveBudget();
+  var m=g('dep-modal');if(m){m.classList.add('hidden');m.style.display='none';}
+  depEditId=null;
+  renderBudget();toast('Supprimee');
 }
 
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();}
@@ -2083,6 +2177,7 @@ function init(){
   sv('inp-date',function(e){e.value=tod();});
   sv('pmdate',function(e){e.value=tod();});
   sv('cpt-date',function(e){e.value=tod();});
+  sv('dep-date',function(e){e.value=tod();});
   sv('evt-date',function(e){e.value=tod();});
   loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();
   renderAll();renderTodayEvents();
@@ -2252,7 +2347,7 @@ function delCharge(id){
 function addDep(){
   var n=g('dep-name'),a=g('dep-amount'),cat=g('dep-cat');
   if(!n||!n.value.trim()){toast('Libelle requis');return;}
-  depenses.push({id:uid(),name:n.value.trim(),amount:parseFloat(a.value)||0,cat:cat.value,date:tod()});
+  var depDt=g('dep-date');depenses.push({id:uid(),name:n.value.trim(),amount:parseFloat(a.value)||0,cat:cat.value,date:(depDt&&depDt.value)?depDt.value:tod()});
   n.value='';a.value='';
   saveBudget();renderBudget();toast('Depense ajoutee');
 }
@@ -2378,12 +2473,13 @@ function renderBudget(){
   if(!depsYear.length){dpH='<div class="empty"><div class="eico">&#128203;</div>Aucune depense ponctuelle saisie</div>';}
   else{
     depsYear.forEach(function(d){
-      dpH+='<div class="charge-item">'
+      var depCatCol={courses:'var(--green)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',autre:'var(--dim)'}[d.cat]||'var(--dim)';
+      dpH+='<div class="charge-item" style="cursor:pointer;" onclick="openDepEdit(\x27"+d.id+"\x27)">'
         +'<span class="charge-name">'+eh(d.name)+'</span>'
-        +'<span class="charge-freq monthly" style="background:rgba(200,133,90,.15);color:var(--copper);border-color:rgba(200,133,90,.3);">'+eh(d.cat)+'</span>'
+        +'<span class="charge-freq monthly" style="background:rgba(0,0,0,.2);color:'+depCatCol+';border-color:'+depCatCol+';">'+eh(d.cat)+'</span>'
         +'<span style="font-size:10px;color:var(--dim);">'+fd(d.date)+'</span>'
         +'<span class="charge-amount">'+d.amount+' EUR</span>'
-        +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="delDep(\x27"+d.id+"\x27)">&#10005;</button>'
+        +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="event.stopPropagation();openDepEdit(\x27"+d.id+"\x27)">&#9998;</button>'
         +'</div>';
     });
   }
@@ -2429,7 +2525,11 @@ function renderTrv(){
     return;
   }
   var h='';
+  window._trvMap={};
+  var trvIdx=0;
   filt.forEach(function(p){
+    var pidx=trvIdx++;
+    window._trvMap[pidx]=p.id;
     var spent=trvSpent(p);
     var est=parseFloat(p.budget)||0;
     var priCls={high:'high',medium:'medium',low:'low'}[p.priority]||'medium';
