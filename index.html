@@ -505,8 +505,8 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   <div class="srow">
     <div class="sc r"><div class="sc-l">En retard</div><div class="sc-v" id="s-urg">0</div><div class="sc-s">urgentes</div></div>
     <div class="sc a"><div class="sc-l">Ce mois</div><div class="sc-v" id="s-sn">0</div><div class="sc-s">a venir</div></div>
-    <div class="sc g"><div class="sc-l">Effectuees</div><div class="sc-v" id="s-dn">0</div></div>
-    <div class="sc b"><div class="sc-l">Planifiees</div><div class="sc-v" id="s-tot">0</div></div>
+    <div class="sc g" style="cursor:pointer;" onclick="showView('budget',document.querySelector('[data-view=budget]'))"><div class="sc-l">Budget mois</div><div class="sc-v" id="s-budget" style="font-size:20px;">-</div><div class="sc-s" id="s-budget-sub">EUR</div></div>
+    <div class="sc b" style="cursor:pointer;" onclick="showView('tasks',document.querySelector('[data-view=tasks]'))"><div class="sc-l">Prochain entretien</div><div class="sc-v" id="s-next" style="font-size:20px;">-</div><div class="sc-s" id="s-next-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
     <div>
