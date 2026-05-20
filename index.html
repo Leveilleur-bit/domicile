@@ -782,17 +782,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     </div>
     <button class="bp" onclick="addMaint()">+ Planifier</button>
   </div>
-</div>
 
-<!-- STATS -->
-<div class="view" id="view-stats">
-  <div class="stit">Statistiques annuelles</div>
-  <div class="srow" style="margin-bottom:14px;">
-    <div class="sc r"><div class="sc-l">Taches urgentes</div><div class="sc-v" id="st-urg-y">0</div><div class="sc-s">en retard</div></div>
-    <div class="sc g"><div class="sc-l">Effectuees</div><div class="sc-v" id="st-done-y">0</div><div class="sc-s">cette annee</div></div>
-    <div class="sc b"><div class="sc-l">Planifiees</div><div class="sc-v" id="st-plan-y">0</div><div class="sc-s">a venir</div></div>
-    <div class="sc" style="--c:var(--copper);" ><div class="sc-l" >Budget estime</div><div class="sc-v" id="st-cost-y" style="color:var(--copper);">0</div><div class="sc-s">EUR/an</div></div>
-  </div>
   <div class="stit">Taches par mois</div>
   <div id="stats-monthly" class="card" style="padding:14px;"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
@@ -2889,40 +2879,6 @@ renderCal=function(){
     });
     cl.innerHTML=lh;
   }
-};
-
-// init consolidated above
-function trvAddStep_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvAddStep(id);}
-function trvCheckStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvCheckStep(id,sid);}
-function trvDelStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelStep(id,sid);}
-
-function calOpenTask(idx){
-  var id=window._calTaskMap&&window._calTaskMap[idx];
-  if(id)openEdit(id);
-}
-
-init();
-
-if('serviceWorker' in navigator && location.protocol !== 'file:'){
-  window.addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
-  });
-}
-var(--dim);">-</span>';}
-    mt.forEach(function(t){
-      var sc=t.done?'done':(ip&&!t.done?'urgent':tstat(t));
-      var tidx=taskIdx++;
-      window._calTaskMap[tidx]=t.id;
-      th+='<div class="ctask '+sc+'" onclick="calOpenTask('+tidx+')" style="cursor:pointer;" title="'+eh(t.name)+'">'+eh(t.name)+'</div>';
-    });
-    me.forEach(function(e){
-      var ico={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'}[e.type]||'&#11088;';
-      th+='<div class="ctask '+e.type+'" onclick="openEvtMenu(\x27'+e.id+'\x27)" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'</div>';
-    });
-    var ec=me.length;
-    h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'" style="display:flex;align-items:center;justify-content:space-between;">'+MN[i]+(ec?'<span style="font-size:9px;color:var(--purple);">'+ec+'</span>':'')+'</div><div class="cbody">'+th+'</div></div>';
-  }
-  cg.innerHTML=h;
 };
 
 // init consolidated above
