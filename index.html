@@ -460,6 +460,13 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 .charge-amount{font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:16px;color:var(--text);white-space:nowrap;}
 .charge-annual{font-size:10px;color:var(--dim);white-space:nowrap;}
 @media(max-width:600px){.bdg-hero{grid-template-columns:1fr 1fr;}}
+
+/* Conges */
+.ctask.conge{border-color:var(--green);color:var(--green);background:rgba(107,191,142,.12);}
+.ctask.conge-start{border-color:var(--green);color:var(--green);background:rgba(107,191,142,.2);font-weight:500;}
+.ctask.conge-day{border-color:rgba(107,191,142,.4);color:var(--green);background:rgba(107,191,142,.08);border-left:2px solid var(--green);}
+.conge-list-item{display:flex;align-items:center;gap:8px;padding:8px 11px;background:rgba(107,191,142,.08);border:1px solid rgba(107,191,142,.25);border-radius:5px;margin-bottom:5px;font-size:11px;}
+.conge-list-item:hover{border-color:rgba(107,191,142,.5);}
 </style>
 </head>
 <body>
@@ -599,6 +606,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <button class="fb on" onclick="calTab('all',this)">&#128197; Tout</button>
     <button class="fb" onclick="calTab('tasks',this)">&#9989; Entretien</button>
     <button class="fb" onclick="calTab('events',this)">&#127881; Evenements</button>
+    <button class="fb" onclick="calTab('conges',this)">&#127964; Conges</button>
   </div>
   <div class="card" style="margin-bottom:12px;">
     <div class="stit" style="font-size:11px;">Ajouter un evenement</div>
@@ -615,8 +623,22 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     </div>
     <button class="bp" onclick="addEvt()">+ Ajouter</button>
   </div>
+  <!-- Formulaire conges -->
+  <div class="card" style="margin-bottom:12px;">
+    <div class="stit" style="font-size:11px;">&#127964; Ajouter des conges</div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Libelle</label><input type="text" id="conge-name" placeholder="Vacances ete, Noel..."></div>
+      <div><label class="flbl">Du</label><input type="date" id="conge-start" onchange="updateCongeDuration()"></div>
+      <div><label class="flbl">Au</label><input type="date" id="conge-end" onchange="updateCongeDuration()"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="bp" onclick="addConge()">+ Ajouter</button>
+      <span style="font-size:10px;color:var(--dim);" id="conge-duration"></span>
+    </div>
+  </div>
   <div class="stit">Vue annuelle</div>
-  <div class="cgrid" id="cg"></div>
+  <div id="conges-list-cal" style="margin-bottom:12px;"></div>
+<div class="cgrid" id="cg"></div>
 </div>
 
 <!-- HISTORY -->
@@ -1033,33 +1055,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
         <div style="width:32px;height:32px;border-radius:50%;background:#6bbf8e;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#6bbf8e" data-light="#90d4a8" onclick="setAccentColor(this)"></div>
         <div style="width:32px;height:32px;border-radius:50%;background:#e07060;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#e07060" data-light="#f09080" onclick="setAccentColor(this)"></div>
         <div style="width:32px;height:32px;border-radius:50%;background:#a080cc;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#a080cc" data-light="#c0a0e0" onclick="setAccentColor(this)"></div>
-        <div style="width:32px;height:32px;border-radius:50%;background:#f0c060;cursor:pointer;border:3px solid transparent;transition:all .2s;" class="swatch" data-color="#f0c060" data-light="#f8d888" onclick="setAccentColor(this)"></div>
-      </div>
-    </div>
-    <div style="margin-bottom:16px;">
-      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Notifications</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:8px;">
-        <div>
-          <div style="font-size:12px;color:var(--text);">Rappels de taches</div>
-          <div style="font-size:10px;color:var(--dim);">Notification si taches urgentes</div>
-        </div>
-        <div class="toggle-switch" id="notif-toggle" onclick="toggleNotif()"></div>
-      </div>
-      <div id="notif-time-wrap" style="display:none;">
-        <div style="display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 12px;">
-          <span style="font-size:11px;color:var(--text);">Heure du rappel</span>
-          <input type="time" id="notif-time" value="19:00" style="width:95px;flex:none;" onchange="saveNotifTime()">
-        </div>
-      </div>
-    </div>
-    <div style="text-align:center;font-size:10px;color:var(--dim);margin-top:14px;">DOMICILE v2.0 - 06/05/2026</div>
-    <button class="bp" style="width:100%;margin-top:10px;" onclick="closeSettings()">Fermer</button>
-  </div>
-</div>
-
-<div id="toast"></div>
-
-<script>
+        <div style="width:32px;h
 var TK='dtasks_v4', PK='dpellet_v4', RK='dreno_v4';
 var tasks=[], PD=null, renos=[], tFilter='all', rFilter='all';
 
@@ -1532,6 +1528,82 @@ function addNoteItemInline(nid){
   saveNotes();renderNotes();
 }
 
+// ── CONGES ──
+var CONGE_KEY='domicile_conges_v1';
+var conges=[];
+
+function loadConges(){try{conges=JSON.parse(localStorage.getItem(CONGE_KEY))||[];}catch(e){conges=[];}}
+function saveConges(){localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+
+function addConge(){
+  var name=g('conge-name'),start=g('conge-start'),end=g('conge-end');
+  if(!name||!name.value.trim()){toast('Libelle requis');return;}
+  if(!start||!start.value){toast('Date de debut requise');return;}
+  if(!end||!end.value){toast('Date de fin requise');return;}
+  if(start.value>end.value){toast('La fin doit etre apres le debut');return;}
+  conges.push({id:uid(),name:name.value.trim(),start:start.value,end:end.value});
+  name.value='';
+  saveConges();renderCal();
+  var days=Math.round((new Date(end.value)-new Date(start.value))/86400000)+1;
+  toast('Conges ajoutes - '+days+' jour'+(days>1?'s':''));
+}
+
+function delConge(id){
+  conges=conges.filter(function(x){return x.id!==id;});
+  saveConges();renderCal();toast('Supprime');
+}
+
+function dateInConge(dateStr){
+  // Retourne le conge si la date est dans une periode
+  for(var i=0;i<conges.length;i++){
+    if(dateStr>=conges[i].start&&dateStr<=conges[i].end)return conges[i];
+  }
+  return null;
+}
+
+function congesInMonth(year,month){
+  // Retourne les jours de conges dans un mois donné
+  var result=[];
+  var seen={};
+  conges.forEach(function(cg){
+    var start=new Date(cg.start);
+    var end=new Date(cg.end);
+    // Parcourir chaque jour du congé
+    var d=new Date(start);
+    var isFirst=true;
+    while(d<=end){
+      if(d.getFullYear()===year&&d.getMonth()===month){
+        var ds=d.toISOString().split('T')[0];
+        if(!seen[cg.id]){
+          // Premier jour du congé dans ce mois
+          result.push({id:cg.id,name:cg.name,date:ds,isFirst:true,start:cg.start,end:cg.end});
+          seen[cg.id]=true;
+        }
+      }
+      d.setDate(d.getDate()+1);
+      isFirst=false;
+    }
+  });
+  return result;
+}
+
+// Calculer durée à l'affichage du formulaire
+function updateCongeDuration(){
+  var s=g('conge-start'),e=g('conge-end'),disp=g('conge-duration');
+  if(!s||!e||!disp||!s.value||!e.value)return;
+  var days=Math.round((new Date(e.value)-new Date(s.value))/86400000)+1;
+  if(days>0)disp.textContent=days+' jour'+(days>1?'s':'');
+  else disp.textContent='';
+}
+
+function delCongeConfirm(id){
+  var cg=conges.find(function(x){return x.id===id;});
+  if(!cg)return;
+  if(confirm('Supprimer "'+cg.name+'" ('+fd(cg.start)+' - '+fd(cg.end)+') ?')){
+    delConge(id);
+  }
+}
+
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();}
 
 // PELLET
@@ -1626,7 +1698,6 @@ function renderP(){
 }
 
 function pUsed(d){if(!PD)return;PD.cnt=Math.max(0,(PD.cnt||0)+d);if(d>0)PD.stk=Math.max(0,(PD.stk||0)-d);else if(d<0)PD.stk=(PD.stk||0)+Math.abs(d);saveP();renderP();var s=PD.stk||0,th=PD.thr||10;if(d>0&&s<=th&&s>0)toast(d+' sac'+(d>1?'s':'')+' utilise - Stock bas: '+s);else if(d>0&&s===0)toast('Stock epuise !');else if(d>0)toast('+'+d+' sac'+(d>1?'s':'')+' utilise');else toast('Correction appliquee');}
-function pStock(d){if(!PD)return;PD.stk=Math.max(0,(PD.stk||0)+d);saveP();renderP();toast(d>0?'+'+d+' sac'+(d>1?'s':'')+' en stock':'Mis a jour');}
 function pStock(d){
   if(!PD)return;
   PD.stk=Math.max(0,(PD.stk||0)+d);
@@ -1999,6 +2070,7 @@ function importData(input){
       if(Array.isArray(data.renos)){renos=data.renos;saveR();}
       if(data.compteurs&&typeof data.compteurs==='object'){cptData=data.compteurs;saveCpt();}
       if(data.budget&&typeof data.budget==='object'){charges=data.budget.charges||[];depenses=data.budget.depenses||[];saveBudget();}
+      if(Array.isArray(data.conges)){conges=data.conges;saveConges();}
       renderAll();
       toast('Sauvegarde restauree - '+tasks.length+' taches, '+renos.length+' projets');
     }catch(err){
@@ -2017,7 +2089,7 @@ function init(){
   sv('pmdate',function(e){e.value=tod();});
   sv('cpt-date',function(e){e.value=tod();});
   sv('evt-date',function(e){e.value=tod();});
-  loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();
+  loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
@@ -2224,9 +2296,6 @@ function renderBudget(){
   var monthly=[];
   for(var mi=0;mi<12;mi++){
     var mFixes=charges.reduce(function(s,ch){
-      if(ch.freq==='monthly')return s+(parseFloat(ch.amount)||0);
-      if(ch.freq==='quarterly'&&mi%3===0)return s+(parseFloat(ch.amount)||0);
-      if(ch.freq==='yearly'&&mi===0)return s+(parseFloat(ch.amount)||0);
       var amt=parseFloat(ch.amount)||0;
       if(ch.freq==='monthly')return s+amt;
       if(ch.freq==='quarterly'){
@@ -2514,9 +2583,6 @@ function renderNotes(){
     var preview='';
     if(n.type==='checklist'&&Array.isArray(n.items)){
       var done=n.items.filter(function(i){return i.done;}).length;
-      preview='<div style="font-size:10px;color:var(--dim);margin-top:3px;">'+done+'/'+n.items.length+' elements</div>';
-      n.items.slice(0,3).forEach(function(item){
-        preview+='<div class="cl-item-preview"><span>'+(item.done?'&#9989;':'&#9744;')+'</span><span style="'+(item.done?'text-decoration:line-through;color:var(--dim);':'')+'">' +eh(item.text)+'</span></div>';
       preview='<div style="font-size:10px;color:var(--dim);margin-top:3px;margin-bottom:4px;">'+done+'/'+n.items.length+' element'+(n.items.length>1?'s':'')+'</div>';
       n.items.forEach(function(item){
         preview+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);">'
@@ -2525,7 +2591,6 @@ function renderNotes(){
           +'<span style="font-size:10px;color:var(--dim);cursor:pointer;padding:2px 4px;" onclick="event.stopPropagation();delNoteItemInline(\x27'+n.id+'\x27,\x27'+item.id+'\x27)">&#10005;</span>'
           +'</div>';
       });
-      if(n.items.length>3)preview+='<div style="font-size:9px;color:var(--dim);">+ '+(n.items.length-3)+' autres</div>';
       preview+='<div style="display:flex;gap:4px;margin-top:5px;" onclick="event.stopPropagation();">'
         +'<input type="text" id="cl-add-'+n.id+'" placeholder="Ajouter un element..." style="flex:1;padding:4px 7px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);" onkeydown="if(event.key===\x27Enter\x27)addNoteItemInline(\x27'+n.id+'\x27)">'
         +'<button onclick="event.stopPropagation();addNoteItemInline(\x27'+n.id+'\x27)" style="background:var(--copper);border:none;border-radius:4px;color:var(--bg);font-size:13px;width:26px;height:26px;cursor:pointer;flex-shrink:0;">+</button>'
@@ -2730,7 +2795,7 @@ document.addEventListener('click',function(e){
 // ── UPDATE exportData to include new data ──
 var _origExport=exportData;
 exportData=function(){
-  var data={version:2,date:new Date().toISOString(),tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,notes:notes,events:events,compteurs:cptData,budget:{charges:charges,depenses:depenses}};
+  var data={version:2,date:new Date().toISOString(),tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,notes:notes,events:events,compteurs:cptData,budget:{charges:charges,depenses:depenses},conges:conges};
   var json=JSON.stringify(data,null,2);
   var blob=new Blob([json],{type:'application/json'});
   var url=URL.createObjectURL(blob);
@@ -2772,6 +2837,9 @@ renderCal=function(){
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
   var now=new Date(),cg=g('cg');if(!cg)return;
   var h='';
+  // Map globale pour retrouver la tache par index
+  window._calTaskMap={};
+  var taskIdx=0;
   for(var i=0;i<12;i++){
     var mt=calViewTab!=='events'?tasks.filter(function(t){var d=new Date(t.date);return d.getFullYear()===now.getFullYear()&&d.getMonth()===i;}):[];
     mt.sort(function(a,b){return a.date.localeCompare(b.date);});
@@ -2780,15 +2848,76 @@ renderCal=function(){
       if(e.recur==='yearly')return d.getMonth()===i;
       return d.getFullYear()===now.getFullYear()&&d.getMonth()===i&&d.getDate()>0;
     }):[];
+    // Congés du mois
+    var mc=( calViewTab==='all'||calViewTab==='conges')?congesInMonth(now.getFullYear(),i):[];
     var ip=i<now.getMonth(),th='';
     if(!mt.length&&!me.length){th='<span style="font-size:9px;color:var(--dim);">-</span>';}
     mt.forEach(function(t){
       var sc=t.done?'done':(ip&&!t.done?'urgent':tstat(t));
-      th+='<div class="ctask '+sc+'" onclick="openEdit(\''+t.id+'\')" title="'+eh(t.name)+'">'+eh(t.name)+'</div>';
+      var tidx=taskIdx++;
+      window._calTaskMap[tidx]=t.id;
+      th+='<div class="ctask '+sc+'" onclick="calOpenTask('+tidx+')" style="cursor:pointer;" title="'+eh(t.name)+'">'+eh(t.name)+'</div>';
     });
     me.forEach(function(e){
       var ico={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'}[e.type]||'&#11088;';
-      th+='<div class="ctask '+e.type+'" onclick="openEvtMenu(\''+e.id+'\')" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'</div>';
+      th+='<div class="ctask '+e.type+'" onclick="openEvtMenu(\x27'+e.id+'\x27)" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'</div>';
+    });
+    // Afficher les congés du mois
+    mc.forEach(function(cg){
+      var days=Math.round((new Date(cg.end)-new Date(cg.start))/86400000)+1;
+      th='<div class="ctask conge-start" style="cursor:pointer;" onclick="delCongeConfirm(\x27'+cg.id+'\x27)" title="Cliquer pour supprimer">&#127964; '+eh(cg.name)+' ('+days+'j)</div>'+th;
+    });
+    var ec=me.length+mc.length;
+    h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'" style="display:flex;align-items:center;justify-content:space-between;">'+MN[i]+(ec?'<span style="font-size:9px;color:var(--purple);">'+ec+'</span>':'')+'</div><div class="cbody">'+th+'</div></div>';
+  }
+  cg.innerHTML=h;
+  // Liste des congés
+  var cl=g('conges-list-cal');
+  if(cl){
+    if(!conges.length){cl.innerHTML='';return;}
+    var lh='<div class="stit">Conges planifies</div>';
+    conges.sort(function(a,b){return a.start.localeCompare(b.start);}).forEach(function(cg2){
+      var days=Math.round((new Date(cg2.end)-new Date(cg2.start))/86400000)+1;
+      lh+='<div class="conge-list-item">'
+        +'<span style="font-size:16px;">&#127964;</span>'
+        +'<div style="flex:1;">'
+        +'<div style="font-size:12px;color:var(--text);font-family:Inter,sans-serif;font-weight:500;">'+eh(cg2.name)+'</div>'
+        +'<div style="font-size:10px;color:var(--dim);">'+fd(cg2.start)+' au '+fd(cg2.end)+' &mdash; '+days+' jour'+(days>1?'s':'')+'</div>'
+        +'</div>'
+        +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="delCongeConfirm(\x27'+cg2.id+'\x27)">&#10005;</button>'
+        +'</div>';
+    });
+    cl.innerHTML=lh;
+  }
+};
+
+// init consolidated above
+function trvAddStep_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvAddStep(id);}
+function trvCheckStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvCheckStep(id,sid);}
+function trvDelStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelStep(id,sid);}
+
+function calOpenTask(idx){
+  var id=window._calTaskMap&&window._calTaskMap[idx];
+  if(id)openEdit(id);
+}
+
+init();
+
+if('serviceWorker' in navigator && location.protocol !== 'file:'){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+var(--dim);">-</span>';}
+    mt.forEach(function(t){
+      var sc=t.done?'done':(ip&&!t.done?'urgent':tstat(t));
+      var tidx=taskIdx++;
+      window._calTaskMap[tidx]=t.id;
+      th+='<div class="ctask '+sc+'" onclick="calOpenTask('+tidx+')" style="cursor:pointer;" title="'+eh(t.name)+'">'+eh(t.name)+'</div>';
+    });
+    me.forEach(function(e){
+      var ico={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'}[e.type]||'&#11088;';
+      th+='<div class="ctask '+e.type+'" onclick="openEvtMenu(\x27'+e.id+'\x27)" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'</div>';
     });
     var ec=me.length;
     h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'" style="display:flex;align-items:center;justify-content:space-between;">'+MN[i]+(ec?'<span style="font-size:9px;color:var(--purple);">'+ec+'</span>':'')+'</div><div class="cbody">'+th+'</div></div>';
@@ -2800,6 +2929,11 @@ renderCal=function(){
 function trvAddStep_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvAddStep(id);}
 function trvCheckStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvCheckStep(id,sid);}
 function trvDelStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelStep(id,sid);}
+
+function calOpenTask(idx){
+  var id=window._calTaskMap&&window._calTaskMap[idx];
+  if(id)openEdit(id);
+}
 
 init();
 
