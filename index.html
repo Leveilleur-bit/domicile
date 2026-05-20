@@ -2870,10 +2870,14 @@ function addEvt(){
 
 function openEvtEdit(id){
   var e=events.find(function(x){return x.id===id;});if(!e)return;
-  if(confirm('Supprimer "'+e.title+'" ?')){
-    events=events.filter(function(x){return x.id!==id;});
-    saveEvts();renderCal();toast('Supprime');
-  }
+  evtEditId=id;
+  var m=g('evt-modal');if(!m)return;
+  sv('em-title',function(el){el.value=e.title||'';});
+  sv('em-date',function(el){el.value=e.date||'';});
+  sv('em-type',function(el){el.value=e.type||'evt';});
+  sv('em-recur',function(el){el.value=e.recur||'none';});
+  sv('em-reminder',function(el){el.value=e.reminder||0;});
+  m.classList.remove('hidden');m.style.display='flex';
 }
 
 function renderTodayEvents(){
