@@ -1613,17 +1613,6 @@ function addNoteItemInline(nid){
 }
 
 var evtEditId=null;
-function openEvtEdit(id){
-  var e=events.find(function(x){return x.id===id;});if(!e)return;
-  evtEditId=id;
-  var m=g('evt-modal');if(!m)return;
-  sv('em-title',function(el){el.value=e.title||'';});
-  sv('em-date',function(el){el.value=e.date||'';});
-  sv('em-type',function(el){el.value=e.type||'evt';});
-  sv('em-recur',function(el){el.value=e.recur||'none';});
-  sv('em-reminder',function(el){el.value=e.reminder||0;});
-  m.classList.remove('hidden');m.style.display='flex';
-}
 function closeEvtModal(ev){
   if(ev&&ev.target!==g('evt-modal'))return;
   var m=g('evt-modal');if(m){m.classList.add('hidden');m.style.display='none';}
@@ -1692,6 +1681,60 @@ function deleteDepEdit(){
   var m=g('dep-modal');if(m){m.classList.add('hidden');m.style.display='none';}
   depEditId=null;
   renderBudget();toast('Supprimee');
+}
+
+// ── CONGES ──
+var CONGE_KEY='domicile_conges_v1';
+var conges=[];
+function loadConges(){try{conges=JSON.parse(localStorage.getItem(CONGE_KEY))||[];}catch(e){conges=[];}}
+function saveConges(){localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+function addConge(){
+  var name=g('conge-name'),start=g('conge-start'),end=g('conge-end');
+  if(!name||!name.value.trim()){toast('Libelle requis');return;}
+  if(!start||!start.value){toast('Date de debut requise');return;}
+  if(!end||!end.value){toast('Date de fin requise');return;}
+  if(start.value>end.value){toast('La fin doit etre apres le debut');return;}
+  conges.push({id:uid(),name:name.value.trim(),start:start.value,end:end.value});
+  name.value='';start.value='';end.value='';
+  saveConges();renderCal();
+  var days=Math.round((new Date(end.value||start.value)-new Date(start.value))/86400000)+1;
+  toast('Conges ajoutes');
+}
+function delConge(id){
+  conges=conges.filter(function(x){return x.id!==id;});
+  saveConges();renderCal();toast('Supprime');
+}
+function delCongeConfirm(id){
+  var cg=conges.find(function(x){return x.id===id;});if(!cg)return;
+  if(confirm('Supprimer "'+cg.name+'" ?')){delConge(id);}
+}
+function congesInMonth(year,month){
+  var result=[];var seen={};
+  conges.forEach(function(cg){
+    var start=new Date(cg.start);var end=new Date(cg.end);
+    var d=new Date(start);
+    while(d<=end){
+      if(d.getFullYear()===year&&d.getMonth()===month){
+        if(!seen[cg.id]){
+          result.push({id:cg.id,name:cg.name,date:d.toISOString().split('T')[0],start:cg.start,end:cg.end});
+          seen[cg.id]=true;
+        }
+      }
+      d.setDate(d.getDate()+1);
+    }
+  });
+  return result;
+}
+function updateCongeDuration(){
+  var s=g('conge-start'),e=g('conge-end'),disp=g('conge-duration');
+  if(!s||!e||!disp||!s.value||!e.value)return;
+  var days=Math.round((new Date(e.value)-new Date(s.value))/86400000)+1;
+  disp.textContent=days>0?days+' jour'+(days>1?'s':''):'';
+}
+
+function calOpenTask(idx){
+  var id=window._calTaskMap&&window._calTaskMap[idx];
+  if(id)openEdit(id);
 }
 
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();}
@@ -2179,7 +2222,7 @@ function init(){
   sv('cpt-date',function(e){e.value=tod();});
   sv('dep-date',function(e){e.value=tod();});
   sv('evt-date',function(e){e.value=tod();});
-  loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();
+  loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
@@ -2892,7 +2935,7 @@ document.addEventListener('click',function(e){
 // ── UPDATE exportData to include new data ──
 var _origExport=exportData;
 exportData=function(){
-  var data={version:2,date:new Date().toISOString(),tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,notes:notes,events:events,compteurs:cptData,budget:{charges:charges,depenses:depenses}};
+  var data={version:2,date:new Date().toISOString(),tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,notes:notes,events:events,compteurs:cptData,budget:{charges:charges,depenses:depenses},conges:conges};
   var json=JSON.stringify(data,null,2);
   var blob=new Blob([json],{type:'application/json'});
   var url=URL.createObjectURL(blob);
@@ -2921,6 +2964,7 @@ importData=function(input){
       if(Array.isArray(data.notes)){notes=data.notes;saveNotes();}
       if(Array.isArray(data.events)){events=data.events;saveEvts();}
       if(data.compteurs&&typeof data.compteurs==='object'){cptData=data.compteurs;saveCpt();}
+      if(Array.isArray(data.conges)){conges=data.conges;saveConges();}
       renderAll();toast('Importe avec succes');
     }catch(err){toast('Erreur de lecture');}
     input.value='';
@@ -2934,29 +2978,55 @@ renderCal=function(){
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
   var now=new Date(),cg=g('cg');if(!cg)return;
   var h='';
+  window._calTaskMap={};
+  var taskIdx=0;
   for(var i=0;i<12;i++){
-    var mt=calViewTab!=='events'?tasks.filter(function(t){var d=new Date(t.date);return d.getFullYear()===now.getFullYear()&&d.getMonth()===i;}):[];
+    var mt=calViewTab!=='events'&&calViewTab!=='conges'?tasks.filter(function(t){var d=new Date(t.date);return d.getFullYear()===now.getFullYear()&&d.getMonth()===i;}):[];
     mt.sort(function(a,b){return a.date.localeCompare(b.date);});
-    var me=calViewTab!=='tasks'?events.filter(function(e){
+    var me=calViewTab!=='tasks'&&calViewTab!=='conges'?events.filter(function(e){
       var d=new Date(e.date);
       if(e.recur==='yearly')return d.getMonth()===i;
       return d.getFullYear()===now.getFullYear()&&d.getMonth()===i&&d.getDate()>0;
     }):[];
+    var mc=(calViewTab==='all'||calViewTab==='conges')?congesInMonth(now.getFullYear(),i):[];
     var ip=i<now.getMonth(),th='';
-    if(!mt.length&&!me.length){th='<span style="font-size:9px;color:var(--dim);">-</span>';}
+    if(!mt.length&&!me.length&&!mc.length){th='<span style="font-size:9px;color:var(--dim);">-</span>';}
+    mc.forEach(function(cgx){
+      var days=Math.round((new Date(cgx.end)-new Date(cgx.start))/86400000)+1;
+      th='<div class="ctask conge-start" style="cursor:pointer;" onclick="delCongeConfirm(\x27'+cgx.id+'\x27)" title="'+fd(cgx.start)+' au '+fd(cgx.end)+'">&#127964; '+eh(cgx.name)+' ('+days+'j)</div>'+th;
+    });
     mt.forEach(function(t){
       var sc=t.done?'done':(ip&&!t.done?'urgent':tstat(t));
-      th+='<div class="ctask '+sc+'" onclick="openEdit(\''+t.id+'\')" title="'+eh(t.name)+'">'+eh(t.name)+'</div>';
+      var tidx=taskIdx++;
+      window._calTaskMap[tidx]=t.id;
+      var eDay2=new Date(t.date).getDate();
+      th+='<div class="ctask '+sc+'" onclick="calOpenTask('+tidx+')" style="cursor:pointer;" title="'+eh(t.name)+' - '+eDay2+' '+MN[i]+'">'+eh(t.name)+'<span style="font-size:9px;opacity:.6;margin-left:3px;">('+eDay2+')</span></div>';
     });
     me.forEach(function(e){
       var ico={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'}[e.type]||'&#11088;';
       var eDay=new Date(e.date).getDate();
-      th+='<div class="ctask '+e.type+'" onclick="openEvtEdit(\''+e.id+'\')" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'<span style="font-size:9px;opacity:.6;margin-left:3px;">('+eDay+')</span></div>';
+      th+='<div class="ctask '+e.type+'" onclick="openEvtEdit(\x27'+e.id+'\x27)" style="cursor:pointer;" title="'+eh(e.title)+' - '+eDay+' '+MN[i]+'">'+ico+' '+eh(e.title)+'<span style="font-size:9px;opacity:.6;margin-left:3px;">('+eDay+')</span></div>';
     });
-    var ec=me.length;
+    var ec=me.length+mc.length;
     h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'" style="display:flex;align-items:center;justify-content:space-between;">'+MN[i]+(ec?'<span style="font-size:9px;color:var(--purple);">'+ec+'</span>':'')+'</div><div class="cbody">'+th+'</div></div>';
   }
   cg.innerHTML=h;
+  // Liste des congés
+  var cl=g('conges-list-cal');
+  if(cl){
+    if(!conges.length){cl.innerHTML='';return;}
+    var lh='<div class="stit">Conges planifies</div>';
+    conges.sort(function(a,b){return a.start.localeCompare(b.start);}).forEach(function(cg2){
+      var days=Math.round((new Date(cg2.end)-new Date(cg2.start))/86400000)+1;
+      lh+='<div class="conge-list-item">'
+        +'<span style="font-size:16px;">&#127964;</span>'
+        +'<div style="flex:1;"><div style="font-size:12px;color:var(--text);font-family:Inter,sans-serif;font-weight:500;">'+eh(cg2.name)+'</div>'
+        +'<div style="font-size:10px;color:var(--dim);">'+fd(cg2.start)+' au '+fd(cg2.end)+' &mdash; '+days+' jour'+(days>1?'s':'')+'</div></div>'
+        +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="delCongeConfirm(\x27'+cg2.id+'\x27)">&#10005;</button>'
+        +'</div>';
+    });
+    cl.innerHTML=lh;
+  }
 };
 
 // init consolidated above
