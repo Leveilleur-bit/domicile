@@ -925,6 +925,38 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 </main>
 </div>
 
+
+<!-- EVENT EDIT MODAL -->
+<div id="evt-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeEvtModal(event)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:18px 16px 28px;width:100%;max-width:560px;animation:fu .3s ease;border-top:3px solid var(--copper);">
+    <div style="font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:16px;letter-spacing:3px;color:var(--cl);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+      <span>Modifier l&#39;evenement</span>
+      <button class="bi" onclick="closeEvtModal()">&#10005;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Titre</label><input type="text" id="em-title" placeholder="Titre..."></div>
+      <div><label class="flbl">Date</label><input type="date" id="em-date"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Type</label>
+        <select id="em-type"><option value="birthday">&#127881; Anniversaire</option><option value="rdv">&#128197; RDV</option><option value="evt">&#11088; Evenement</option><option value="fete">&#127878; Fete</option></select>
+      </div>
+      <div><label class="flbl">Recurrence</label>
+        <select id="em-recur"><option value="none">Aucune</option><option value="yearly">Chaque annee</option></select>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;"><label class="flbl">Rappel</label>
+      <select id="em-reminder"><option value="0">Pas de rappel</option><option value="1">1 jour avant</option><option value="3">3 jours avant</option><option value="7">1 semaine avant</option><option value="14">2 semaines avant</option><option value="30">1 mois avant</option></select>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px;">
+      <button class="bi del" style="width:auto;padding:0 12px;font-size:11px;" onclick="deleteEvt()">&#10005; Supprimer</button>
+      <div style="display:flex;gap:8px;">
+        <button class="bs" onclick="closeEvtModal()">Annuler</button>
+        <button class="bp" onclick="saveEvt()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- EDIT MODAL -->
 <div class="modal-overlay hidden" id="edit-modal" onclick="closeModal(event)" style="display:none;">
   <div class="modal">
@@ -1523,6 +1555,49 @@ function addNoteItemInline(nid){
   n.items.push({id:uid(),text:inp.value.trim(),done:false});
   n.updatedAt=tod();
   saveNotes();renderNotes();
+}
+
+var evtEditId=null;
+function openEvtEdit(id){
+  var e=events.find(function(x){return x.id===id;});if(!e)return;
+  evtEditId=id;
+  var m=g('evt-modal');if(!m)return;
+  sv('em-title',function(el){el.value=e.title||'';});
+  sv('em-date',function(el){el.value=e.date||'';});
+  sv('em-type',function(el){el.value=e.type||'evt';});
+  sv('em-recur',function(el){el.value=e.recur||'none';});
+  sv('em-reminder',function(el){el.value=e.reminder||0;});
+  m.classList.remove('hidden');m.style.display='flex';
+}
+function closeEvtModal(ev){
+  if(ev&&ev.target!==g('evt-modal'))return;
+  var m=g('evt-modal');if(m){m.classList.add('hidden');m.style.display='none';}
+  evtEditId=null;
+}
+function saveEvt(){
+  if(!evtEditId)return;
+  var e=events.find(function(x){return x.id===evtEditId;});if(!e)return;
+  var t=g('em-title');if(t&&t.value.trim())e.title=t.value.trim();
+  var d=g('em-date');if(d&&d.value)e.date=d.value;
+  var tp=g('em-type');if(tp)e.type=tp.value;
+  var rc=g('em-recur');if(rc)e.recur=rc.value;
+  var rm=g('em-reminder');if(rm)e.reminder=parseInt(rm.value)||0;
+  saveEvts();
+  var m=g('evt-modal');if(m){m.classList.add('hidden');m.style.display='none';}
+  evtEditId=null;
+  renderCal();renderTodayEvents();renderDashBirthdays();
+  toast('Evenement mis a jour');
+}
+function deleteEvt(){
+  if(!evtEditId)return;
+  var e=events.find(function(x){return x.id===evtEditId;});
+  if(!e||!confirm('Supprimer "'+e.title+'" ?'))return;
+  events=events.filter(function(x){return x.id!==evtEditId;});
+  saveEvts();
+  var m=g('evt-modal');if(m){m.classList.add('hidden');m.style.display='none';}
+  evtEditId=null;
+  renderCal();renderTodayEvents();renderDashBirthdays();
+  toast('Supprime');
 }
 
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();}
@@ -2650,7 +2725,7 @@ function addEvt(){
   saveEvts();renderCal();renderTodayEvents();toast('Evenement ajoute');
 }
 
-function openEvtMenu(id){
+function openEvtEdit(id){
   var e=events.find(function(x){return x.id===id;});if(!e)return;
   if(confirm('Supprimer "'+e.title+'" ?')){
     events=events.filter(function(x){return x.id!==id;});
@@ -2776,7 +2851,7 @@ renderCal=function(){
     me.forEach(function(e){
       var ico={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'}[e.type]||'&#11088;';
       var eDay=new Date(e.date).getDate();
-      th+='<div class="ctask '+e.type+'" onclick="openEvtMenu(\''+e.id+'\')" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'<span style="font-size:9px;opacity:.6;margin-left:3px;">('+eDay+')</span></div>';
+      th+='<div class="ctask '+e.type+'" onclick="openEvtEdit(\''+e.id+'\')" style="cursor:pointer;" title="'+eh(e.title)+'">'+ico+' '+eh(e.title)+'<span style="font-size:9px;opacity:.6;margin-left:3px;">('+eDay+')</span></div>';
     });
     var ec=me.length;
     h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'" style="display:flex;align-items:center;justify-content:space-between;">'+MN[i]+(ec?'<span style="font-size:9px;color:var(--purple);">'+ec+'</span>':'')+'</div><div class="cbody">'+th+'</div></div>';
