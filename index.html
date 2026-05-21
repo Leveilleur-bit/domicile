@@ -624,11 +624,15 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <div class="sc b"><div class="slbl">Projets</div><div class="sval" id="trv-tot">0</div></div>
     <div class="sc a"><div class="slbl">En cours</div><div class="sval" id="trv-wip">0</div></div>
     <div class="sc g"><div class="slbl">Termines</div><div class="sval" id="trv-done">0</div></div>
-    <div class="sc" style="border-top:2px solid var(--copper)!important;"><div class="slbl">Depenses</div><div class="sval" id="trv-spent" style="color:var(--copper);">0</div></div>
+    <div class="sc" style="border-top:2px solid var(--copper)!important;"><div class="slbl">Depenses mois</div><div class="sval" id="trv-spent-month" style="color:var(--copper);font-size:20px;">-</div><div style="font-size:9px;color:var(--dim);" id="trv-spent-total"></div></div>
   </div>
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px;margin-bottom:12px;">
     <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:5px;display:flex;justify-content:space-between;"><span>Budget global</span><span id="trv-budget-display">0 EUR</span></div>
     <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;"><div id="trv-budget-bar" style="height:100%;border-radius:3px;background:var(--green);width:0%;transition:width .4s;"></div></div>
+  </div>
+  <div class="card" style="padding:12px 14px;margin-bottom:12px;">
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">D&#233;penses travaux par mois</div>
+    <div id="trv-month-chart" style="display:flex;align-items:flex-end;gap:3px;height:80px;"></div>
   </div>
   <div class="add-form" style="margin-bottom:12px;">
     <div class="add-quick">
@@ -1847,7 +1851,11 @@ function pClose(){
   for(var i=0;i<PD.seasons.length;i++){if(PD.seasons[i].k===PD.sk){idx=i;break;}}
   var e={k:PD.sk,l:sl,c:PD.cnt};
   if(idx>=0)PD.seasons[idx]=e;else PD.seasons.unshift(e);
-  var ny=new Date().getFullYear()+1;PD.sk=ny+'-'+(ny+1);PD.cnt=0;
+  var nd=new Date(),nm=nd.getMonth(),ny2=nd.getFullYear();
+  var nextSk;
+  if(nm>=10)nextSk=(ny2+1)+'-'+(ny2+2);
+  else nextSk=ny2+'-'+(ny2+1);
+  PD.sk=nextSk;PD.cnt=0;
   saveP();renderP();toast('Saison cloturee - '+e.c+' sacs');
 }
 function addMaint(){
@@ -2455,13 +2463,15 @@ function renderBudget(){
   var maxM=1;monthly.forEach(function(m){if(m.total>maxM)maxM=m.total;});
   var chartH='',lblH='';
   monthly.forEach(function(m,i){
-    var hf=Math.round(m.fixes/maxM*80),ht=Math.round(m.travaux/maxM*80),he=Math.round(m.entretien/maxM*80);
+    var hf=Math.round(m.fixes/maxM*70),ht=Math.round(m.travaux/maxM*70),he=Math.round(m.entretien/maxM*70);
     var isCur=i===now.getMonth();
+    var lbl=m.total>0?(m.total>=1000?(m.total/1000).toFixed(1)+'k':Math.round(m.total)+''):'';
     chartH+='<div class="bdg-month-wrap">'
-      +'<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:80px;gap:1px;">'
-      +(he?'<div class="bdg-month-bar" style="height:'+he+'px;background:var(--green);opacity:.9;" title="Entretien: '+m.entretien+' EUR"></div>':'')
-      +(ht?'<div class="bdg-month-bar" style="height:'+ht+'px;background:var(--amber);opacity:.9;" title="Travaux: '+m.travaux+' EUR"></div>':'')
-      +(hf?'<div class="bdg-month-bar" style="height:'+hf+'px;background:var(--blue);opacity:.9;" title="Fixes: '+m.fixes+' EUR"></div>':'')
+      +'<div style="font-size:7px;color:'+(isCur?'var(--amber)':'var(--dim)')+';text-align:center;height:11px;line-height:11px;">'+lbl+'</div>'
+      +'<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:70px;gap:1px;">'
+      +(he?'<div class="bdg-month-bar" style="height:'+he+'px;background:var(--green);opacity:.9;" title="Entretien: '+Math.round(m.entretien)+' EUR"></div>':'')
+      +(ht?'<div class="bdg-month-bar" style="height:'+ht+'px;background:var(--amber);opacity:.9;" title="Travaux: '+Math.round(m.travaux)+' EUR"></div>':'')
+      +(hf?'<div class="bdg-month-bar" style="height:'+hf+'px;background:var(--blue);opacity:.9;" title="Fixes: '+Math.round(m.fixes)+' EUR"></div>':'')
       +'</div>'
       +'<div class="bdg-month-lbl" style="color:'+(isCur?'var(--amber)':'var(--dim)')+';">'+m.m+'</div>'
       +'</div>';
@@ -2552,6 +2562,30 @@ function renderTrv(){
     var pct=totalEst>0?Math.round(totalSpent/totalEst*100):0;
     e.textContent=totalSpent+' EUR depense'+(totalEst?' / '+totalEst+' EUR estime':'');
   });
+  var trvMN=['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
+  var trvMon=[];
+  for(var tmi=0;tmi<12;tmi++){
+    var ms=trvProjs.reduce(function(s,p){return s+(p.budget_lines||[]).filter(function(b){return new Date(b.date).getMonth()===tmi&&new Date(b.date).getFullYear()===now.getFullYear();}).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);},0);
+    trvMon.push({m:trvMN[tmi],v:Math.round(ms)});
+  }
+  var curMS=trvMon[now.getMonth()].v;
+  sv('trv-spent-month',function(e){e.textContent=curMS>=1000?(curMS/1000).toFixed(1)+'k':curMS||0;});
+  sv('trv-spent-total',function(e){e.textContent=totalSpent+' EUR total';});
+  var maxT=1;trvMon.forEach(function(m){if(m.v>maxT)maxT=m.v;});
+  var tch='';
+  trvMon.forEach(function(m,i){
+    var h=maxT>0?Math.round(m.v/maxT*60):0;
+    var ic=i===now.getMonth();
+    var lb=m.v>0?(m.v>=1000?(m.v/1000).toFixed(1)+'k':m.v+''):'';
+    tch+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;">'
+      +'<div style="font-size:7px;color:'+(ic?'var(--amber)':'var(--dim)')+';height:10px;line-height:10px;text-align:center;">'+lb+'</div>'
+      +'<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:55px;">'
+      +(h?'<div style="width:100%;height:'+h+'px;background:'+(ic?'var(--amber)':'var(--copper)')+';border-radius:2px 2px 0 0;opacity:.85;"></div>':'')
+      +'</div>'
+      +'<div style="font-size:7px;color:'+(ic?'var(--amber)':'var(--dim)')+';">'+m.m+'</div>'
+      +'</div>';
+  });
+  sv('trv-month-chart',function(e){e.innerHTML=tch;});
   sv('trv-budget-bar',function(e){
     var pct=totalEst>0?Math.min(100,Math.round(totalSpent/totalEst*100)):0;
     e.style.width=pct+'%';
