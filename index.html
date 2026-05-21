@@ -1918,13 +1918,13 @@ function openEdit(id){
   if(r){for(var i=0;i<r.options.length;i++){if(r.options[i].value===t.room){r.selectedIndex=i;break;}}}
   if(ca){for(var i=0;i<ca.options.length;i++){if(ca.options[i].value===t.cat){ca.selectedIndex=i;break;}}}
   var modal=document.getElementById('edit-modal');
-  if(modal)modal.classList.remove('hidden');
+  if(modal){modal.classList.remove('hidden');modal.style.display='flex';}
   if(n)n.focus();
 }
 
 function closeEditModal(){
   var modal=document.getElementById('edit-modal');
-  if(modal)modal.classList.add('hidden');
+  if(modal){modal.classList.add('hidden');modal.style.display='none';}
   editId=null;
 }
 
