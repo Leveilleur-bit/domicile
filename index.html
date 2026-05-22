@@ -501,6 +501,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 <div class="view on" id="view-dash">
   <div id="onboard-banner"></div>
   <div id="today-events"></div>
+  <div id="dash-events"></div>
   <div id="urg-banner"></div>
   <div class="srow">
     <div class="sc r"><div class="sc-l">En retard</div><div class="sc-v" id="s-urg">0</div><div class="sc-s">urgentes</div></div>
@@ -1756,7 +1757,46 @@ function fixPelletSeason(){
   toast('Saison corrigee : '+correct);
 }
 
-function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();}
+function renderDashEvents(){
+  var el=g('dash-events');if(!el)return;
+  var today=new Date();today.setHours(0,0,0,0);
+  var upcoming=[];
+  events.forEach(function(e){
+    var d=new Date(e.date);
+    var thisYear=new Date(today.getFullYear(),d.getMonth(),d.getDate());
+    thisYear.setHours(0,0,0,0);
+    if(e.recur==='yearly'){
+      if(thisYear<today)thisYear.setFullYear(today.getFullYear()+1);
+    } else {
+      thisYear=new Date(e.date);thisYear.setHours(0,0,0,0);
+    }
+    if(isNaN(thisYear.getTime()))return;
+    var diff=Math.floor((thisYear-today)/86400000);
+    if(diff>=0&&diff<=30){
+      upcoming.push({title:e.title,type:e.type,diff:diff,date:thisYear});
+    }
+  });
+  upcoming.sort(function(a,b){return a.diff-b.diff;});
+  if(!upcoming.length){el.innerHTML='';return;}
+  var ICO={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'};
+  var h='<div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px;">';
+  upcoming.forEach(function(ev){
+    var ico=ICO[ev.type]||'&#11088;';
+    var col=ev.diff===0?'var(--red)':ev.diff<=3?'var(--amber)':ev.diff<=7?'var(--copper)':'var(--dim)';
+    var bg=ev.diff===0?'rgba(224,112,96,.12)':ev.diff<=3?'rgba(240,192,96,.1)':'rgba(255,255,255,.04)';
+    var when=ev.diff===0?'Aujourd\'hui':ev.diff===1?'Demain':'dans '+ev.diff+'j';
+    h+='<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:'+bg+';border:1px solid '+col+';border-radius:6px;font-size:11px;">'
+      +'<span style="font-size:13px;">'+ico+'</span>'
+      +'<div>'
+      +'<div style="color:var(--text);font-family:Inter,sans-serif;font-weight:500;">'+eh(ev.title)+'</div>'
+      +'<div style="font-size:10px;color:'+col+';">'+when+'</div>'
+      +'</div></div>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();}
 
 // PELLET
 function defP(){
