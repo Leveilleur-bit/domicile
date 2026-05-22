@@ -2766,6 +2766,7 @@ function trvPct(p){if(!p.steps||!p.steps.length)return p.status==='done-s'?100:0
 function trvSpent(p){return(p.budget_lines||[]).filter(function(b){return b.type==='facture'||b.type==='achat';}).reduce(function(s,b){return s+(parseFloat(b.amount)||0);},0);}
 
 function renderTrv(){
+  var now=new Date();
   var tot=trvProjs.length;
   var wip=trvProjs.filter(function(p){return p.status==='wip';}).length;
   var dn=trvProjs.filter(function(p){return p.status==='done-s';}).length;
