@@ -1952,6 +1952,11 @@ function scheduleGhPush(){
   _ghSaveTimer=setTimeout(ghPush,3000);
 }
 
+function delChargeIdx(idx){
+  var id=window._chMap&&window._chMap[idx];
+  if(id)delCharge(id);
+}
+
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();}
 
 // PELLET
@@ -2725,14 +2730,16 @@ function renderBudget(){
   var clH='';
   if(!charges.length){clH='<div class="empty"><div class="eico">&#128178;</div>Aucune charge fixe. Ajoutez assurance, internet...</div>';}
   else{
-    charges.forEach(function(ch){
+    window._chMap={};
+    charges.forEach(function(ch,ci){
+      window._chMap[ci]=ch.id;
       var ann=chargeAnnual(ch);
       clH+='<div class="charge-item">'
         +'<span class="charge-name">'+eh(ch.name)+'</span>'
         +'<span class="charge-freq '+ch.freq+'">'+FREQ_LBL[ch.freq]+'</span>'
         +'<span class="charge-amount">'+ch.amount+' EUR</span>'
         +'<span class="charge-annual">'+ann+'/an</span>'
-        +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="delCharge(\x27"+ch.id+"\x27)">&#10005;</button>'
+        +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="delChargeIdx('+ci+')">&#10005;</button>'
         +'</div>';
     });
   }
