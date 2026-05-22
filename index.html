@@ -1957,6 +1957,11 @@ function delChargeIdx(idx){
   if(id)delCharge(id);
 }
 
+function trvToggle_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvToggle(id);}
+function trvStat_idx(idx,st){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvStat(id,st);}
+function trvDel_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvDel(id);}
+function trvDelBdg_idx(pidx,bid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelBdg(id,bid);}
+
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();}
 
 // PELLET
@@ -2854,7 +2859,7 @@ function renderTrv(){
         +'<span style="font-size:11px;flex:1;color:var(--text);">'+eh(b.label)+'</span>'
         +'<span style="font-size:10px;color:var(--dim);">'+fd(b.date)+'</span>'
         +'<span style="font-family:Bebas Neue,sans-serif;font-size:15px;color:var(--copper);">'+b.amount+' EUR</span>'
-        +'<button class="bi del" style="width:22px;height:22px;font-size:10px;" onclick="trvDelBdg(\x27"+p.id+"\x27,\x27"+b.id+"\x27)">&#10005;</button>'
+        +'<button class="bi del" style="width:22px;height:22px;font-size:10px;" onclick="trvDelBdg_idx("+pidx+",\x27"+b.id+"\x27)">&#10005;</button>'
         +'</div>';
     });
     var totalAchats=(p.budget_lines||[]).reduce(function(s,b){return s+(parseFloat(b.amount)||0);},0);
@@ -2862,7 +2867,7 @@ function renderTrv(){
     var sopt='';
     ['todo','wip','paused','done-s'].forEach(function(v){sopt+='<option value="'+v+'"'+(p.status===v?' selected':'')+'>'+SLBL[v]+'</option>';});
     h+='<div class="trv-proj'+(p._o?' exp':'')+'" id="trp-'+p.id+'">'
-      +'<div class="trv-hdr" onclick="trvToggle(\x27"+p.id+"\x27)">'
+      +'<div class="trv-hdr" onclick="trvToggle_idx("+pidx+")">'
       +'<span class="trv-pri '+priCls+'"></span>'
       +'<div style="flex:1;min-width:0;">'
       +'<div class="trv-name'+(p.status==='done-s'?' dp':'')+'">'+eh(p.name)+'</div>'
@@ -2873,9 +2878,9 @@ function renderTrv(){
       +'</div>'
       +'<div class="trv-body">'+notesH
       +'<div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">'
-      +'<select onchange="trvStat(\x27"+p.id+"\x27,this.value)" style="padding:5px 8px;font-size:11px;width:auto;">'+sopt+'</select>'
+      +'<select onchange="trvStat_idx("+pidx+",this.value)" style="padding:5px 8px;font-size:11px;width:auto;">'+sopt+'</select>'
       +(est?'<span style="font-size:10px;color:var(--dim);">Budget: '+est+' EUR</span>':'')
-      +'<button class="bi del" style="margin-left:auto;" onclick="trvDel(\x27"+p.id+"\x27)">&#10005; Supprimer</button>'
+      +'<button class="bi del" style="margin-left:auto;" onclick="trvDel_idx("+pidx+")">&#10005; Supprimer</button>'
       +'</div>'
       // Achats
       +'<div style="margin-bottom:6px;">'
