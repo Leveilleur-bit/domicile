@@ -1085,6 +1085,16 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <div style="font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:18px;letter-spacing:3px;color:var(--cl);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
       Parametres <button class="bi" onclick="closeSettings()">&#10005;</button>
     </div>
+    <!-- GitHub Sync -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">Synchronisation GitHub<span id="sync-status" style="font-size:10px;color:var(--dim);">-</span></div>
+      <div style="display:flex;gap:7px;margin-bottom:7px;"><input type="password" id="set-gh-token" placeholder="ghp_..." style="flex:1;font-size:11px;"><button class="bp" onclick="saveGhConfig()">OK</button></div>
+      <div style="display:flex;gap:7px;">
+        <button class="bs" style="flex:1;font-size:10px;" onclick="ghPush()">&#8593; Sauvegarder</button>
+        <button class="bs" style="flex:1;font-size:10px;" onclick="ghPull()">&#8595; Restaurer</button>
+      </div>
+      <div style="font-size:9px;color:var(--dim);margin-top:5px;" id="sync-last"></div>
+    </div>
     <div style="margin-bottom:16px;">
       <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Nom de la maison</div>
       <div style="display:flex;gap:7px;"><input type="text" id="set-house-name" placeholder="Ex: Notre maison..." style="flex:1;"><button class="bp" onclick="saveHouseName()">OK</button></div>
@@ -1202,6 +1212,7 @@ function defT(){
     {id:uid(),name:'Obtenir devis facade / ravalement',room:'Exterieur',cat:'Renovation',date:ds(y,m+1,1),notes:'Comparer 3 devis - enduit, peinture ou bardage',recur:'none',done:false,doneDate:null},
     {id:uid(),name:'Evaluer isolation combles',room:'General',cat:'Renovation',date:ds(y,m+2,1),notes:'Contacter artisan RGE - aides MaPrimeRenov disponibles',recur:'none',done:false,doneDate:null},
   ];
+scheduleGhPush();
 }
 
 function tstat(t){
@@ -1705,6 +1716,7 @@ function addConge(){
   saveConges();renderCal();
   var days=Math.round((new Date(end.value||start.value)-new Date(start.value))/86400000)+1;
   toast('Conges ajoutes');
+scheduleGhPush();
 }
 function delConge(id){
   conges=conges.filter(function(x){return x.id!==id;});
@@ -1794,6 +1806,150 @@ function renderDashEvents(){
   });
   h+='</div>';
   el.innerHTML=h;
+}
+
+// ── GITHUB SYNC ──
+var GH_OWNER='Leveilleur-bit';
+var GH_REPO='domicile-data';
+var GH_FILE='data.json';
+var GH_BRANCH='main';
+var _ghSha=null;  // SHA du fichier pour les updates
+var _ghSaving=false;
+var _ghDirty=false;
+var _ghSaveTimer=null;
+
+function loadGhConfig(){
+  try{
+    var cfg=JSON.parse(localStorage.getItem('domicile_gh_cfg')||'{}');
+    if(cfg.token)appSettings._ghToken=cfg.token;
+    if(cfg.sha)_ghSha=cfg.sha;
+    if(cfg.lastSync)updateSyncStatus(cfg.lastSync,true);
+  }catch(e){}
+}
+
+function saveGhConfig(){
+  var inp=g('set-gh-token');
+  if(!inp||!inp.value.trim()){toast('Token requis');return;}
+  appSettings._ghToken=inp.value.trim();
+  inp.value='';
+  localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:appSettings._ghToken,sha:_ghSha}));
+  toast('Token sauvegarde');
+  // Test connexion
+  ghGetSha(function(sha){
+    if(sha){_ghSha=sha;updateSyncStatus(null,false,'Connexion OK');toast('GitHub connecte !');}
+    else{updateSyncStatus(null,false,'Erreur connexion');toast('Token invalide ?');}
+  });
+}
+
+function ghHeaders(){
+  return{
+    'Authorization':'token '+appSettings._ghToken,
+    'Content-Type':'application/json',
+    'Accept':'application/vnd.github.v3+json'
+  };
+}
+
+function ghGetSha(cb){
+  if(!appSettings._ghToken){cb(null);return;}
+  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE+'?ref='+GH_BRANCH,
+    {headers:ghHeaders()})
+  .then(function(r){return r.json();})
+  .then(function(d){cb(d.sha||null);})
+  .catch(function(){cb(null);});
+}
+
+function ghDataPayload(){
+  var data={
+    version:2,date:new Date().toISOString(),
+    tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,
+    notes:notes,events:events,compteurs:cptData,
+    budget:{charges:charges,depenses:depenses},conges:conges
+  };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+}
+
+function ghPush(){
+  if(!appSettings._ghToken){toast('Token non configure (Parametres)');return;}
+  if(_ghSaving){_ghDirty=true;return;}
+  _ghSaving=true;
+  updateSyncStatus(null,true);
+  var body={
+    message:'domicile sync '+new Date().toISOString().slice(0,16),
+    content:ghDataPayload(),
+    branch:GH_BRANCH
+  };
+  if(_ghSha)body.sha=_ghSha;
+  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,{
+    method:'PUT',
+    headers:ghHeaders(),
+    body:JSON.stringify(body)
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    _ghSaving=false;
+    if(d.content&&d.content.sha){
+      _ghSha=d.content.sha;
+      var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:appSettings._ghToken,sha:_ghSha,lastSync:now}));
+      updateSyncStatus(now,false);
+      if(_ghDirty){_ghDirty=false;ghPush();}
+    } else {
+      updateSyncStatus(null,false,'Erreur');
+      if(d.message&&d.message.indexOf('sha')>=0){
+        // SHA désync - récupérer le bon
+        ghGetSha(function(sha){if(sha){_ghSha=sha;ghPush();}});
+      }
+    }
+  })
+  .catch(function(){_ghSaving=false;updateSyncStatus(null,false,'Hors ligne');});
+}
+
+function ghPull(){
+  if(!appSettings._ghToken){toast('Token non configure');return;}
+  updateSyncStatus(null,true,'Chargement...');
+  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE+'?ref='+GH_BRANCH,
+    {headers:ghHeaders()})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.content){updateSyncStatus(null,false,'Erreur');return;}
+    _ghSha=d.sha;
+    var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+    var data=JSON.parse(json);
+    if(!confirm('Remplacer les donnees locales par la sauvegarde GitHub du '+new Date(data.date).toLocaleDateString('fr-FR')+' ?'))return;
+    if(Array.isArray(data.tasks)){tasks=data.tasks;saveT();}
+    if(data.pellet){PD=data.pellet;saveP();}
+    if(Array.isArray(data.renos)){renos=data.renos;saveR();}
+    if(Array.isArray(data.travaux)){trvProjs=data.travaux;saveTrv();}
+    if(Array.isArray(data.notes)){notes=data.notes;saveNotes();}
+    if(Array.isArray(data.events)){events=data.events;saveEvts();}
+    if(data.compteurs){cptData=data.compteurs;saveCpt();}
+    if(data.budget){charges=data.budget.charges||[];depenses=data.budget.depenses||[];saveBudget();}
+    if(Array.isArray(data.conges)){conges=data.conges;saveConges();}
+    renderAll();
+    var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    updateSyncStatus(now,false,'Restaure');
+    toast('Donnees restaurees depuis GitHub');
+  })
+  .catch(function(){updateSyncStatus(null,false,'Erreur reseau');toast('Erreur de connexion');});
+}
+
+function updateSyncStatus(time,loading,msg){
+  sv('sync-status',function(e){
+    if(loading){e.textContent='&#8635; Sync...';e.style.color='var(--amber)';return;}
+    if(msg){e.textContent=msg;e.style.color=msg.indexOf('OK')>=0||msg.indexOf('Restaure')>=0?'var(--green)':'var(--red)';return;}
+    e.textContent=time?'&#10003; '+time:'En attente';
+    e.style.color=time?'var(--green)':'var(--dim)';
+  });
+  sv('sync-last',function(e){
+    e.textContent=time?'Derniere sync : '+time:'';
+  });
+}
+
+// Auto-save avec debounce 3s
+function scheduleGhPush(){
+  if(!appSettings._ghToken)return;
+  clearTimeout(_ghSaveTimer);
+  _ghSaveTimer=setTimeout(ghPush,3000);
 }
 
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();}
@@ -1888,6 +2044,7 @@ function renderP(){
     });
     ml.innerHTML=h;
   });
+scheduleGhPush();
 }
 
 function pUsed(d){if(!PD)return;PD.cnt=Math.max(0,(PD.cnt||0)+d);if(d>0)PD.stk=Math.max(0,(PD.stk||0)-d);else if(d<0)PD.stk=(PD.stk||0)+Math.abs(d);saveP();renderP();var s=PD.stk||0,th=PD.thr||10;if(d>0&&s<=th&&s>0)toast(d+' sac'+(d>1?'s':'')+' utilise - Stock bas: '+s);else if(d>0&&s===0)toast('Stock epuise !');else if(d>0)toast('+'+d+' sac'+(d>1?'s':'')+' utilise');else toast('Correction appliquee');}
@@ -1960,6 +2117,7 @@ function openEdit(id){
   var modal=document.getElementById('edit-modal');
   if(modal){modal.classList.remove('hidden');modal.style.display='flex';}
   if(n)n.focus();
+scheduleGhPush();
 }
 
 function closeEditModal(){
@@ -2031,6 +2189,7 @@ function addReleve(){
   cptData[type].sort(function(a,b){return a.date.localeCompare(b.date);});
   g('cpt-index').value='';g('cpt-note').value='';
   saveCpt();renderCpt();renderDashCpt();toast('Releve enregistre');
+scheduleGhPush();
 }
 
 function switchCptTab(tab,btn){
@@ -2287,7 +2446,7 @@ function init(){
   sv('cpt-date',function(e){e.value=tod();});
   sv('dep-date',function(e){e.value=tod();});
   sv('evt-date',function(e){e.value=tod();});
-  loadSettings();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();
+  loadSettings();loadGhConfig();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
@@ -2430,6 +2589,7 @@ function loadBudget(){
 }
 function saveBudget(){
   localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));
+scheduleGhPush();
 }
 
 var CHARGE_CATS={logement:'Logement',energie:'Energie',assurance:'Assurance',internet:'Internet/Tel',impots:'Impots',autre:'Autre'};
@@ -2721,6 +2881,7 @@ function renderTrv(){
       +'</div></div>';
   });
   list.innerHTML=h;
+scheduleGhPush();
 }
 
 
@@ -2800,6 +2961,7 @@ function fNotes(f,btn){
   for(var i=0;i<bs.length;i++)bs[i].classList.remove('on');
   btn.classList.add('on');
   renderNotes();
+scheduleGhPush();
 }
 
 function renderNotes(){
@@ -2939,6 +3101,7 @@ function calTab(tab,btn){
   for(var i=0;i<calFltrs.length;i++)calFltrs[i].classList.remove('on');
   btn.classList.add('on');
   renderCal();
+scheduleGhPush();
 }
 
 function onEvtTypeChange(sel){
