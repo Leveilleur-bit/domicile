@@ -509,6 +509,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <div class="sc g" style="cursor:pointer;" onclick="showView('budget',document.querySelector('[data-view=budget]'))"><div class="sc-l">Budget mois</div><div class="sc-v" id="s-budget" style="font-size:20px;">-</div><div class="sc-s" id="s-budget-sub">EUR</div></div>
     <div class="sc b" style="cursor:pointer;" onclick="showView('tasks',document.querySelector('[data-view=tasks]'))"><div class="sc-l">Prochain entretien</div><div class="sc-v" id="s-next" style="font-size:20px;">-</div><div class="sc-s" id="s-next-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</div></div>
   </div>
+  <div id="dash-quickzone" style="margin-bottom:14px;"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
     <div>
       <div class="stit">A faire maintenant</div>
@@ -1962,7 +1963,127 @@ function trvStat_idx(idx,st){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(i
 function trvDel_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvDel(id);}
 function trvDelBdg_idx(pidx,bid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelBdg(id,bid);}
 
-function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();}
+// ── QUICK ZONE ──
+var QZ_KEY='domicile_quickzone_v1';
+var qzNote='';
+var qzActions=[];
+var QZ_DEFAULTS=[
+  'Lancer le lave-vaisselle',
+  'Mettre le linge a secher',
+  'Sortir les poubelles',
+  'Mettre la machine a laver',
+  'Arroser les plantes',
+  'Nourrir les animaux'
+];
+
+function loadQZ(){
+  try{
+    var r=localStorage.getItem(QZ_KEY);
+    if(r){var d=JSON.parse(r);qzNote=d.note||'';qzActions=d.actions||[];}
+    else{qzActions=[];}
+  }catch(e){qzNote='';qzActions=[];}
+}
+function saveQZ(){
+  localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions}));
+  scheduleGhPush();
+}
+
+function renderQZ(){
+  var el=g('dash-quickzone');if(!el)return;
+  // Actions actives (non cochées)
+  var active=qzActions.filter(function(a){return!a.done;});
+  var actH='';
+  active.forEach(function(a,i){
+    var realIdx=qzActions.indexOf(a);
+    actH+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);">'
+      +'<div style="width:18px;height:18px;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--bg3);" onclick="qzCheck('+realIdx+')">'
+      +'</div>'
+      +'<span style="flex:1;font-size:12px;color:var(--text);">'+eh(a.name)+'</span>'
+      +'<button style="background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:11px;padding:2px 4px;" onclick="qzDel('+realIdx+')">&#10005;</button>'
+      +'</div>';
+  });
+
+  var h='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px;">'
+    // Note libre
+    +'<div style="margin-bottom:10px;">'
+    +'<textarea id="qz-note" placeholder="Note rapide..." '
+    +'style="width:100%;min-height:50px;resize:none;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:8px 10px;outline:none;line-height:1.5;" '
+    +'oninput="qzSaveNote(this.value)">'
+    +eh(qzNote)
+    +'</textarea>'
+    +'</div>'
+    // Actions rapides
+    +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">'
+    +'<span>Actions rapides</span>'
+    +'<button onclick="qzShowAdd()" style="background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--dim);font-size:9px;padding:2px 7px;cursor:pointer;">+ Ajouter</button>'
+    +'</div>'
+    +(actH||'<div style="font-size:11px;color:var(--dim);font-style:italic;padding:4px 0;">Aucune action en cours</div>')
+    // Formulaire ajout rapide (caché par défaut)
+    +'<div id="qz-add-form" style="display:none;margin-top:8px;">'
+    +'<div style="font-size:9px;color:var(--dim);margin-bottom:5px;letter-spacing:1px;">Suggestions :</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">';
+
+  // Suggestions (défauts pas encore dans la liste)
+  var existing=qzActions.map(function(a){return a.name;});
+  QZ_DEFAULTS.forEach(function(d,di){
+    if(existing.indexOf(d)===-1){
+      h+='<div style="padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;font-size:10px;color:var(--dim);cursor:pointer;" onclick="qzAddDefault('+di+')">'
+        +eh(d)+'</div>';
+    }
+  });
+  h+='</div>'
+    +'<div style="display:flex;gap:6px;">'
+    +'<input type="text" id="qz-new-action" placeholder="Nouvelle action..." style="flex:1;padding:7px 10px;font-size:11px;" onkeydown="if(event.key===\x27Enter\x27)qzAddCustom()">'
+    +'<button class="bp" style="padding:7px 11px;font-size:11px;" onclick="qzAddCustom()">+</button>'
+    +'</div>'
+    +'</div>'
+    +'</div>';
+
+  el.innerHTML=h;
+  // Restaurer le focus/curseur de la note si besoin
+  var ta=g('qz-note');
+  if(ta&&document.activeElement!==ta){ta.value=qzNote;}
+}
+
+function qzSaveNote(val){
+  qzNote=val;
+  clearTimeout(window._qzNoteTimer);
+  window._qzNoteTimer=setTimeout(function(){saveQZ();},1000);
+}
+
+function qzCheck(idx){
+  if(!qzActions[idx])return;
+  qzActions[idx].done=true;
+  qzActions[idx].doneAt=new Date().toISOString();
+  saveQZ();renderQZ();
+}
+
+function qzDel(idx){
+  qzActions.splice(idx,1);
+  saveQZ();renderQZ();
+}
+
+function qzShowAdd(){
+  var f=g('qz-add-form');
+  if(f)f.style.display=f.style.display==='none'?'block':'none';
+}
+
+function qzAddDefault(di){
+  var name=QZ_DEFAULTS[di];
+  if(!name)return;
+  qzActions.push({id:uid(),name:name,done:false});
+  saveQZ();renderQZ();
+}
+
+function qzAddCustom(){
+  var inp=g('qz-new-action');
+  if(!inp||!inp.value.trim())return;
+  qzActions.push({id:uid(),name:inp.value.trim(),done:false});
+  inp.value='';
+  saveQZ();renderQZ();
+}
+
+function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();}
 
 // PELLET
 function defP(){
@@ -2456,7 +2577,7 @@ function init(){
   sv('cpt-date',function(e){e.value=tod();});
   sv('dep-date',function(e){e.value=tod();});
   sv('evt-date',function(e){e.value=tod();});
-  loadSettings();loadGhConfig();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();
+  loadSettings();loadGhConfig();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();loadQZ();
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
