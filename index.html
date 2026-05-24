@@ -1826,6 +1826,45 @@ function loadGhConfig(){
     if(cfg.sha)_ghSha=cfg.sha;
     if(cfg.lastSync)updateSyncStatus(cfg.lastSync,true);
   }catch(e){}
+  // Pull auto toutes les 15 minutes
+  if(window._ghPullInterval)clearInterval(window._ghPullInterval);
+  window._ghPullInterval=setInterval(function(){
+    if(appSettings._ghToken)ghSilentPull();
+  },15*60*1000);
+}
+
+function ghSilentPull(){
+  // Pull silencieux - pas de confirm, juste sync si changement détecté
+  if(!appSettings._ghToken)return;
+  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE+'?ref='+GH_BRANCH,
+    {headers:ghHeaders()})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.content||!d.sha)return;
+    // Si le SHA est différent → il y a du nouveau
+    if(d.sha===_ghSha)return;
+    _ghSha=d.sha;
+    var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+    var data=JSON.parse(json);
+    if(!data.tasks)return;
+    // Appliquer silencieusement
+    if(Array.isArray(data.tasks)){tasks=data.tasks;saveT();}
+    if(data.pellet){PD=data.pellet;saveP();}
+    if(Array.isArray(data.renos)){renos=data.renos;saveR();}
+    if(Array.isArray(data.travaux)){trvProjs=data.travaux;saveTrv();}
+    if(Array.isArray(data.notes)){notes=data.notes;saveNotes();}
+    if(Array.isArray(data.events)){events=data.events;saveEvts();}
+    if(data.compteurs){cptData=data.compteurs;saveCpt();}
+    if(data.budget){charges=data.budget.charges||[];depenses=data.budget.depenses||[];saveBudget();}
+    if(Array.isArray(data.conges)){conges=data.conges;saveConges();}
+    if(data.quickzone){qzNote=data.quickzone.note||'';qzActions=data.quickzone.actions||[];saveQZ();}
+    localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:appSettings._ghToken,sha:_ghSha}));
+    var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    updateSyncStatus(now,false,'Sync auto');
+    renderAll();
+    toast('Sync automatique effectuee');
+  })
+  .catch(function(){});
 }
 
 function saveGhConfig(){
@@ -1864,7 +1903,8 @@ function ghDataPayload(){
     version:2,date:new Date().toISOString(),
     tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,
     notes:notes,events:events,compteurs:cptData,
-    budget:{charges:charges,depenses:depenses},conges:conges
+    budget:{charges:charges,depenses:depenses},conges:conges,
+    quickzone:{note:qzNote,actions:qzActions}
   };
   return btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
 }
