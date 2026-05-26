@@ -1864,7 +1864,7 @@ function ghSilentPull(){
     renderAll();
     toast('Sync automatique effectuee');
   })
-  .catch(function(){});
+  .catch(function(){updateSyncStatus(null,false,'Hors ligne');});
 }
 
 function saveGhConfig(){
@@ -1877,7 +1877,7 @@ function saveGhConfig(){
   // Test connexion
   ghGetSha(function(sha){
     if(sha){_ghSha=sha;updateSyncStatus(null,false,'Connexion OK');toast('GitHub connecte !');}
-    else{updateSyncStatus(null,false,'Erreur connexion');toast('Token invalide ?');}
+    else{updateSyncStatus(null,false,'Hors ligne');toast('Token invalide ?');}
   });
 }
 
@@ -1935,7 +1935,7 @@ function ghPush(){
       updateSyncStatus(now,false);
       if(_ghDirty){_ghDirty=false;ghPush();}
     } else {
-      updateSyncStatus(null,false,'Erreur');
+      updateSyncStatus(null,false,'Hors ligne');
       if(d.message&&d.message.indexOf('sha')>=0){
         // SHA désync - récupérer le bon
         ghGetSha(function(sha){if(sha){_ghSha=sha;ghPush();}});
@@ -1952,7 +1952,7 @@ function ghPull(){
     {headers:ghHeaders()})
   .then(function(r){return r.json();})
   .then(function(d){
-    if(!d.content){updateSyncStatus(null,false,'Erreur');return;}
+    if(!d.content){updateSyncStatus(null,false,'Hors ligne');return;}
     _ghSha=d.sha;
     var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
     var data=JSON.parse(json);
@@ -1971,13 +1971,13 @@ function ghPull(){
     updateSyncStatus(now,false,'Restaure');
     toast('Donnees restaurees depuis GitHub');
   })
-  .catch(function(){updateSyncStatus(null,false,'Erreur reseau');toast('Erreur de connexion');});
+  .catch(function(){updateSyncStatus(null,false,'Hors ligne');toast('Hors ligne - sync impossible');});
 }
 
 function updateSyncStatus(time,loading,msg){
   sv('sync-status',function(e){
     if(loading){e.textContent='&#8635; Sync...';e.style.color='var(--amber)';return;}
-    if(msg){e.textContent=msg;e.style.color=msg.indexOf('OK')>=0||msg.indexOf('Restaure')>=0?'var(--green)':'var(--red)';return;}
+    if(msg){e.textContent=msg;e.style.color=msg.indexOf('OK')>=0||msg.indexOf('Restaure')>=0||msg.indexOf('Sync')>=0?'var(--green)':msg.indexOf('Hors')>=0?'var(--amber)':'var(--red)';return;}
     e.textContent=time?'&#10003; '+time:'En attente';
     e.style.color=time?'var(--green)':'var(--dim)';
   });
