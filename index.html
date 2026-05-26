@@ -713,6 +713,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
         <input type="number" id="ptgt" min="1" style="width:65px;padding:5px 7px;font-size:12px;" onchange="savePT()">
         <span style="font-size:9px;color:var(--dim);">sacs</span>
       </div>
+      <div id="pautonomy"></div>
     </div>
     <div class="pc grn" id="pcstk">
       <div class="pclbl">Stock disponible</div>
@@ -2168,6 +2169,28 @@ function renderP(){
   sv('ptgt',function(e){e.value=tg;});
   sv('pprog',function(e){e.style.width=pct+'%';});
   sv('pprogl',function(e){e.textContent=pct+'% - '+(tg-c>0?(tg-c)+' sacs restants':'Objectif atteint !');});
+  // Autonomie estimée (saison active uniquement)
+  sv('pautonomy',function(e){
+    if(!active){e.style.display='none';return;}
+    e.style.display='block';
+    if(c<3){e.innerHTML='<span style="color:var(--dim);font-size:10px;">Pas assez de donnees (min. 3 sacs)</span>';return;}
+    // Jours écoulés depuis le début de la saison (1er nov)
+    var now3=new Date();
+    var seasonStart=new Date(now3.getMonth()<=3?now3.getFullYear()-1:now3.getFullYear(),10,1);
+    var daysElapsed=Math.max(1,Math.floor((now3-seasonStart)/86400000));
+    var sacPerDay=c/daysElapsed;
+    var stk=PD.stk||0;
+    if(sacPerDay<=0||stk<=0){e.innerHTML='<span style="color:var(--dim);font-size:10px;">Stock vide ou consommation nulle</span>';return;}
+    var daysLeft=Math.round(stk/sacPerDay);
+    var col=daysLeft<=7?'var(--red)':daysLeft<=14?'var(--amber)':'var(--green)';
+    var icon=daysLeft<=7?'&#9888;':daysLeft<=14?'&#9888;':'&#9685;';
+    e.innerHTML='<div style="margin-top:8px;padding:7px 10px;background:var(--bg3);border-radius:5px;border-left:3px solid '+col+';">'
+      +'<div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:3px;">Autonomie estimee</div>'
+      +'<div style="font-size:16px;font-family:Bebas Neue,sans-serif;letter-spacing:2px;color:'+col+';">'+icon+' ~'+daysLeft+' jours</div>'
+      +'<div style="font-size:10px;color:var(--dim);margin-top:2px;">'+sacPerDay.toFixed(2)+' sac/jour &bull; '+stk+' sacs en stock</div>'
+      +(daysLeft<=14?'<div style="font-size:10px;color:'+col+';margin-top:3px;font-weight:500;">Pensez a commander !</div>':'')
+      +'</div>';
+  });
   var s=PD.stk||0,th=PD.thr||10,skg=s*(PD.kgs||15);
   sv('pstk',function(e){e.textContent=s;});
   sv('pskg',function(e){e.textContent=skg+' kg';});
