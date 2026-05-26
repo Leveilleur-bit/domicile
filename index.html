@@ -2621,6 +2621,8 @@ function init(){
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
+  // Pull au démarrage
+  setTimeout(function(){if(appSettings._ghToken)ghSilentPull();},2000);
 }
 
 // ── SETTINGS ──
