@@ -1849,16 +1849,16 @@ function ghSilentPull(){
     var data=JSON.parse(json);
     if(!data.tasks)return;
     // Appliquer silencieusement
-    if(Array.isArray(data.tasks)){tasks=data.tasks;saveT();}
-    if(data.pellet){PD=data.pellet;saveP();}
-    if(Array.isArray(data.renos)){renos=data.renos;saveR();}
-    if(Array.isArray(data.travaux)){trvProjs=data.travaux;saveTrv();}
-    if(Array.isArray(data.notes)){notes=data.notes;saveNotes();}
-    if(Array.isArray(data.events)){events=data.events;saveEvts();}
-    if(data.compteurs){cptData=data.compteurs;saveCpt();}
-    if(data.budget){charges=data.budget.charges||[];depenses=data.budget.depenses||[];saveBudget();}
-    if(Array.isArray(data.conges)){conges=data.conges;saveConges();}
-    if(data.quickzone){qzNote=data.quickzone.note||'';qzActions=data.quickzone.actions||[];saveQZ();}
+    if(Array.isArray(data.tasks)){tasks=data.tasks;localStorage.setItem(TK,JSON.stringify(tasks));}
+    if(data.pellet){PD=data.pellet;if(PD)localStorage.setItem(PK,JSON.stringify(PD));}
+    if(Array.isArray(data.renos)){renos=data.renos;localStorage.setItem(RK,JSON.stringify(renos));}
+    if(Array.isArray(data.travaux)){trvProjs=data.travaux;localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
+    if(Array.isArray(data.notes)){notes=data.notes;localStorage.setItem(NK,JSON.stringify(notes));}
+    if(Array.isArray(data.events)){events=data.events;localStorage.setItem(EK,JSON.stringify(events));}
+    if(data.compteurs){cptData=data.compteurs;localStorage.setItem(CPT_KEY,JSON.stringify(cptData));}
+    if(data.budget){charges=data.budget.charges||[];depenses=data.budget.depenses||[];localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));}
+    if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+    if(data.quickzone){qzNote=data.quickzone.note||'';qzActions=data.quickzone.actions||[];localStorage.setItem('domicile_quickzone_v1',JSON.stringify({note:qzNote,actions:qzActions}));}
     localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:appSettings._ghToken,sha:_ghSha}));
     var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
     updateSyncStatus(now,false,'Sync auto');
@@ -1977,7 +1977,7 @@ function ghPull(){
 
 function updateSyncStatus(time,loading,msg){
   sv('sync-status',function(e){
-    if(loading){e.textContent='&#8635; Sync...';e.style.color='var(--amber)';return;}
+    if(loading){e.textContent='↻ Sync...';e.style.color='var(--amber)';return;}
     if(msg){e.textContent=msg;e.style.color=msg.indexOf('OK')>=0||msg.indexOf('Restaure')>=0||msg.indexOf('Sync')>=0?'var(--green)':msg.indexOf('Hors')>=0?'var(--amber)':'var(--red)';return;}
     e.textContent=time?'&#10003; '+time:'En attente';
     e.style.color=time?'var(--green)':'var(--dim)';
