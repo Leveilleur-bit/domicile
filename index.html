@@ -1845,6 +1845,8 @@ function ghSilentPull(){
     // Si le SHA est différent → il y a du nouveau
     if(d.sha===_ghSha)return;
     _ghSha=d.sha;
+    // Sauvegarder le nouveau SHA tout de suite
+    try{var cfg2=JSON.parse(localStorage.getItem('domicile_gh_cfg')||'{}');cfg2.sha=d.sha;localStorage.setItem('domicile_gh_cfg',JSON.stringify(cfg2));}catch(e){}
     var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
     var data=JSON.parse(json);
     if(!data.tasks)return;
@@ -1936,10 +1938,19 @@ function ghPush(){
       updateSyncStatus(now,false);
       if(_ghDirty){_ghDirty=false;ghPush();}
     } else {
-      updateSyncStatus(null,false,'Hors ligne');
-      if(d.message&&d.message.indexOf('sha')>=0){
-        // SHA désync - récupérer le bon
-        ghGetSha(function(sha){if(sha){_ghSha=sha;ghPush();}});
+      // Erreur push - tenter de récupérer le bon SHA et réessayer
+      if(d.message){
+        // SHA désync (409/422) ou autre erreur GitHub
+        ghGetSha(function(sha){
+          if(sha){
+            _ghSha=sha;
+            setTimeout(ghPush,1000); // Réessayer après 1s
+          } else {
+            updateSyncStatus(null,false,'Hors ligne');
+          }
+        });
+      } else {
+        updateSyncStatus(null,false,'Hors ligne');
       }
     }
   })
