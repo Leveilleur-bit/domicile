@@ -1825,7 +1825,7 @@ function loadGhConfig(){
     var cfg=JSON.parse(localStorage.getItem('domicile_gh_cfg')||'{}');
     if(cfg.token)appSettings._ghToken=cfg.token;
     if(cfg.sha)_ghSha=cfg.sha;
-    if(cfg.lastSync)updateSyncStatus(cfg.lastSync,true);
+    if(cfg.lastSync)updateSyncStatus(cfg.lastSync,false);
   }catch(e){}
   // Pull auto toutes les 15 minutes
   if(window._ghPullInterval)clearInterval(window._ghPullInterval);
@@ -2684,6 +2684,14 @@ function openSettings(){
   o.classList.remove('hidden');o.style.display='flex';
   sv('settings-dot',function(e){e.style.display='none';});
   localStorage.setItem('onboard_seen','1');
+  // Restaurer le statut GitHub
+  if(appSettings._ghToken){
+    var cfg3=JSON.parse(localStorage.getItem('domicile_gh_cfg')||'{}');
+    if(cfg3.lastSync)updateSyncStatus(cfg3.lastSync,false);
+    else updateSyncStatus(null,false,'Connecte');
+  } else {
+    updateSyncStatus(null,false,'En attente');
+  }
 }
 function closeSettings(){var o=g('settings-overlay');if(o){o.classList.add('hidden');o.style.display='none';}}
 function closeSettingsOutside(e){if(e.target===g('settings-overlay'))closeSettings();}
