@@ -1990,7 +1990,7 @@ function updateSyncStatus(time,loading,msg){
   sv('sync-status',function(e){
     if(loading){e.textContent='↻ Sync...';e.style.color='var(--amber)';return;}
     if(msg){e.textContent=msg;e.style.color=msg.indexOf('OK')>=0||msg.indexOf('Restaure')>=0||msg.indexOf('Sync')>=0?'var(--green)':msg.indexOf('Hors')>=0?'var(--amber)':'var(--red)';return;}
-    e.textContent=time?'&#10003; '+time:'En attente';
+    e.textContent=time?'✓ '+time:'En attente';
     e.style.color=time?'var(--green)':'var(--dim)';
   });
   sv('sync-last',function(e){
