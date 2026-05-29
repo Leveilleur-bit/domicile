@@ -1140,7 +1140,7 @@ var TK='dtasks_v4', PK='dpellet_v4', RK='dreno_v4';
 var tasks=[], PD=null, renos=[], tFilter='all', rFilter='all';
 
 // UTILS
-function uid(){return Math.random().toString(36).slice(2,10);}
+function uid(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);}
 function tod(){return new Date().toISOString().split('T')[0];}
 function ds(y,m,d){return new Date(y,m,d).toISOString().split('T')[0];}
 function fd(s){if(!s)return'-';return new Date(s).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});}
@@ -1898,31 +1898,59 @@ function ghFetch(cb){
 // ── Fusionner les données locales avec les données distantes ──
 function ghMerge(local,remote){
   if(!remote)return local;
-  // Pour chaque tableau, fusionner par ID (last-write-wins par entrée)
+  // Fusion tableau par ID - last-write-wins par entree
   function mergeArr(loc,rem,key){
     if(!Array.isArray(rem))return loc||[];
     if(!Array.isArray(loc))return rem;
     var map={};
     rem.forEach(function(x){if(x[key])map[x[key]]=x;});
-    // Les entrées locales écrasent les distantes (l'utilisateur vient de modifier)
     loc.forEach(function(x){if(x[key])map[x[key]]=x;});
     return Object.keys(map).map(function(k){return map[k];});
+  }
+  // Fusion objet profond - fusionner les clés individuellement
+  function mergeObj(loc,rem){
+    if(!rem)return loc||{};
+    if(!loc)return rem;
+    var result={};
+    var keys=Object.keys(rem).concat(Object.keys(loc));
+    keys.forEach(function(k){
+      if(!(k in result))result[k]=loc[k]!==undefined?loc[k]:rem[k];
+    });
+    return result;
+  }
+  // Fusion compteurs : fusionner par type (elec/eau) avec last-write-wins par sous-tableau
+  function mergeCpt(loc,rem){
+    if(!rem)return loc||{elec:[],eau:[]};
+    if(!loc)return rem;
+    return{
+      elec:mergeArr(loc.elec||[],rem.elec||[],'date'),
+      eau:mergeArr(loc.eau||[],rem.eau||[],'date')
+    };
+  }
+  // Fusion quickzone : fusionner les actions par ID, garder la note la plus récente
+  function mergeQZ(loc,rem){
+    if(!rem)return loc||{note:'',actions:[]};
+    if(!loc)return rem;
+    var actions=mergeArr(loc.actions||[],rem.actions||[],'id');
+    // Note : garder la plus longue (heuristique simple)
+    var note=(loc.note||'').length>=(rem.note||'').length?loc.note:rem.note;
+    return{note:note,actions:actions};
   }
   return {
     v:3,ts:Date.now(),
     tasks:mergeArr(local.tasks,remote.tasks,'id'),
-    pellet:local.pellet||remote.pellet,
+    pellet:mergeObj(local.pellet,remote.pellet),
     renos:mergeArr(local.renos,remote.renos,'id'),
     travaux:mergeArr(local.travaux,remote.travaux,'id'),
     notes:mergeArr(local.notes,remote.notes,'id'),
     events:mergeArr(local.events,remote.events,'id'),
-    compteurs:local.compteurs||remote.compteurs,
+    compteurs:mergeCpt(local.compteurs,remote.compteurs),
     budget:{
       charges:mergeArr(local.budget&&local.budget.charges,remote.budget&&remote.budget.charges,'id'),
       depenses:mergeArr(local.budget&&local.budget.depenses,remote.budget&&remote.budget.depenses,'id')
     },
     conges:mergeArr(local.conges,remote.conges,'id'),
-    quickzone:local.quickzone||remote.quickzone
+    quickzone:mergeQZ(local.quickzone,remote.quickzone)
   };
 }
 
@@ -2008,7 +2036,13 @@ function ghPush(){
         ghStatus('Hors ligne','var(--amber)');
       }
     })
-    .catch(function(){_ghPushInProgress=false;ghStatus('Hors ligne','var(--amber)');});
+    .catch(function(){
+    _ghPushInProgress=false;
+    ghStatus('Hors ligne','var(--amber)');
+    // Retry automatique dans 30s si reseau coupé
+    clearTimeout(_ghSaveTimer);
+    _ghSaveTimer=setTimeout(ghPush,30000);
+  });
   });
 }
 
