@@ -2208,9 +2208,9 @@ function qzAddCustom(){
 }
 
 function delChargeIdx(idx){var id=window._chMap&&window._chMap[idx];if(id)delCharge(id);}
-function trvToggle_idx(idx){var id=window._trvMap&&window._trvMap[idx];if(id)trvToggle(id);}
-function trvStat_idx(idx,st){var id=window._trvMap&&window._trvMap[idx];if(id)trvStat(id,st);}
-function trvDel_idx(idx){var id=window._trvMap&&window._trvMap[idx];if(id)trvDel(id);}
+function trvToggle_idx(idx){var id=window._trvMap&&window._trvMap[idx]?window._trvMap[idx]:null;if(id)trvToggle(id);}
+function trvStat_idx(idx,st){var id=window._trvMap&&window._trvMap[idx]?window._trvMap[idx]:null;if(id)trvStat(id,st);}
+function trvDel_idx(idx){var id=window._trvMap&&window._trvMap[idx]?window._trvMap[idx]:null;if(id)trvDel(id);}
 function trvDelBdg_idx(pidx,bid){var id=window._trvMap&&window._trvMap[pidx];if(id)trvDelBdg(id,bid);}
 
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();}
@@ -3220,11 +3220,7 @@ function trvAddBdgBtn(btn){
   var pid=btn.getAttribute('data-pid');
   if(pid)trvAddBdg(pid);
 }
-function trvAddBdg_idx(idx){
-  var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;
-  if(id)trvAddBdg(id);
-  else toast('Erreur: projet introuvable');
-}
+function trvAddBdg_idx(idx){var id=window._trvMap&&window._trvMap[idx]?window._trvMap[idx]:null;if(id)trvAddBdg(id);}
 function trvAddBdg(pid){
   var le=g('tbdgl-'+pid),ae=g('tbdga-'+pid);
   if(!le||!le.value.trim()){toast('Libelle requis');return;}
@@ -3584,9 +3580,9 @@ renderCal=function(){
 };
 
 // init consolidated above
-function trvAddStep_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvAddStep(id);}
-function trvCheckStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvCheckStep(id,sid);}
-function trvDelStep_idx(pidx,sid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelStep(id,sid);}
+function trvAddStep_idx(idx){var id=window._trvMap&&window._trvMap[idx]?window._trvMap[idx]:null;if(id)trvAddStep(id);}
+function trvCheckStep_idx(pidx,sid){var id=window._trvMap&&window._trvMap[pidx]?window._trvMap[pidx]:null;if(id)trvCheckStep(id,sid);}
+function trvDelStep_idx(pidx,sid){var id=window._trvMap&&window._trvMap[pidx]?window._trvMap[pidx]:null;if(id)trvDelStep(id,sid);}
 
 init();
 
