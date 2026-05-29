@@ -1903,8 +1903,8 @@ function ghMerge(local,remote){
     if(!Array.isArray(rem))return loc||[];
     if(!Array.isArray(loc))return rem;
     var map={};
-    rem.forEach(function(x){if(x[key])map[x[key]]=x;});
-    loc.forEach(function(x){if(x[key])map[x[key]]=x;});
+    rem.forEach(function(x){if(x[key]&&!isDeleted(x[key]))map[x[key]]=x;});
+    loc.forEach(function(x){if(x[key]&&!isDeleted(x[key]))map[x[key]]=x;});
     return Object.keys(map).map(function(k){return map[k];});
   }
   // Fusion objet profond - fusionner les clés individuellement
@@ -1937,7 +1937,7 @@ function ghMerge(local,remote){
     return{note:note,actions:actions};
   }
   return {
-    v:3,ts:Date.now(),
+    v:3,ts:Date.now(),deleted:_deletedIds,
     tasks:mergeArr(local.tasks,remote.tasks,'id'),
     pellet:mergeObj(local.pellet,remote.pellet),
     renos:mergeArr(local.renos,remote.renos,'id'),
@@ -1969,6 +1969,15 @@ function ghLocalData(){
 // ── Appliquer des données distantes en localStorage SANS push ──
 function ghApplyRemote(data,sha){
   if(!data)return;
+  // Appliquer les suppressions distantes
+  if(data.deleted&&typeof data.deleted==='object'){
+    Object.keys(data.deleted).forEach(function(k){
+      if(!_deletedIds[k]||data.deleted[k]>_deletedIds[k]){
+        _deletedIds[k]=data.deleted[k];
+      }
+    });
+    localStorage.setItem(DEL_KEY,JSON.stringify(_deletedIds));
+  }
   if(sha)_ghSha=sha;
   if(Array.isArray(data.tasks)){tasks=data.tasks;localStorage.setItem(TK,JSON.stringify(tasks));}
   if(data.pellet){PD=data.pellet;localStorage.setItem(PK,JSON.stringify(PD));}
@@ -2089,6 +2098,21 @@ function updateSyncStatus(time,loading,msg){
 
 // ── QUICK ZONE ──
 var QZ_KEY='domicile_quickzone_v1';
+var DEL_KEY='domicile_deleted_v1';
+var _deletedIds={};  // {id: timestamp}
+
+function loadDeletedIds(){
+  try{_deletedIds=JSON.parse(localStorage.getItem(DEL_KEY)||'{}');}
+  catch(e){_deletedIds={};}
+}
+function markDeleted(id){
+  _deletedIds[id]=Date.now();
+  // Nettoyer les suppressions de plus de 30 jours
+  var cutoff=Date.now()-30*24*60*60*1000;
+  Object.keys(_deletedIds).forEach(function(k){if(_deletedIds[k]<cutoff)delete _deletedIds[k];});
+  localStorage.setItem(DEL_KEY,JSON.stringify(_deletedIds));
+}
+function isDeleted(id){return !!_deletedIds[id];}
 var qzNote='';
 var qzActions=[];
 var QZ_DEFAULTS=[
@@ -2183,6 +2207,7 @@ function qzCheck(idx){
 }
 
 function qzDel(idx){
+  if(qzActions[idx])markDeleted(qzActions[idx].id);
   qzActions.splice(idx,1);
   saveQZ();renderQZ();
 }
@@ -2729,7 +2754,7 @@ function init(){
   sv('cpt-date',function(e){e.value=tod();});
   sv('dep-date',function(e){e.value=tod();});
   sv('evt-date',function(e){e.value=tod();});
-  loadSettings();loadGhConfig();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();loadQZ();
+  loadSettings();loadGhConfig();loadDeletedIds();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();loadQZ();
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
@@ -3231,7 +3256,7 @@ function trvAddBdg(pid){
   p._o=true;le.value='';if(ae)ae.value='';saveTrv();renderTrv();toast('Achat ajoute');
 }
 function trvDelBdg(pid,bid){var p=trvProjs.find(function(x){return x.id===pid;});if(p){p.budget_lines=(p.budget_lines||[]).filter(function(x){return x.id!==bid;});p._o=true;}saveTrv();renderTrv();toast('Supprime');}
-function trvDel(id){if(!confirm('Supprimer ce projet ?'))return;trvProjs=trvProjs.filter(function(x){return x.id!==id;});saveTrv();renderTrv();toast('Supprime');}
+function trvDel(id){if(!confirm('Supprimer ce projet ?'))return;markDeleted(id);trvProjs=trvProjs.filter(function(x){return x.id!==id;});saveTrv();renderTrv();toast('Supprime');}
 function fTrv(f,btn){trvFilter=f;var bs=g('trvfltrs').querySelectorAll('.fb');for(var i=0;i<bs.length;i++)bs[i].classList.remove('on');btn.classList.add('on');renderTrv();}
 
 // ── NOTES ──
