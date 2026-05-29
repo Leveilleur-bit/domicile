@@ -1090,7 +1090,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <!-- GitHub Sync -->
     <div style="margin-bottom:16px;">
       <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">Synchronisation GitHub<span id="sync-status" style="font-size:10px;color:var(--dim);">-</span></div>
-      <div style="display:flex;gap:7px;margin-bottom:7px;"><input type="password" id="set-gh-token" placeholder="ghp_..." style="flex:1;font-size:11px;"><button class="bp" onclick="saveGhConfig()">OK</button></div>
+      <div style="display:flex;gap:7px;margin-bottom:7px;"><input type="password" id="set-gh-token" placeholder="ghp_..." style="flex:1;font-size:11px;"><button class="bp" onclick="saveGhConfigFn()">OK</button></div>
       <div style="display:flex;gap:7px;">
         <button class="bs" style="flex:1;font-size:10px;" onclick="ghPush()">&#8593; Sauvegarder</button>
         <button class="bs" style="flex:1;font-size:10px;" onclick="ghPull()">&#8595; Restaurer</button>
@@ -1816,9 +1816,8 @@ var GH_REPO='domicile-data';
 var GH_FILE='data.json';
 var GH_BRANCH='main';
 var _ghSha=null;
-var _ghSaving=false;
 var _ghSaveTimer=null;
-var _ghRetryTimer=null;
+var _ghPushInProgress=false;
 
 function ghToken(){return appSettings&&appSettings._ghToken?appSettings._ghToken:null;}
 
@@ -1830,73 +1829,106 @@ function ghHeaders(){
   };
 }
 
-function ghUrl(){
-  return 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE+'?ref='+GH_BRANCH;
+function ghApiUrl(){
+  return 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE;
 }
 
 function ghStatus(txt,color){
-  sv('sync-status',function(e){
-    e.textContent=txt;
-    e.style.color=color||'var(--dim)';
-  });
-  sv('sync-last',function(e){
-    var d=txt.indexOf(':')>0?'Derniere sync : '+txt.split(' ').pop():'';
-    e.textContent=d;
-  });
+  sv('sync-status',function(e){e.textContent=txt;e.style.color=color||'var(--dim)';});
+  sv('sync-last',function(e){e.textContent='';});
 }
 
 function loadGhConfig(){
   try{
     var cfg=JSON.parse(localStorage.getItem('domicile_gh_cfg')||'{}');
-    if(cfg.token){appSettings._ghToken=cfg.token;}
-    if(cfg.sha){_ghSha=cfg.sha;}
-    if(cfg.lastSync){ghStatus('✓ '+cfg.lastSync,'var(--green)');}
+    if(cfg.token)appSettings._ghToken=cfg.token;
+    if(cfg.sha)_ghSha=cfg.sha;
+    if(cfg.lastSync)ghStatus('\u2713 '+cfg.lastSync,'var(--green)');
   }catch(e){}
-  // Pull auto toutes les 15 minutes
-  if(window._ghPullInterval)clearInterval(window._ghPullInterval);
-  window._ghPullInterval=setInterval(function(){
-    if(ghToken())ghSilentPull();
+  if(window._ghPollInterval)clearInterval(window._ghPollInterval);
+  window._ghPollInterval=setInterval(function(){
+    if(ghToken()&&!document.hidden)ghSilentPull();
   },15*60*1000);
 }
 
-function saveGhConfig(){
+function saveGhConfig(time){
+  var now=time||new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:ghToken(),sha:_ghSha,lastSync:now}));}catch(e){}
+  ghStatus('\u2713 '+now,'var(--green)');
+}
+
+function saveGhConfigFn(){
   var inp=g('set-gh-token');
   if(!inp||!inp.value.trim()){toast('Token requis');return;}
   appSettings._ghToken=inp.value.trim();
   inp.value='';
-  _ghSha=null; // Reset SHA pour forcer une récupération propre
-  ghPersistConfig();
-  toast('Token sauvegarde - connexion en cours...');
-  ghStatus('↻ Test...','var(--amber)');
-  // Tester immédiatement
-  ghFetchSha(function(sha,err){
-    if(err){ghStatus('Invalide','var(--red)');toast('Token invalide');return;}
-    _ghSha=sha;
-    ghPersistConfig();
-    ghStatus('✓ Connecte','var(--green)');
-    toast('GitHub connecte !');
-  });
-}
-
-function ghPersistConfig(){
-  var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({
-    token:ghToken(),sha:_ghSha,lastSync:now
-  }));}catch(e){}
-}
-
-function ghFetchSha(cb){
-  if(!ghToken()){cb(null,'no token');return;}
-  fetch(ghUrl(),{headers:ghHeaders()})
-  .then(function(r){
-    if(r.status===401){cb(null,'unauthorized');return r.json().then(function(){});}
-    return r.json().then(function(d){cb(d.sha||null,d.sha?null:'no sha');});
+  _ghSha=null;
+  ghStatus('\u21bb Test...','var(--amber)');
+  // Test de connexion
+  fetch(ghApiUrl(),{headers:ghHeaders()})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.sha){
+      _ghSha=d.sha;
+      saveGhConfig();
+      toast('GitHub connecte !');
+    } else {
+      ghStatus('Token invalide','var(--red)');
+      toast('Token invalide');
+    }
   })
-  .catch(function(){cb(null,'network');});
+  .catch(function(){ghStatus('Hors ligne','var(--amber)');});
 }
 
-function ghDataPayload(){
-  var data={
+// ── Récupérer les données distantes ──
+function ghFetch(cb){
+  if(!ghToken()){cb(null,null,'no token');return;}
+  fetch(ghApiUrl()+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders()})
+  .then(function(r){
+    if(r.status===401){ghStatus('Token invalide','var(--red)');cb(null,null,'401');return;}
+    return r.json().then(function(d){
+      if(!d.content){cb(null,null,'no content');return;}
+      var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+      cb(JSON.parse(json),d.sha,null);
+    });
+  })
+  .catch(function(){cb(null,null,'network');});
+}
+
+// ── Fusionner les données locales avec les données distantes ──
+function ghMerge(local,remote){
+  if(!remote)return local;
+  // Pour chaque tableau, fusionner par ID (last-write-wins par entrée)
+  function mergeArr(loc,rem,key){
+    if(!Array.isArray(rem))return loc||[];
+    if(!Array.isArray(loc))return rem;
+    var map={};
+    rem.forEach(function(x){if(x[key])map[x[key]]=x;});
+    // Les entrées locales écrasent les distantes (l'utilisateur vient de modifier)
+    loc.forEach(function(x){if(x[key])map[x[key]]=x;});
+    return Object.keys(map).map(function(k){return map[k];});
+  }
+  return {
+    v:3,ts:Date.now(),
+    tasks:mergeArr(local.tasks,remote.tasks,'id'),
+    pellet:local.pellet||remote.pellet,
+    renos:mergeArr(local.renos,remote.renos,'id'),
+    travaux:mergeArr(local.travaux,remote.travaux,'id'),
+    notes:mergeArr(local.notes,remote.notes,'id'),
+    events:mergeArr(local.events,remote.events,'id'),
+    compteurs:local.compteurs||remote.compteurs,
+    budget:{
+      charges:mergeArr(local.budget&&local.budget.charges,remote.budget&&remote.budget.charges,'id'),
+      depenses:mergeArr(local.budget&&local.budget.depenses,remote.budget&&remote.budget.depenses,'id')
+    },
+    conges:mergeArr(local.conges,remote.conges,'id'),
+    quickzone:local.quickzone||remote.quickzone
+  };
+}
+
+// ── Données locales actuelles ──
+function ghLocalData(){
+  return{
     v:3,ts:Date.now(),
     tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,
     notes:notes,events:events,compteurs:cptData,
@@ -1904,143 +1936,121 @@ function ghDataPayload(){
     conges:conges,
     quickzone:{note:qzNote,actions:qzActions}
   };
-  try{return btoa(unescape(encodeURIComponent(JSON.stringify(data))));}
-  catch(e){return btoa(JSON.stringify(data));}
 }
 
+// ── Appliquer des données distantes en localStorage SANS push ──
+function ghApplyRemote(data,sha){
+  if(!data)return;
+  if(sha)_ghSha=sha;
+  if(Array.isArray(data.tasks)){tasks=data.tasks;localStorage.setItem(TK,JSON.stringify(tasks));}
+  if(data.pellet){PD=data.pellet;localStorage.setItem(PK,JSON.stringify(PD));}
+  if(Array.isArray(data.renos)){renos=data.renos;localStorage.setItem(RK,JSON.stringify(renos));}
+  if(Array.isArray(data.travaux)){trvProjs=data.travaux;localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
+  if(Array.isArray(data.notes)){notes=data.notes;localStorage.setItem(NK,JSON.stringify(notes));}
+  if(Array.isArray(data.events)){events=data.events;localStorage.setItem(EK,JSON.stringify(events));}
+  if(data.compteurs){cptData=data.compteurs;localStorage.setItem(CPT_KEY,JSON.stringify(cptData));}
+  if(data.budget){
+    if(Array.isArray(data.budget.charges))charges=data.budget.charges;
+    if(Array.isArray(data.budget.depenses))depenses=data.budget.depenses;
+    localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));
+  }
+  if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+  if(data.quickzone){
+    qzNote=data.quickzone.note||'';
+    qzActions=data.quickzone.actions||[];
+    localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions}));
+  }
+}
+
+// ── PUSH avec merge automatique ──
 function ghPush(){
-  if(!ghToken()){return;}
-  if(_ghSaving){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghPush,3000);return;}
-  _ghSaving=true;
-  ghStatus('↻ Sync...','var(--amber)');
-  var body={message:'sync '+new Date().toISOString().slice(0,16),content:ghDataPayload(),branch:GH_BRANCH};
-  if(_ghSha)body.sha=_ghSha;
-  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,{
-    method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)
-  })
-  .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};});})
-  .then(function(res){
-    _ghSaving=false;
-    if(res.status===200||res.status===201){
-      _ghSha=res.data.content&&res.data.content.sha?res.data.content.sha:_ghSha;
-      var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-      ghStatus('✓ '+now,'var(--green)');
-      try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:ghToken(),sha:_ghSha,lastSync:now}));}catch(e){}
-    } else if(res.status===409||res.status===422||(res.data.message&&res.data.message.indexOf('sha')>=0)){
-      // SHA désync → récupérer le bon SHA et réessayer
-      ghStatus('↻ Resync...','var(--amber)');
-      ghFetchSha(function(sha,err){
-        if(!err&&sha){
-          _ghSha=sha;
-          clearTimeout(_ghRetryTimer);
-          _ghRetryTimer=setTimeout(ghPush,1500);
-        } else {
-          ghStatus('Hors ligne','var(--amber)');
-        }
-      });
-    } else if(res.status===401){
-      ghStatus('Token invalide','var(--red)');
-    } else {
+  if(!ghToken())return;
+  if(_ghPushInProgress){
+    clearTimeout(_ghSaveTimer);
+    _ghSaveTimer=setTimeout(ghPush,3000);
+    return;
+  }
+  _ghPushInProgress=true;
+  ghStatus('\u21bb Sync...','var(--amber)');
+  // 1. Récupérer la version distante
+  ghFetch(function(remoteData,remoteSha,err){
+    if(err==='401'){_ghPushInProgress=false;return;}
+    if(err==='network'){
+      _ghPushInProgress=false;
       ghStatus('Hors ligne','var(--amber)');
+      return;
     }
-  })
-  .catch(function(){
-    _ghSaving=false;
-    ghStatus('Hors ligne','var(--amber)');
+    // 2. Fusionner
+    var local=ghLocalData();
+    var merged=ghMerge(local,remoteData);
+    // 3. Appliquer la fusion localement (sans push)
+    ghApplyRemote(merged,remoteSha||_ghSha);
+    renderAll();
+    // 4. Pusher la version fusionnée
+    var content;
+    try{content=btoa(unescape(encodeURIComponent(JSON.stringify(merged))));}
+    catch(e){content=btoa(JSON.stringify(merged));}
+    var body={message:'sync '+new Date().toISOString().slice(0,16),content:content,branch:GH_BRANCH};
+    if(_ghSha)body.sha=_ghSha;
+    fetch(ghApiUrl(),{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)})
+    .then(function(r){return r.json().then(function(d){return{s:r.status,d:d};});})
+    .then(function(res){
+      _ghPushInProgress=false;
+      if(res.s===200||res.s===201){
+        if(res.d.content&&res.d.content.sha)_ghSha=res.d.content.sha;
+        saveGhConfig();
+      } else if(res.s===409||res.s===422){
+        // SHA encore désync - réessayer dans 2s
+        _ghSha=null;
+        clearTimeout(_ghSaveTimer);
+        _ghSaveTimer=setTimeout(ghPush,2000);
+      } else {
+        ghStatus('Hors ligne','var(--amber)');
+      }
+    })
+    .catch(function(){_ghPushInProgress=false;ghStatus('Hors ligne','var(--amber)');});
   });
 }
 
+// ── PULL silencieux (polling) ──
 function ghSilentPull(){
   if(!ghToken())return;
-  fetch(ghUrl(),{headers:ghHeaders()})
-  .then(function(r){
-    if(r.status===401){ghStatus('Token invalide','var(--red)');return null;}
-    if(!r.ok){ghStatus('Hors ligne','var(--amber)');return null;}
-    return r.json();
-  })
-  .then(function(d){
-    if(!d||!d.content||!d.sha)return;
-    // Mettre à jour le SHA dans tous les cas
-    var newSha=d.sha;
-    if(newSha===_ghSha)return; // Rien de nouveau
-    _ghSha=newSha;
-    // Décoder et appliquer
-    var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
-    var data=JSON.parse(json);
-    if(!data||(!data.tasks&&!data.events))return;
-    // Sauvegarder directement dans localStorage SANS déclencher de push
-    if(Array.isArray(data.tasks)){tasks=data.tasks;localStorage.setItem(TK,JSON.stringify(tasks));}
-    if(data.pellet){PD=data.pellet;localStorage.setItem(PK,JSON.stringify(PD));}
-    if(Array.isArray(data.renos)){renos=data.renos;localStorage.setItem(RK,JSON.stringify(renos));}
-    if(Array.isArray(data.travaux)){trvProjs=data.travaux;localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
-    if(Array.isArray(data.notes)){notes=data.notes;localStorage.setItem(NK,JSON.stringify(notes));}
-    if(Array.isArray(data.events)){events=data.events;localStorage.setItem(EK,JSON.stringify(events));}
-    if(data.compteurs){cptData=data.compteurs;localStorage.setItem(CPT_KEY,JSON.stringify(cptData));}
-    if(data.budget&&Array.isArray(data.budget.charges)){
-      charges=data.budget.charges;depenses=data.budget.depenses||[];
-      localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));
-    }
-    if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
-    if(data.quickzone){
-      qzNote=data.quickzone.note||'';
-      qzActions=data.quickzone.actions||[];
-      localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions}));
-    }
-    // Persister le nouveau SHA
-    var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:ghToken(),sha:_ghSha,lastSync:now}));}catch(e){}
-    ghStatus('✓ '+now,'var(--green)');
+  ghFetch(function(data,sha,err){
+    if(err||!data)return;
+    if(sha===_ghSha)return; // Rien de nouveau
+    ghApplyRemote(data,sha);
+    saveGhConfig();
     renderAll();
-    toast('↻ Synchronise');
-  })
-  .catch(function(){ghStatus('Hors ligne','var(--amber)');});
+    toast('\u21bb Synchronise');
+  });
 }
 
-// Push avec debounce 3s
+// ── PULL manuel ──
+function ghPull(){
+  if(!ghToken()){toast('Token non configure');return;}
+  ghStatus('\u21bb Chargement...','var(--amber)');
+  ghFetch(function(data,sha,err){
+    if(err||!data){ghStatus('Hors ligne','var(--amber)');toast('Impossible de contacter GitHub');return;}
+    var dateStr=data.ts?new Date(data.ts).toLocaleString('fr-FR'):'inconnue';
+    if(!confirm('Restaurer la sauvegarde du '+dateStr+' ?'))return;
+    ghApplyRemote(data,sha);
+    saveGhConfig();
+    renderAll();
+    toast('Restaure depuis GitHub');
+  });
+}
+
+// ── Auto-save avec debounce 3s ──
 function scheduleGhPush(){
   if(!ghToken())return;
   clearTimeout(_ghSaveTimer);
   _ghSaveTimer=setTimeout(ghPush,3000);
 }
 
-function ghPull(){
-  if(!ghToken()){toast('Token non configure');return;}
-  ghStatus('↻ Chargement...','var(--amber)');
-  fetch(ghUrl(),{headers:ghHeaders()})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.content){ghStatus('Erreur','var(--red)');return;}
-    var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
-    var data=JSON.parse(json);
-    var dateStr=data.ts?new Date(data.ts).toLocaleString('fr-FR'):'inconnue';
-    if(!confirm('Restaurer la sauvegarde du '+dateStr+' ?'))return;
-    _ghSha=d.sha;
-    if(Array.isArray(data.tasks)){tasks=data.tasks;localStorage.setItem(TK,JSON.stringify(tasks));}
-    if(data.pellet){PD=data.pellet;localStorage.setItem(PK,JSON.stringify(PD));}
-    if(Array.isArray(data.renos)){renos=data.renos;localStorage.setItem(RK,JSON.stringify(renos));}
-    if(Array.isArray(data.travaux)){trvProjs=data.travaux;localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
-    if(Array.isArray(data.notes)){notes=data.notes;localStorage.setItem(NK,JSON.stringify(notes));}
-    if(Array.isArray(data.events)){events=data.events;localStorage.setItem(EK,JSON.stringify(events));}
-    if(data.compteurs){cptData=data.compteurs;localStorage.setItem(CPT_KEY,JSON.stringify(cptData));}
-    if(data.budget){charges=data.budget.charges||[];depenses=data.budget.depenses||[];localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));}
-    if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
-    if(data.quickzone){qzNote=data.quickzone.note||'';qzActions=data.quickzone.actions||[];localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions}));}
-    var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:ghToken(),sha:_ghSha,lastSync:now}));}catch(e){}
-    ghStatus('✓ '+now,'var(--green)');
-    renderAll();
-    toast('Restaure depuis GitHub');
-  })
-  .catch(function(){ghStatus('Hors ligne','var(--amber)');toast('Erreur reseau');});
-}
-
 function updateSyncStatus(time,loading,msg){
-  if(loading){ghStatus('↻ Sync...','var(--amber)');return;}
-  if(msg){
-    var col=msg.indexOf('OK')>=0||msg.indexOf('Sync')>=0?'var(--green)':msg.indexOf('Hors')>=0?'var(--amber)':'var(--red)';
-    ghStatus(msg,col);return;
-  }
-  if(time){ghStatus('✓ '+time,'var(--green)');}
+  if(loading){ghStatus('\u21bb Sync...','var(--amber)');return;}
+  if(msg){var c=msg.indexOf('OK')>=0||msg.indexOf('Sync')>=0?'var(--green)':msg.indexOf('Hors')>=0?'var(--amber)':'var(--red)';ghStatus(msg,c);return;}
+  if(time)ghStatus('\u2713 '+time,'var(--green)');
 }
 
 // ── QUICK ZONE ──
