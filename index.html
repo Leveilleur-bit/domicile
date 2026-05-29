@@ -1815,59 +1815,48 @@ var GH_OWNER='Leveilleur-bit';
 var GH_REPO='domicile-data';
 var GH_FILE='data.json';
 var GH_BRANCH='main';
-var _ghSha=null;  // SHA du fichier pour les updates
+var _ghSha=null;
 var _ghSaving=false;
-var _ghDirty=false;
 var _ghSaveTimer=null;
+var _ghRetryTimer=null;
+
+function ghToken(){return appSettings&&appSettings._ghToken?appSettings._ghToken:null;}
+
+function ghHeaders(){
+  return{
+    'Authorization':'token '+ghToken(),
+    'Content-Type':'application/json',
+    'Accept':'application/vnd.github.v3+json'
+  };
+}
+
+function ghUrl(){
+  return 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE+'?ref='+GH_BRANCH;
+}
+
+function ghStatus(txt,color){
+  sv('sync-status',function(e){
+    e.textContent=txt;
+    e.style.color=color||'var(--dim)';
+  });
+  sv('sync-last',function(e){
+    var d=txt.indexOf(':')>0?'Derniere sync : '+txt.split(' ').pop():'';
+    e.textContent=d;
+  });
+}
 
 function loadGhConfig(){
   try{
     var cfg=JSON.parse(localStorage.getItem('domicile_gh_cfg')||'{}');
-    if(cfg.token)appSettings._ghToken=cfg.token;
-    if(cfg.sha)_ghSha=cfg.sha;
-    if(cfg.lastSync)updateSyncStatus(cfg.lastSync,false);
+    if(cfg.token){appSettings._ghToken=cfg.token;}
+    if(cfg.sha){_ghSha=cfg.sha;}
+    if(cfg.lastSync){ghStatus('✓ '+cfg.lastSync,'var(--green)');}
   }catch(e){}
   // Pull auto toutes les 15 minutes
   if(window._ghPullInterval)clearInterval(window._ghPullInterval);
   window._ghPullInterval=setInterval(function(){
-    if(appSettings._ghToken)ghSilentPull();
+    if(ghToken())ghSilentPull();
   },15*60*1000);
-}
-
-function ghSilentPull(){
-  // Pull silencieux - pas de confirm, juste sync si changement détecté
-  if(!appSettings._ghToken)return;
-  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE+'?ref='+GH_BRANCH,
-    {headers:ghHeaders()})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.content||!d.sha)return;
-    // Si le SHA est différent → il y a du nouveau
-    if(d.sha===_ghSha)return;
-    _ghSha=d.sha;
-    // Sauvegarder le nouveau SHA tout de suite
-    try{var cfg2=JSON.parse(localStorage.getItem('domicile_gh_cfg')||'{}');cfg2.sha=d.sha;localStorage.setItem('domicile_gh_cfg',JSON.stringify(cfg2));}catch(e){}
-    var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
-    var data=JSON.parse(json);
-    if(!data.tasks)return;
-    // Appliquer silencieusement
-    if(Array.isArray(data.tasks)){tasks=data.tasks;localStorage.setItem(TK,JSON.stringify(tasks));}
-    if(data.pellet){PD=data.pellet;if(PD)localStorage.setItem(PK,JSON.stringify(PD));}
-    if(Array.isArray(data.renos)){renos=data.renos;localStorage.setItem(RK,JSON.stringify(renos));}
-    if(Array.isArray(data.travaux)){trvProjs=data.travaux;localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
-    if(Array.isArray(data.notes)){notes=data.notes;localStorage.setItem(NK,JSON.stringify(notes));}
-    if(Array.isArray(data.events)){events=data.events;localStorage.setItem(EK,JSON.stringify(events));}
-    if(data.compteurs){cptData=data.compteurs;localStorage.setItem(CPT_KEY,JSON.stringify(cptData));}
-    if(data.budget){charges=data.budget.charges||[];depenses=data.budget.depenses||[];localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));}
-    if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
-    if(data.quickzone){qzNote=data.quickzone.note||'';qzActions=data.quickzone.actions||[];localStorage.setItem('domicile_quickzone_v1',JSON.stringify({note:qzNote,actions:qzActions}));}
-    localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:appSettings._ghToken,sha:_ghSha}));
-    var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    updateSyncStatus(now,false,'Sync auto');
-    renderAll();
-    toast('Sync automatique effectuee');
-  })
-  .catch(function(){updateSyncStatus(null,false,'Hors ligne');});
 }
 
 function saveGhConfig(){
@@ -1875,145 +1864,184 @@ function saveGhConfig(){
   if(!inp||!inp.value.trim()){toast('Token requis');return;}
   appSettings._ghToken=inp.value.trim();
   inp.value='';
-  localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:appSettings._ghToken,sha:_ghSha}));
-  toast('Token sauvegarde');
-  // Test connexion
-  ghGetSha(function(sha){
-    if(sha){_ghSha=sha;updateSyncStatus(null,false,'Connexion OK');toast('GitHub connecte !');}
-    else{updateSyncStatus(null,false,'Hors ligne');toast('Token invalide ?');}
+  _ghSha=null; // Reset SHA pour forcer une récupération propre
+  ghPersistConfig();
+  toast('Token sauvegarde - connexion en cours...');
+  ghStatus('↻ Test...','var(--amber)');
+  // Tester immédiatement
+  ghFetchSha(function(sha,err){
+    if(err){ghStatus('Invalide','var(--red)');toast('Token invalide');return;}
+    _ghSha=sha;
+    ghPersistConfig();
+    ghStatus('✓ Connecte','var(--green)');
+    toast('GitHub connecte !');
   });
 }
 
-function ghHeaders(){
-  return{
-    'Authorization':'token '+appSettings._ghToken,
-    'Content-Type':'application/json',
-    'Accept':'application/vnd.github.v3+json'
-  };
+function ghPersistConfig(){
+  var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({
+    token:ghToken(),sha:_ghSha,lastSync:now
+  }));}catch(e){}
 }
 
-function ghGetSha(cb){
-  if(!appSettings._ghToken){cb(null);return;}
-  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE+'?ref='+GH_BRANCH,
-    {headers:ghHeaders()})
-  .then(function(r){return r.json();})
-  .then(function(d){cb(d.sha||null);})
-  .catch(function(){cb(null);});
+function ghFetchSha(cb){
+  if(!ghToken()){cb(null,'no token');return;}
+  fetch(ghUrl(),{headers:ghHeaders()})
+  .then(function(r){
+    if(r.status===401){cb(null,'unauthorized');return r.json().then(function(){});}
+    return r.json().then(function(d){cb(d.sha||null,d.sha?null:'no sha');});
+  })
+  .catch(function(){cb(null,'network');});
 }
 
 function ghDataPayload(){
   var data={
-    version:2,date:new Date().toISOString(),
+    v:3,ts:Date.now(),
     tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,
     notes:notes,events:events,compteurs:cptData,
-    budget:{charges:charges,depenses:depenses},conges:conges,
+    budget:{charges:charges,depenses:depenses},
+    conges:conges,
     quickzone:{note:qzNote,actions:qzActions}
   };
-  return btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  try{return btoa(unescape(encodeURIComponent(JSON.stringify(data))));}
+  catch(e){return btoa(JSON.stringify(data));}
 }
 
 function ghPush(){
-  if(!appSettings._ghToken){toast('Token non configure (Parametres)');return;}
-  if(_ghSaving){_ghDirty=true;return;}
+  if(!ghToken()){return;}
+  if(_ghSaving){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghPush,3000);return;}
   _ghSaving=true;
-  updateSyncStatus(null,true);
-  var body={
-    message:'domicile sync '+new Date().toISOString().slice(0,16),
-    content:ghDataPayload(),
-    branch:GH_BRANCH
-  };
+  ghStatus('↻ Sync...','var(--amber)');
+  var body={message:'sync '+new Date().toISOString().slice(0,16),content:ghDataPayload(),branch:GH_BRANCH};
   if(_ghSha)body.sha=_ghSha;
   fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,{
-    method:'PUT',
-    headers:ghHeaders(),
-    body:JSON.stringify(body)
+    method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)
   })
-  .then(function(r){return r.json();})
-  .then(function(d){
+  .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};});})
+  .then(function(res){
     _ghSaving=false;
-    if(d.content&&d.content.sha){
-      _ghSha=d.content.sha;
+    if(res.status===200||res.status===201){
+      _ghSha=res.data.content&&res.data.content.sha?res.data.content.sha:_ghSha;
       var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-      localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:appSettings._ghToken,sha:_ghSha,lastSync:now}));
-      updateSyncStatus(now,false);
-      if(_ghDirty){_ghDirty=false;ghPush();}
+      ghStatus('✓ '+now,'var(--green)');
+      try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:ghToken(),sha:_ghSha,lastSync:now}));}catch(e){}
+    } else if(res.status===409||res.status===422||(res.data.message&&res.data.message.indexOf('sha')>=0)){
+      // SHA désync → récupérer le bon SHA et réessayer
+      ghStatus('↻ Resync...','var(--amber)');
+      ghFetchSha(function(sha,err){
+        if(!err&&sha){
+          _ghSha=sha;
+          clearTimeout(_ghRetryTimer);
+          _ghRetryTimer=setTimeout(ghPush,1500);
+        } else {
+          ghStatus('Hors ligne','var(--amber)');
+        }
+      });
+    } else if(res.status===401){
+      ghStatus('Token invalide','var(--red)');
     } else {
-      // Erreur push - tenter de récupérer le bon SHA et réessayer
-      if(d.message){
-        // SHA désync (409/422) ou autre erreur GitHub
-        ghGetSha(function(sha){
-          if(sha){
-            _ghSha=sha;
-            setTimeout(ghPush,1000); // Réessayer après 1s
-          } else {
-            updateSyncStatus(null,false,'Hors ligne');
-          }
-        });
-      } else {
-        updateSyncStatus(null,false,'Hors ligne');
-      }
+      ghStatus('Hors ligne','var(--amber)');
     }
   })
-  .catch(function(){_ghSaving=false;updateSyncStatus(null,false,'Hors ligne');});
+  .catch(function(){
+    _ghSaving=false;
+    ghStatus('Hors ligne','var(--amber)');
+  });
 }
 
-function ghPull(){
-  if(!appSettings._ghToken){toast('Token non configure');return;}
-  updateSyncStatus(null,true,'Chargement...');
-  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE+'?ref='+GH_BRANCH,
-    {headers:ghHeaders()})
-  .then(function(r){return r.json();})
+function ghSilentPull(){
+  if(!ghToken())return;
+  fetch(ghUrl(),{headers:ghHeaders()})
+  .then(function(r){
+    if(r.status===401){ghStatus('Token invalide','var(--red)');return null;}
+    if(!r.ok){ghStatus('Hors ligne','var(--amber)');return null;}
+    return r.json();
+  })
   .then(function(d){
-    if(!d.content){updateSyncStatus(null,false,'Hors ligne');return;}
-    _ghSha=d.sha;
+    if(!d||!d.content||!d.sha)return;
+    // Mettre à jour le SHA dans tous les cas
+    var newSha=d.sha;
+    if(newSha===_ghSha)return; // Rien de nouveau
+    _ghSha=newSha;
+    // Décoder et appliquer
     var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
     var data=JSON.parse(json);
-    if(!confirm('Remplacer les donnees locales par la sauvegarde GitHub du '+new Date(data.date).toLocaleDateString('fr-FR')+' ?'))return;
-    if(Array.isArray(data.tasks)){tasks=data.tasks;saveT();}
-    if(data.pellet){PD=data.pellet;saveP();}
-    if(Array.isArray(data.renos)){renos=data.renos;saveR();}
-    if(Array.isArray(data.travaux)){trvProjs=data.travaux;saveTrv();}
-    if(Array.isArray(data.notes)){notes=data.notes;saveNotes();}
-    if(Array.isArray(data.events)){events=data.events;saveEvts();}
-    if(data.compteurs){cptData=data.compteurs;saveCpt();}
-    if(data.budget){charges=data.budget.charges||[];depenses=data.budget.depenses||[];saveBudget();}
-    if(Array.isArray(data.conges)){conges=data.conges;saveConges();}
-    renderAll();
+    if(!data||(!data.tasks&&!data.events))return;
+    // Sauvegarder directement dans localStorage SANS déclencher de push
+    if(Array.isArray(data.tasks)){tasks=data.tasks;localStorage.setItem(TK,JSON.stringify(tasks));}
+    if(data.pellet){PD=data.pellet;localStorage.setItem(PK,JSON.stringify(PD));}
+    if(Array.isArray(data.renos)){renos=data.renos;localStorage.setItem(RK,JSON.stringify(renos));}
+    if(Array.isArray(data.travaux)){trvProjs=data.travaux;localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
+    if(Array.isArray(data.notes)){notes=data.notes;localStorage.setItem(NK,JSON.stringify(notes));}
+    if(Array.isArray(data.events)){events=data.events;localStorage.setItem(EK,JSON.stringify(events));}
+    if(data.compteurs){cptData=data.compteurs;localStorage.setItem(CPT_KEY,JSON.stringify(cptData));}
+    if(data.budget&&Array.isArray(data.budget.charges)){
+      charges=data.budget.charges;depenses=data.budget.depenses||[];
+      localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));
+    }
+    if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+    if(data.quickzone){
+      qzNote=data.quickzone.note||'';
+      qzActions=data.quickzone.actions||[];
+      localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions}));
+    }
+    // Persister le nouveau SHA
     var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    updateSyncStatus(now,false,'Restaure');
-    toast('Donnees restaurees depuis GitHub');
+    try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:ghToken(),sha:_ghSha,lastSync:now}));}catch(e){}
+    ghStatus('✓ '+now,'var(--green)');
+    renderAll();
+    toast('↻ Synchronise');
   })
-  .catch(function(){updateSyncStatus(null,false,'Hors ligne');toast('Hors ligne - sync impossible');});
+  .catch(function(){ghStatus('Hors ligne','var(--amber)');});
 }
 
-function updateSyncStatus(time,loading,msg){
-  sv('sync-status',function(e){
-    if(loading){e.textContent='↻ Sync...';e.style.color='var(--amber)';return;}
-    if(msg){e.textContent=msg;e.style.color=msg.indexOf('OK')>=0||msg.indexOf('Restaure')>=0||msg.indexOf('Sync')>=0?'var(--green)':msg.indexOf('Hors')>=0?'var(--amber)':'var(--red)';return;}
-    e.textContent=time?'✓ '+time:'En attente';
-    e.style.color=time?'var(--green)':'var(--dim)';
-  });
-  sv('sync-last',function(e){
-    e.textContent=time?'Derniere sync : '+time:'';
-  });
-}
-
-// Auto-save avec debounce 3s
+// Push avec debounce 3s
 function scheduleGhPush(){
-  if(!appSettings._ghToken)return;
+  if(!ghToken())return;
   clearTimeout(_ghSaveTimer);
   _ghSaveTimer=setTimeout(ghPush,3000);
 }
 
-function delChargeIdx(idx){
-  var id=window._chMap&&window._chMap[idx];
-  if(id)delCharge(id);
+function ghPull(){
+  if(!ghToken()){toast('Token non configure');return;}
+  ghStatus('↻ Chargement...','var(--amber)');
+  fetch(ghUrl(),{headers:ghHeaders()})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.content){ghStatus('Erreur','var(--red)');return;}
+    var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+    var data=JSON.parse(json);
+    var dateStr=data.ts?new Date(data.ts).toLocaleString('fr-FR'):'inconnue';
+    if(!confirm('Restaurer la sauvegarde du '+dateStr+' ?'))return;
+    _ghSha=d.sha;
+    if(Array.isArray(data.tasks)){tasks=data.tasks;localStorage.setItem(TK,JSON.stringify(tasks));}
+    if(data.pellet){PD=data.pellet;localStorage.setItem(PK,JSON.stringify(PD));}
+    if(Array.isArray(data.renos)){renos=data.renos;localStorage.setItem(RK,JSON.stringify(renos));}
+    if(Array.isArray(data.travaux)){trvProjs=data.travaux;localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
+    if(Array.isArray(data.notes)){notes=data.notes;localStorage.setItem(NK,JSON.stringify(notes));}
+    if(Array.isArray(data.events)){events=data.events;localStorage.setItem(EK,JSON.stringify(events));}
+    if(data.compteurs){cptData=data.compteurs;localStorage.setItem(CPT_KEY,JSON.stringify(cptData));}
+    if(data.budget){charges=data.budget.charges||[];depenses=data.budget.depenses||[];localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));}
+    if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+    if(data.quickzone){qzNote=data.quickzone.note||'';qzActions=data.quickzone.actions||[];localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions}));}
+    var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:ghToken(),sha:_ghSha,lastSync:now}));}catch(e){}
+    ghStatus('✓ '+now,'var(--green)');
+    renderAll();
+    toast('Restaure depuis GitHub');
+  })
+  .catch(function(){ghStatus('Hors ligne','var(--amber)');toast('Erreur reseau');});
 }
 
-function trvToggle_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvToggle(id);}
-function trvStat_idx(idx,st){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvStat(id,st);}
-function trvDel_idx(idx){var id=_trvMap&&_trvMap[idx]?_trvMap[idx]:null;if(id)trvDel(id);}
-function trvDelBdg_idx(pidx,bid){var id=_trvMap&&_trvMap[pidx]?_trvMap[pidx]:null;if(id)trvDelBdg(id,bid);}
+function updateSyncStatus(time,loading,msg){
+  if(loading){ghStatus('↻ Sync...','var(--amber)');return;}
+  if(msg){
+    var col=msg.indexOf('OK')>=0||msg.indexOf('Sync')>=0?'var(--green)':msg.indexOf('Hors')>=0?'var(--amber)':'var(--red)';
+    ghStatus(msg,col);return;
+  }
+  if(time){ghStatus('✓ '+time,'var(--green)');}
+}
 
 // ── QUICK ZONE ──
 var QZ_KEY='domicile_quickzone_v1';
@@ -2134,6 +2162,12 @@ function qzAddCustom(){
   inp.value='';
   saveQZ();renderQZ();
 }
+
+function delChargeIdx(idx){var id=window._chMap&&window._chMap[idx];if(id)delCharge(id);}
+function trvToggle_idx(idx){var id=window._trvMap&&window._trvMap[idx];if(id)trvToggle(id);}
+function trvStat_idx(idx,st){var id=window._trvMap&&window._trvMap[idx];if(id)trvStat(id,st);}
+function trvDel_idx(idx){var id=window._trvMap&&window._trvMap[idx];if(id)trvDel(id);}
+function trvDelBdg_idx(pidx,bid){var id=window._trvMap&&window._trvMap[pidx];if(id)trvDelBdg(id,bid);}
 
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();}
 
