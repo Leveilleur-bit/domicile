@@ -1139,7 +1139,6 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 var TK='dtasks_v4', PK='dpellet_v4', RK='dreno_v4';
 var tasks=[], PD=null, renos=[], tFilter='all', rFilter='all';
 
-// UTILS
 function uid(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);}
 function tod(){return new Date().toISOString().split('T')[0];}
 function ds(y,m,d){return new Date(y,m,d).toISOString().split('T')[0];}
@@ -1150,7 +1149,6 @@ function toast(m){var t=document.getElementById('toast');t.textContent=m;t.class
 function g(id){return document.getElementById(id);}
 function sv(id,fn){var e=g(id);if(e)fn(e);}
 
-// NAV
 function showView(v,tab){
   var vs=document.querySelectorAll('.view');
   for(var i=0;i<vs.length;i++)vs[i].classList.remove('on');
@@ -1168,49 +1166,48 @@ function showView(v,tab){
   if(v==='budget'){loadBudget();renderBudget();}
 }
 
-// TASKS STORAGE
 function loadT(){try{tasks=JSON.parse(localStorage.getItem(TK))||[];}catch(e){tasks=[];}if(!tasks.length)tasks=defT();}
 function saveT(){localStorage.setItem(TK,JSON.stringify(tasks));}
 function defT(){
   var n=new Date(),y=n.getFullYear(),m=n.getMonth();
   return[
-    // VMC
+    
     {id:uid(),name:'Changer filtre VMC',room:'General',cat:'Filtre',date:ds(y,m,15),notes:'Filtre G4 - verifier ref sur le caisson',recur:'quarterly',done:false,doneDate:null},
     {id:uid(),name:'Nettoyer bouches VMC',room:'Salle de bain',cat:'Nettoyage',date:ds(y,m+1,10),notes:'Depot de graisse et calcaire',recur:'yearly',done:false,doneDate:null},
-    // Chauffe-eau
+    
     {id:uid(),name:'Detartrer chauffe-eau',room:'General',cat:'Entretien',date:ds(y,m+2,10),notes:'Purger le groupe de securite',recur:'yearly',done:false,doneDate:null},
     {id:uid(),name:'Verifier anode chauffe-eau',room:'General',cat:'Inspection',date:ds(y,m+6,1),notes:'A changer si plus de 2/3 consommee - maison de +30 ans',recur:'yearly',done:false,doneDate:null},
-    // Poele a pellets
+    
     {id:uid(),name:'Ramonage conduit poele',room:'Salon',cat:'Securite',date:ds(y,9,1),notes:'Obligatoire 2x/an - prevoir avant saison',recur:'none',done:false,doneDate:null},
     {id:uid(),name:'Nettoyage complet poele',room:'Salon',cat:'Entretien',date:ds(y,9,15),notes:'Pot combustion, echangeur, cendres',recur:'yearly',done:false,doneDate:null},
     {id:uid(),name:'Vider bac a cendres',room:'Salon',cat:'Nettoyage',date:ds(y,m,20),notes:'',recur:'monthly',done:false,doneDate:null},
-    // Securite
+    
     {id:uid(),name:'Tester detecteur fumee (DAAF)',room:'General',cat:'Securite',date:ds(y,m,28),notes:'Bouton test + verifier pile',recur:'monthly',done:false,doneDate:null},
     {id:uid(),name:'Changer pile detecteur fumee',room:'General',cat:'Remplacement',date:ds(y,m+6,1),notes:'Pile 9V - noter date sur le boitier',recur:'yearly',done:false,doneDate:null},
-    // Toiture / gouttieres
+    
     {id:uid(),name:'Nettoyer gouttieres',room:'Toiture',cat:'Nettoyage',date:ds(y,10,1),notes:'Avant hiver - feuilles et debris',recur:'yearly',done:false,doneDate:null},
     {id:uid(),name:'Inspecter toiture',room:'Toiture',cat:'Inspection',date:ds(y,3,15),notes:'Tuiles, faitage, solins - maison de +30 ans vigilance renforcee',recur:'yearly',done:false,doneDate:null},
     {id:uid(),name:'Traitement anti-mousse toiture',room:'Toiture',cat:'Entretien',date:ds(y,m+18,1),notes:'Appliquer au printemps',recur:'none',done:false,doneDate:null},
-    // Hotte
+    
     {id:uid(),name:'Nettoyer filtre hotte',room:'Cuisine',cat:'Filtre',date:ds(y,m+1,1),notes:'Tremper dans eau chaude savonneuse',recur:'monthly',done:false,doneDate:null},
     {id:uid(),name:'Changer charbon actif hotte',room:'Cuisine',cat:'Remplacement',date:ds(y,m+6,1),notes:'Si hotte sans evacuation exterieure',recur:'none',done:false,doneDate:null},
-    // Lave-vaisselle
+    
     {id:uid(),name:'Nettoyer filtre lave-vaisselle',room:'Cuisine',cat:'Nettoyage',date:ds(y,m+1,15),notes:'Filtre + bras asperseurs',recur:'monthly',done:false,doneDate:null},
     {id:uid(),name:'Detartrer lave-vaisselle',room:'Cuisine',cat:'Entretien',date:ds(y,m+3,1),notes:'Pastille detartrante a vide',recur:'quarterly',done:false,doneDate:null},
-    // Douche / joints
+    
     {id:uid(),name:'Inspecter joints douche/baignoire',room:'Salle de bain',cat:'Inspection',date:ds(y,m+3,1),notes:'Moisissures, decollements - refaire si necessaire',recur:'quarterly',done:false,doneDate:null},
-    // Jardin
+    
     {id:uid(),name:'Tondre la pelouse',room:'Jardin',cat:'Jardin',date:ds(y,m+1,1),notes:'',recur:'monthly',done:false,doneDate:null},
     {id:uid(),name:'Tailler haies et arbustes',room:'Jardin',cat:'Jardin',date:ds(y,2,15),notes:'Avant reprise vegetative',recur:'yearly',done:false,doneDate:null},
     {id:uid(),name:'Traiter terrasse (hydrofuge)',room:'Terrasse',cat:'Entretien',date:ds(y,3,1),notes:'Nettoyer avant traitement',recur:'none',done:false,doneDate:null},
     {id:uid(),name:'Entretien cabanon',room:'Jardin',cat:'Inspection',date:ds(y,3,20),notes:'Toiture, peinture, serrure',recur:'yearly',done:false,doneDate:null},
-    // Portail / portillon
+    
     {id:uid(),name:'Graisser portail motorise',room:'Exterieur',cat:'Entretien',date:ds(y,m+6,1),notes:'Rails, cremaillere, charniere',recur:'yearly',done:false,doneDate:null},
     {id:uid(),name:'Tester butees et securite portail',room:'Exterieur',cat:'Securite',date:ds(y,m+6,1),notes:'Verifier arret obstacle',recur:'yearly',done:false,doneDate:null},
-    // Maison ancienne (+30 ans)
+    
     {id:uid(),name:'Verifier tableau electrique',room:'General',cat:'Securite',date:ds(y,m+3,1),notes:'Disjoncteurs, differentiel 30mA - maison de +30 ans',recur:'yearly',done:false,doneDate:null},
     {id:uid(),name:'Inspecter cave / sous-sol',room:'General',cat:'Inspection',date:ds(y,m+2,1),notes:'Humidite, fissures, canalisations - age de la maison',recur:'yearly',done:false,doneDate:null},
-    // Renovation
+    
     {id:uid(),name:'Obtenir devis facade / ravalement',room:'Exterieur',cat:'Renovation',date:ds(y,m+1,1),notes:'Comparer 3 devis - enduit, peinture ou bardage',recur:'none',done:false,doneDate:null},
     {id:uid(),name:'Evaluer isolation combles',room:'General',cat:'Renovation',date:ds(y,m+2,1),notes:'Contacter artisan RGE - aides MaPrimeRenov disponibles',recur:'none',done:false,doneDate:null},
   ];
@@ -1224,7 +1221,6 @@ function tstat(t){
   if(diff<0)return'urgent';if(diff<=30)return'soon';return'ok';
 }
 
-// TASK HTML
 function thtml(t){
   var st=tstat(t);
   var dl=t.done?('Fait le '+fd(t.doneDate)):(fd(t.date)+' - '+du(t.date));
@@ -1244,7 +1240,6 @@ function thtml(t){
     +'<div class="ti-acts">'+db+ub+dlb+'</div></div>';
 }
 
-// QUICK ADD
 function quickAdd(){
   var n=g('q-name');if(!n||!n.value.trim()){toast('Saisissez un nom');return;}
   var di=g('add-detail');
@@ -1319,17 +1314,15 @@ function addPresets(){
   saveT();renderAll();toast('8 modeles ajoutes');
 }
 
-// PIECE ICONS
 var PICONS={General:'🏠',Cuisine:'🍳',Salon:'🛋️',Chambre:'🛏️','Salle de bain':'🚿',Cave:'⚙️',Garage:'🔧',Jardin:'🌿',Toiture:'🏗️',Exterieur:'🌲',Terrasse:'☀️',Cabanon:'🛖'};
 
-// RENDER TASKS
 function renderStats(){
   var ac=tasks.filter(function(t){return!t.done;});
   var urg=ac.filter(function(t){return tstat(t)==='urgent';});
   var sn=ac.filter(function(t){return tstat(t)==='soon';});
   sv('s-urg',function(e){e.textContent=urg.length;});
   sv('s-sn',function(e){e.textContent=sn.length;});
-  // Budget mois
+  
   var now2=new Date();
   var mFixes2=charges.reduce(function(s,ch){
     var amt=parseFloat(ch.amount)||0;
@@ -1342,7 +1335,7 @@ function renderStats(){
   var mTotal2=Math.round(mFixes2+mDeps2);
   sv('s-budget',function(e){e.textContent=mTotal2>999?(mTotal2/1000).toFixed(1)+'k':mTotal2;});
   sv('s-budget-sub',function(e){e.textContent='EUR ce mois';});
-  // Prochain entretien
+  
   var upcoming=tasks.filter(function(t){return!t.done;}).sort(function(a,b){return a.date.localeCompare(b.date);});
   if(upcoming.length){
     var nx=upcoming[0];
@@ -1353,10 +1346,10 @@ function renderStats(){
     sv('s-next',function(e){e.textContent='✓';e.style.color='var(--green)';});
     sv('s-next-name',function(e){e.textContent='Tout est fait !';});
   }
-  // Badges
+  
   sv('bdg-dash',function(e){e.textContent=urg.length;e.className=urg.length?'tbadge show':'tbadge';});
   sv('bdg-tasks',function(e){e.textContent=urg.length;e.className=urg.length?'tbadge show':'tbadge';});
-  // Urgent banner on dashboard
+  
   sv('urg-banner',function(e){
     if(urg.length>0){
       e.innerHTML='<div class="urgbanner"><span>&#9888; <strong>'+urg.length+' tache'+(urg.length>1?'s':'')+' en retard</strong>'+(sn.length?' - '+sn.length+' ce mois':'')+'</span><button onclick="goTasks()">Voir</button></div>';
@@ -1500,7 +1493,6 @@ function renderHist(){
   });
   el.innerHTML=h;
 }
-
 
 function renderDashCpt(){
   var el=g('d-cpt-releve');if(!el)return;
@@ -1702,7 +1694,6 @@ function deleteDepEdit(){
   renderBudget();toast('Supprimee');
 }
 
-// ── CONGES ──
 var CONGE_KEY='domicile_conges_v1';
 var conges=[];
 function loadConges(){try{conges=JSON.parse(localStorage.getItem(CONGE_KEY))||[];}catch(e){conges=[];}}
@@ -1810,7 +1801,6 @@ function renderDashEvents(){
   el.innerHTML=h;
 }
 
-// ── GITHUB SYNC ──
 var GH_OWNER='Leveilleur-bit';
 var GH_REPO='domicile-data';
 var GH_FILE='data.json';
@@ -1864,7 +1854,7 @@ function saveGhConfigFn(){
   inp.value='';
   _ghSha=null;
   ghStatus('\u21bb Test...','var(--amber)');
-  // Test de connexion
+  
   fetch(ghApiUrl(),{headers:ghHeaders()})
   .then(function(r){return r.json();})
   .then(function(d){
@@ -1880,7 +1870,6 @@ function saveGhConfigFn(){
   .catch(function(){ghStatus('Hors ligne','var(--amber)');});
 }
 
-// ── Récupérer les données distantes ──
 function ghFetch(cb){
   if(!ghToken()){cb(null,null,'no token');return;}
   fetch(ghApiUrl()+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders()})
@@ -1895,10 +1884,9 @@ function ghFetch(cb){
   .catch(function(){cb(null,null,'network');});
 }
 
-// ── Fusionner les données locales avec les données distantes ──
 function ghMerge(local,remote){
   if(!remote)return local;
-  // Fusion tableau par ID - last-write-wins par entree
+  
   function mergeArr(loc,rem,key){
     if(!Array.isArray(rem))return loc||[];
     if(!Array.isArray(loc))return rem;
@@ -1907,7 +1895,7 @@ function ghMerge(local,remote){
     loc.forEach(function(x){if(x[key]&&!isDeleted(x[key]))map[x[key]]=x;});
     return Object.keys(map).map(function(k){return map[k];});
   }
-  // Fusion objet profond - fusionner les clés individuellement
+  
   function mergeObj(loc,rem){
     if(!rem)return loc||{};
     if(!loc)return rem;
@@ -1918,7 +1906,7 @@ function ghMerge(local,remote){
     });
     return result;
   }
-  // Fusion compteurs : fusionner par type (elec/eau) avec last-write-wins par sous-tableau
+  
   function mergeCpt(loc,rem){
     if(!rem)return loc||{elec:[],eau:[]};
     if(!loc)return rem;
@@ -1927,12 +1915,12 @@ function ghMerge(local,remote){
       eau:mergeArr(loc.eau||[],rem.eau||[],'date')
     };
   }
-  // Fusion quickzone : fusionner les actions par ID, garder la note la plus récente
+  
   function mergeQZ(loc,rem){
     if(!rem)return loc||{note:'',actions:[]};
     if(!loc)return rem;
     var actions=mergeArr(loc.actions||[],rem.actions||[],'id');
-    // Note : garder la plus longue (heuristique simple)
+    
     var note=(loc.note||'').length>=(rem.note||'').length?loc.note:rem.note;
     return{note:note,actions:actions};
   }
@@ -1954,7 +1942,6 @@ function ghMerge(local,remote){
   };
 }
 
-// ── Données locales actuelles ──
 function ghLocalData(){
   return{
     v:3,ts:Date.now(),
@@ -1966,10 +1953,9 @@ function ghLocalData(){
   };
 }
 
-// ── Appliquer des données distantes en localStorage SANS push ──
 function ghApplyRemote(data,sha){
   if(!data)return;
-  // Appliquer les suppressions distantes
+  
   if(data.deleted&&typeof data.deleted==='object'){
     Object.keys(data.deleted).forEach(function(k){
       if(!_deletedIds[k]||data.deleted[k]>_deletedIds[k]){
@@ -1999,7 +1985,6 @@ function ghApplyRemote(data,sha){
   }
 }
 
-// ── PUSH avec merge automatique ──
 function ghPush(){
   if(!ghToken())return;
   if(_ghPushInProgress){
@@ -2009,7 +1994,7 @@ function ghPush(){
   }
   _ghPushInProgress=true;
   ghStatus('\u21bb Sync...','var(--amber)');
-  // 1. Récupérer la version distante
+  
   ghFetch(function(remoteData,remoteSha,err){
     if(err==='401'){_ghPushInProgress=false;return;}
     if(err==='network'){
@@ -2017,13 +2002,13 @@ function ghPush(){
       ghStatus('Hors ligne','var(--amber)');
       return;
     }
-    // 2. Fusionner
+    
     var local=ghLocalData();
     var merged=ghMerge(local,remoteData);
-    // 3. Appliquer la fusion localement (sans push)
+    
     ghApplyRemote(merged,remoteSha||_ghSha);
     renderAll();
-    // 4. Pusher la version fusionnée
+    
     var content;
     try{content=btoa(unescape(encodeURIComponent(JSON.stringify(merged))));}
     catch(e){content=btoa(JSON.stringify(merged));}
@@ -2037,7 +2022,7 @@ function ghPush(){
         if(res.d.content&&res.d.content.sha)_ghSha=res.d.content.sha;
         saveGhConfig();
       } else if(res.s===409||res.s===422){
-        // SHA encore désync - réessayer dans 2s
+        
         _ghSha=null;
         clearTimeout(_ghSaveTimer);
         _ghSaveTimer=setTimeout(ghPush,2000);
@@ -2048,20 +2033,19 @@ function ghPush(){
     .catch(function(){
     _ghPushInProgress=false;
     ghStatus('Hors ligne','var(--amber)');
-    // Retry automatique dans 30s si reseau coupé
+    
     clearTimeout(_ghSaveTimer);
     _ghSaveTimer=setTimeout(ghPush,30000);
   });
   });
 }
 
-// ── PULL silencieux (polling) ──
 function ghSilentPull(){
   if(!ghToken())return;
   ghFetch(function(remoteData,sha,err){
     if(err||!remoteData)return;
-    if(sha===_ghSha)return; // Rien de nouveau
-    // Fusionner avec les données locales (respecte les suppressions)
+    if(sha===_ghSha)return; 
+    
     var local=ghLocalData();
     var merged=ghMerge(local,remoteData);
     ghApplyRemote(merged,sha);
@@ -2071,7 +2055,6 @@ function ghSilentPull(){
   });
 }
 
-// ── PULL manuel ──
 function ghPull(){
   if(!ghToken()){toast('Token non configure');return;}
   ghStatus('\u21bb Chargement...','var(--amber)');
@@ -2086,7 +2069,6 @@ function ghPull(){
   });
 }
 
-// ── Auto-save avec debounce 3s ──
 function scheduleGhPush(){
   if(!ghToken())return;
   clearTimeout(_ghSaveTimer);
@@ -2099,10 +2081,9 @@ function updateSyncStatus(time,loading,msg){
   if(time)ghStatus('\u2713 '+time,'var(--green)');
 }
 
-// ── QUICK ZONE ──
 var QZ_KEY='domicile_quickzone_v1';
 var DEL_KEY='domicile_deleted_v1';
-var _deletedIds={};  // {id: timestamp}
+var _deletedIds={};  
 
 function loadDeletedIds(){
   try{_deletedIds=JSON.parse(localStorage.getItem(DEL_KEY)||'{}');}
@@ -2110,7 +2091,7 @@ function loadDeletedIds(){
 }
 function markDeleted(id){
   _deletedIds[id]=Date.now();
-  // Nettoyer les suppressions de plus de 30 jours
+  
   var cutoff=Date.now()-30*24*60*60*1000;
   Object.keys(_deletedIds).forEach(function(k){if(_deletedIds[k]<cutoff)delete _deletedIds[k];});
   localStorage.setItem(DEL_KEY,JSON.stringify(_deletedIds));
@@ -2141,7 +2122,7 @@ function saveQZ(){
 
 function renderQZ(){
   var el=g('dash-quickzone');if(!el)return;
-  // Actions actives (non cochées)
+  
   var active=qzActions.filter(function(a){return!a.done;});
   var actH='';
   active.forEach(function(a,i){
@@ -2155,7 +2136,7 @@ function renderQZ(){
   });
 
   var h='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px;">'
-    // Note libre
+    
     +'<div style="margin-bottom:10px;">'
     +'<textarea id="qz-note" placeholder="Note rapide..." '
     +'style="width:100%;min-height:50px;resize:none;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:8px 10px;outline:none;line-height:1.5;" '
@@ -2163,18 +2144,17 @@ function renderQZ(){
     +eh(qzNote)
     +'</textarea>'
     +'</div>'
-    // Actions rapides
+    
     +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">'
     +'<span>Actions rapides</span>'
     +'<button onclick="qzShowAdd()" style="background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--dim);font-size:9px;padding:2px 7px;cursor:pointer;">+ Ajouter</button>'
     +'</div>'
     +(actH||'<div style="font-size:11px;color:var(--dim);font-style:italic;padding:4px 0;">Aucune action en cours</div>')
-    // Formulaire ajout rapide (caché par défaut)
+    
     +'<div id="qz-add-form" style="display:none;margin-top:8px;">'
     +'<div style="font-size:9px;color:var(--dim);margin-bottom:5px;letter-spacing:1px;">Suggestions :</div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">';
 
-  // Suggestions (défauts pas encore dans la liste)
   var existing=qzActions.map(function(a){return a.name;});
   QZ_DEFAULTS.forEach(function(d,di){
     if(existing.indexOf(d)===-1){
@@ -2191,7 +2171,7 @@ function renderQZ(){
     +'</div>';
 
   el.innerHTML=h;
-  // Restaurer le focus/curseur de la note si besoin
+  
   var ta=g('qz-note');
   if(ta&&document.activeElement!==ta){ta.value=qzNote;}
 }
@@ -2243,10 +2223,9 @@ function trvDelBdg_idx(pidx,bid){var id=window._trvMap&&window._trvMap[pidx];if(
 
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();}
 
-// PELLET
 function defP(){
   var n=new Date(),m=n.getMonth(),y=n.getFullYear();
-  // Oct-Dec: saison qui commence | Jan-Avr: saison en cours | Mai-Sep: dernière terminée
+  
   var sk=m>=10?(y+'-'+(y+1)):m<=3?((y-1)+'-'+y):((y-1)+'-'+y);
   return{sk:sk,cnt:0,tgt:80,kgs:15,stk:0,thr:10,seasons:[],maint:[]};
 }
@@ -2286,12 +2265,12 @@ function renderP(){
   sv('ptgt',function(e){e.value=tg;});
   sv('pprog',function(e){e.style.width=pct+'%';});
   sv('pprogl',function(e){e.textContent=pct+'% - '+(tg-c>0?(tg-c)+' sacs restants':'Objectif atteint !');});
-  // Autonomie estimée (saison active uniquement)
+  
   sv('pautonomy',function(e){
     if(!active){e.style.display='none';return;}
     e.style.display='block';
     if(c<3){e.innerHTML='<span style="color:var(--dim);font-size:10px;">Pas assez de donnees (min. 3 sacs)</span>';return;}
-    // Jours écoulés depuis le début de la saison (1er nov)
+    
     var now3=new Date();
     var seasonStart=new Date(now3.getMonth()<=3?now3.getFullYear()-1:now3.getFullYear(),10,1);
     var daysElapsed=Math.max(1,Math.floor((now3-seasonStart)/86400000));
@@ -2393,14 +2372,10 @@ function mDn(id){if(!PD)return;var m=PD.maint.find(function(x){return x.id===id;
 function mUnd(id){if(!PD)return;var m=PD.maint.find(function(x){return x.id===id;});if(m){m.done=false;m.doneDate=null;}saveP();renderP();toast('Reouvert');}
 function mDel(id){if(!PD)return;PD.maint=PD.maint.filter(function(x){return x.id!==id;});saveP();renderP();toast('Supprime');}
 
-// RENO
 function loadR(){try{renos=JSON.parse(localStorage.getItem(RK))||[];}catch(e){renos=[];}}
 function saveR(){localStorage.setItem(RK,JSON.stringify(renos));}
 function rpct(p){if(!p.steps||!p.steps.length)return p.status==='done-s'?100:0;return Math.round(p.steps.filter(function(s){return s.done;}).length/p.steps.length*100);}
 
-
-
-// EDITION TACHE
 var editId=null;
 
 function openEdit(id){
@@ -2476,8 +2451,6 @@ function deleteFromModal(){
   saveT();renderAll();toast('Supprimee');
 }
 
-
-// COMPTEURS
 var CPT_KEY='domicile_cpt_v1';
 var cptData={elec:[],eau:[]};
 var cptTab='elec';
@@ -2541,16 +2514,13 @@ function renderHero(type,elId,deltaId){
 function renderCpt(){
   if(!cptData)return;
 
-  // Hero cards
   renderHero('elec','cpt-elec-last','cpt-elec-delta');
   renderHero('eau','cpt-eau-last','cpt-eau-delta');
 
-  // Chart + hist for current tab
   var data=cptData[cptTab];
   var unit=cptTab==='elec'?'kWh':'m3';
   var color=cptTab;
 
-  // Compute consumptions between readings
   var consos=[];
   for(var i=1;i<data.length;i++){
     var conso=data[i].index-data[i-1].index;
@@ -2559,7 +2529,6 @@ function renderCpt(){
     consos.push({lbl:lbl,val:conso,date:data[i].date});
   }
 
-  // Bar chart (last 12)
   var recent=consos.slice(-12);
   var maxV=1;recent.forEach(function(r){if(r.val>maxV)maxV=r.val;});
   var chartH='',labelsH='';
@@ -2574,7 +2543,6 @@ function renderCpt(){
   sv('cpt-chart',function(e){e.innerHTML=chartH;});
   sv('cpt-chart-title',function(e){e.textContent='Consommation '+(cptTab==='elec'?'electrique':'eau')+' entre releves';});
 
-  // Historique
   var hist=g('cpt-hist-list');if(!hist)return;
   if(!data.length){hist.innerHTML='<div class="empty"><div class="eico">&#128202;</div>Aucun releve enregistre</div>';return;}
   var h='';
@@ -2594,7 +2562,6 @@ function renderCpt(){
   hist.innerHTML=h;
 }
 
-// STATISTIQUES
 function renderStats2(){
   var now=new Date(),y=now.getFullYear();
   var yearTasks=tasks.filter(function(t){return new Date(t.date).getFullYear()===y;});
@@ -2608,7 +2575,6 @@ function renderStats2(){
   sv('st-plan-y',function(e){e.textContent=plan.length;});
   sv('st-cost-y',function(e){e.textContent=totalCost>0?totalCost.toFixed(0):'?';});
 
-  // Par mois (barres)
   var MN=['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
   var monthly=[];
   for(var i=0;i<12;i++){
@@ -2636,7 +2602,6 @@ function renderStats2(){
     +'</div>';
   sv('stats-monthly',function(e){e.innerHTML=mh;});
 
-  // Par categorie
   var cats={};
   yearTasks.forEach(function(t){var k=t.cat||'Autre';if(!cats[k])cats[k]={n:0,done:0};cats[k].n++;if(t.done)cats[k].done++;});
   var catKeys=Object.keys(cats).sort(function(a,b){return cats[b].n-cats[a].n;});
@@ -2656,7 +2621,6 @@ function renderStats2(){
   });
   sv('stats-cats',function(e){e.innerHTML=ch||'<span style="color:var(--dim);font-size:11px;">Aucune donnee</span>';});
 
-  // Par piece
   var rooms={};
   yearTasks.forEach(function(t){var k=t.room||'General';if(!rooms[k])rooms[k]={n:0,done:0};rooms[k].n++;if(t.done)rooms[k].done++;});
   var roomKeys=Object.keys(rooms).sort(function(a,b){return rooms[b].n-rooms[a].n;});
@@ -2675,7 +2639,6 @@ function renderStats2(){
   });
   sv('stats-rooms',function(e){e.innerHTML=rh||'<span style="color:var(--dim);font-size:11px;">Aucune donnee</span>';});
 
-  // Prestataires
   var prests={};
   tasks.forEach(function(t){if(t.prest){if(!prests[t.prest])prests[t.prest]={tasks:[],cost:0};prests[t.prest].tasks.push(t.name);if(t.costLast)prests[t.prest].cost+=t.costLast;}});
   PD&&PD.maint&&PD.maint.forEach(function(m){if(m.prest){if(!prests[m.prest])prests[m.prest]={tasks:[],cost:0};prests[m.prest].tasks.push(m.type);if(m.cout)prests[m.prest].cost+=m.cout;}});
@@ -2696,7 +2659,6 @@ function renderStats2(){
   sv('stats-prest',function(e){e.innerHTML=ph;});
 }
 
-// SAUVEGARDE
 function exportData(){
   var data={
     version:1,
@@ -2748,7 +2710,6 @@ function importData(input){
   reader.readAsText(file);
 }
 
-// INIT
 function init(){
   var now=new Date();
   sv('hdate',function(e){e.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});});
@@ -2761,11 +2722,10 @@ function init(){
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
-  // Pull au démarrage
+  
   setTimeout(function(){if(appSettings._ghToken)ghSilentPull();},2000);
 }
 
-// ── SETTINGS ──
 var SET_KEY='domicile_settings_v1';
 var appSettings={houseName:'',accentColor:'#c8855a',accentLight:'#e8a882',notifEnabled:false,notifTime:'19:00'};
 
@@ -2790,7 +2750,7 @@ function openSettings(){
   o.classList.remove('hidden');o.style.display='flex';
   sv('settings-dot',function(e){e.style.display='none';});
   localStorage.setItem('onboard_seen','1');
-  // Restaurer le statut GitHub
+  
   if(appSettings._ghToken){
     var cfg3=JSON.parse(localStorage.getItem('domicile_gh_cfg')||'{}');
     if(cfg3.lastSync)updateSyncStatus(cfg3.lastSync,false);
@@ -2836,10 +2796,10 @@ function getUpcomingBirthdays(days){
   events.forEach(function(e){
     if(e.type!=='birthday')return;
     var d=new Date(e.date);
-    // Pour recurrence annuelle, utiliser l annee courante
+    
     var thisYear=new Date(today.getFullYear(),d.getMonth(),d.getDate());
     thisYear.setHours(0,0,0,0);
-    // Si deja passe cette annee, regarder l annee prochaine
+    
     if(thisYear<today)thisYear.setFullYear(today.getFullYear()+1);
     if(isNaN(thisYear.getTime()))return;
     var diff=Math.floor((thisYear-today)/86400000);
@@ -2853,7 +2813,7 @@ function sendDailyNotif(){
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   var urgent=tasks.filter(function(t){return!t.done&&tstat(t)==='urgent';});
   var soon=tasks.filter(function(t){return!t.done&&tstat(t)==='soon';});
-  // Anniversaires dans les 7 jours avec rappel configure
+  
   var bdayReminders=events.filter(function(e){
     if(!e.reminder||e.type!=='birthday')return false;
     var d=new Date(e.date);
@@ -2863,7 +2823,7 @@ function sendDailyNotif(){
     if(thisYear<today)thisYear.setFullYear(today.getFullYear()+1);
     return Math.floor((thisYear-today)/86400000)===parseInt(e.reminder);
   });
-  // Rappel releve compteurs le 1er du mois
+  
   var today2=new Date();
   var isFirst2=today2.getDate()===1;
   var needsCptReleve=false;
@@ -2896,11 +2856,9 @@ function renderOnboard(){
 }
 function dismissOnboard(){localStorage.setItem('onboard_seen','1');sv('onboard-banner',function(e){e.innerHTML='';});sv('settings-dot',function(e){e.style.display='none';});}
 
-
-// ── BUDGET ──
 var BUDGET_KEY='domicile_budget_v1';
-var charges=[];   // charges fixes
-var depenses=[];  // depenses ponctuelles manuelles
+var charges=[];   
+var depenses=[];  
 
 function loadBudget(){
   try{
@@ -2949,15 +2907,15 @@ function delDep(id){
 function getBudgetData(){
   var now=new Date();
   var yr=now.getFullYear();
-  // Charges fixes annualisées
+  
   var fixesAnn=charges.reduce(function(s,c){return s+chargeAnnual(c);},0);
-  // Travaux (depuis trvProjs)
+  
   var travauxAnn=trvProjs.reduce(function(s,p){return s+(p.budget_lines||[]).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);},0);
   travauxAnn+=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getFullYear()===yr;}).reduce(function(s,d){return s+(d.amount||0);},0);
-  // Entretien (depuis les tasks avec costLast + pellet maint)
+  
   var entretienAnn=tasks.filter(function(t){return t.costLast&&new Date(t.doneDate||t.date).getFullYear()===yr;}).reduce(function(s,t){return s+(t.costLast||0);},0);
   entretienAnn+=PD&&PD.maint?PD.maint.filter(function(m){return m.cout&&m.done&&new Date(m.doneDate||m.date).getFullYear()===yr;}).reduce(function(s,m){return s+(m.cout||0);},0):0;
-  // Dépenses ponctuelles manuelles
+  
   var depsAnn=depenses.filter(function(d){return new Date(d.date).getFullYear()===yr&&d.cat!=='travaux'&&d.cat!=='entretien';}).reduce(function(s,d){return s+(d.amount||0);},0);
   var total=fixesAnn+travauxAnn+entretienAnn+depsAnn;
   return {total:total,fixes:fixesAnn,travaux:travauxAnn,entretien:entretienAnn,deps:depsAnn};
@@ -2967,12 +2925,12 @@ function renderBudget(){
   var bd=getBudgetData();
   var now=new Date();
   var MN=['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
-  // Hero
+  
   sv('bdg-total-ann',function(e){e.textContent=bd.total>=1000?(bd.total/1000).toFixed(1)+'k':bd.total;});
   sv('bdg-fixes-ann',function(e){e.textContent=bd.fixes>=1000?(bd.fixes/1000).toFixed(1)+'k':bd.fixes;});
   sv('bdg-travaux-ann',function(e){e.textContent=bd.travaux>=1000?(bd.travaux/1000).toFixed(1)+'k':bd.travaux;});
   sv('bdg-entretien-ann',function(e){e.textContent=bd.entretien>=1000?(bd.entretien/1000).toFixed(1)+'k':Math.round(bd.entretien);});
-  // Graphe 12 mois
+  
   var monthly=[];
   for(var mi=0;mi<12;mi++){
     var mFixes=charges.reduce(function(s,ch){
@@ -2980,7 +2938,7 @@ function renderBudget(){
       if(ch.freq==='monthly')return s+amt;
       if(ch.freq==='quarterly'){
         var base=ch.date?new Date(ch.date).getMonth():0;
-        // Afficher sur le mois de creation + tous les 3 mois
+        
         if((mi-base+12)%3===0)return s+amt;
       }
       if(ch.freq==='yearly'){
@@ -3015,7 +2973,7 @@ function renderBudget(){
       +'</div>';
   });
   sv('bdg-month-chart',function(e){e.innerHTML=chartH;});
-  // Répartition par catégorie
+  
   var cats={};
   charges.forEach(function(ch){var k=CHARGE_CATS[ch.cat]||ch.cat;if(!cats[k])cats[k]=0;cats[k]+=chargeAnnual(ch);});
   if(bd.travaux)cats['Travaux']=(cats['Travaux']||0)+bd.travaux;
@@ -3033,7 +2991,7 @@ function renderBudget(){
       +'</div>';
   });
   sv('bdg-cats',function(e){e.innerHTML=catsH||'<span style="color:var(--dim);font-size:11px;">Aucune donnee</span>';});
-  // Ce mois
+  
   var cm=monthly[now.getMonth()];
   var cmH='<div style="font-family:Bebas Neue,sans-serif;font-size:28px;letter-spacing:2px;color:var(--copper);">'+Math.round(cm.total)+' EUR</div>'
     +'<div style="font-size:10px;color:var(--dim);margin-bottom:10px;">ce mois</div>';
@@ -3042,7 +3000,7 @@ function renderBudget(){
   if(cm.entretien)cmH+='<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;"><span style="color:var(--dim);">Entretien</span><span style="color:var(--green);">'+Math.round(cm.entretien)+' EUR</span></div>';
   if(!cm.total)cmH+='<div style="color:var(--dim);font-size:11px;">Aucune depense ce mois</div>';
   sv('bdg-this-month',function(e){e.innerHTML=cmH;});
-  // Liste charges fixes
+  
   var clH='';
   if(!charges.length){clH='<div class="empty"><div class="eico">&#128178;</div>Aucune charge fixe. Ajoutez assurance, internet...</div>';}
   else{
@@ -3060,7 +3018,7 @@ function renderBudget(){
     });
   }
   sv('charges-list',function(e){e.innerHTML=clH;});
-  // Liste dépenses ponctuelles
+  
   var dpH='';
   var depsYear=depenses.filter(function(d){return new Date(d.date).getFullYear()===now.getFullYear();}).sort(function(a,b){return b.date.localeCompare(a.date);});
   if(!depsYear.length){dpH='<div class="empty"><div class="eico">&#128203;</div>Aucune depense ponctuelle saisie</div>';}
@@ -3078,7 +3036,7 @@ function renderBudget(){
   }
   sv('deps-list',function(e){e.innerHTML=dpH;});
 }
-// ── TRAVAUX ──
+
 var TRV_KEY='dtravaux_v1';
 var trvProjs=[];
 var trvFilter='all';
@@ -3153,15 +3111,15 @@ function renderTrv(){
     var priCls={high:'high',medium:'medium',low:'low'}[p.priority]||'medium';
     var bc2={todo:'todo',wip:'wip',paused:'paused','done-s':'done-s'}[p.status]||'todo';
     var sColor=SCOL[p.status]||'var(--dim)';
-    // Achats HTML
+    
     var stepsH='';
     var dc=(p.steps||[]).filter(function(s){return s.done;}).length;
     var tc=(p.steps||[]).length;
     (p.steps||[]).forEach(function(s,si){
       stepsH+='<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;">'
-        +'<div style="width:15px;height:15px;border-radius:3px;background:'+(s.done?'var(--green)':'var(--bg3)')+';border:'+(s.done?'none':'1.5px solid var(--border)')+';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:var(--bg);flex-shrink:0;" onclick="trvCheckStep_idx("+pidx+",\x27"+s.id+"\x27)">'+( s.done?'&#10003;':'')+'</div>'
+        +'<div style="width:15px;height:15px;border-radius:3px;background:'+(s.done?'var(--green)':'var(--bg3)')+';border:'+(s.done?'none':'1.5px solid var(--border)')+';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:var(--bg);flex-shrink:0;" onclick="trvCheckStep_idx("+pidx+","+si+")">'+( s.done?'&#10003;':'')+'</div>'
         +'<span style="flex:1;font-size:11px;'+(s.done?'text-decoration:line-through;color:var(--dim);':'color:var(--text);')+'">'+eh(s.name)+'</span>'
-        +'<button style="background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--dim);width:20px;height:20px;cursor:pointer;font-size:10px;" onclick="trvDelStep_idx("+pidx+",\x27"+s.id+"\x27)">&#10005;</button>'
+        +'<button style="background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--dim);width:20px;height:20px;cursor:pointer;font-size:10px;" onclick="trvDelStep_idx("+pidx+","+si+")">&#10005;</button>'
         +'</div>';
     });
     var achatsH='';
@@ -3193,7 +3151,7 @@ function renderTrv(){
       +(est?'<span style="font-size:10px;color:var(--dim);">Budget: '+est+' EUR</span>':'')
       +'<button class="bi del" style="margin-left:auto;" onclick="trvDelIdx_p("+pidx+")">&#10005; Supprimer</button>'
       +'</div>'
-      // Achats
+      
       +'<div style="margin-bottom:6px;">'
       +(achatsH||'<div style="font-size:10px;color:var(--dim);font-style:italic;padding:4px 0;">Aucun achat saisi</div>')
       +'</div>'
@@ -3205,9 +3163,7 @@ function renderTrv(){
       +'</div></div>';
   });
   list.innerHTML=h;
-scheduleGhPush();
 }
-
 
 function trvTab(btn,secId,projId){
   var proj=g(projId);if(!proj)return;
@@ -3266,7 +3222,6 @@ function trvDelConfirm(id){trvDel(id);}
 function trvDel(id){if(!confirm('Supprimer ce projet ?'))return;markDeleted(id);trvProjs=trvProjs.filter(function(x){return x.id!==id;});saveTrv();renderTrv();toast('Supprime');}
 function fTrv(f,btn){trvFilter=f;var bs=g('trvfltrs').querySelectorAll('.fb');for(var i=0;i<bs.length;i++)bs[i].classList.remove('on');btn.classList.add('on');renderTrv();}
 
-// ── NOTES ──
 var NK='dnotes_v1';
 var notes=[];
 var notesFilter='all';
@@ -3409,7 +3364,6 @@ function deleteNote(){
   closeNoteModal();saveNotes();renderNotes();toast('Note supprimee');
 }
 
-// ── EVENTS CALENDRIER ──
 var EK='devts_v1';
 var events=[];
 var calViewTab='all';
@@ -3420,7 +3374,7 @@ function saveEvts(){localStorage.setItem(EK,JSON.stringify(events));}
 function calTab(tab,btn){
   calViewTab=tab;
   var bs=document.querySelectorAll('.fb');
-  // Only update cal filter buttons
+  
   var calFltrs=document.querySelectorAll('#view-cal .fb');
   for(var i=0;i<calFltrs.length;i++)calFltrs[i].classList.remove('on');
   btn.classList.add('on');
@@ -3494,7 +3448,6 @@ function renderTodayEvents(){
   });
 }
 
-// ── MORE MENU ──
 function toggleMore(){
   var m=g('more-menu');if(!m)return;
   if(m.style.display==='block'){m.style.display='none';return;}
@@ -3511,10 +3464,6 @@ document.addEventListener('click',function(e){
   if(m&&b&&!m.contains(e.target)&&!b.contains(e.target)){m.style.display='none';}
 });
 
-// ── UPDATE showView to handle new tabs ──
-// showView unified above
-
-// ── UPDATE exportData to include new data ──
 var _origExport=exportData;
 exportData=function(){
   var data={version:2,date:new Date().toISOString(),tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,notes:notes,events:events,compteurs:cptData,budget:{charges:charges,depenses:depenses},conges:conges};
@@ -3529,7 +3478,6 @@ exportData=function(){
   toast('Exporte - '+tasks.length+' taches, '+trvProjs.length+' travaux, '+notes.length+' notes');
 };
 
-// ── UPDATE importData ──
 var _origImport=importData;
 importData=function(input){
   var file=input.files[0];if(!file)return;
@@ -3554,7 +3502,6 @@ importData=function(input){
   reader.readAsText(file);
 };
 
-// ── UPDATE renderCal to show events ──
 var _origRenderCal=renderCal;
 renderCal=function(){
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
@@ -3593,7 +3540,7 @@ renderCal=function(){
     h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'" style="display:flex;align-items:center;justify-content:space-between;">'+MN[i]+(ec?'<span style="font-size:9px;color:var(--purple);">'+ec+'</span>':'')+'</div><div class="cbody">'+th+'</div></div>';
   }
   cg.innerHTML=h;
-  // Liste des congés
+  
   var cl=g('conges-list-cal');
   if(cl){
     if(!conges.length){cl.innerHTML='';return;}
@@ -3611,10 +3558,27 @@ renderCal=function(){
   }
 };
 
-// init consolidated above
 function trvAddStep_idx(idx){var id=window._trvMap&&window._trvMap[idx]?window._trvMap[idx]:null;if(id)trvAddStep(id);}
-function trvCheckStep_idx(pidx,sid){var id=window._trvMap&&window._trvMap[pidx]?window._trvMap[pidx]:null;if(id)trvCheckStep(id,sid);}
-function trvDelStep_idx(pidx,sid){var id=window._trvMap&&window._trvMap[pidx]?window._trvMap[pidx]:null;if(id)trvDelStep(id,sid);}
+function trvCheckStep_idx(pidx,si){
+  var id=window._trvMap&&window._trvMap[pidx]?window._trvMap[pidx]:null;
+  if(!id)return;
+  var p=trvProjs.find(function(x){return x.id===id;});
+  if(!p||!p.steps||!p.steps[si])return;
+  var s=p.steps[si];
+  s.done=!s.done;p._o=true;
+  if(p.steps.every(function(x){return x.done;})){p.status='done-s';toast('Projet complete !');}
+  else if(p.status==='done-s')p.status='wip';
+  saveTrv();renderTrv();
+}
+function trvDelStep_idx(pidx,si){
+  var id=window._trvMap&&window._trvMap[pidx]?window._trvMap[pidx]:null;
+  if(!id)return;
+  var p=trvProjs.find(function(x){return x.id===id;});
+  if(!p||!p.steps||!p.steps[si])return;
+  markDeleted(p.steps[si].id);
+  p.steps.splice(si,1);p._o=true;
+  saveTrv();renderTrv();ghPush();
+}
 
 init();
 
