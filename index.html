@@ -1969,16 +1969,16 @@ function ghApplyRemote(data,sha){
     localStorage.setItem(DEL_KEY,JSON.stringify(_deletedIds));
   }
   if(sha)_ghSha=sha;
-  if(Array.isArray(data.tasks)){tasks=data.tasks;localStorage.setItem(TK,JSON.stringify(tasks));}
+  if(Array.isArray(data.tasks)){tasks=data.tasks.filter(function(x){return!isDeleted(x.id);});localStorage.setItem(TK,JSON.stringify(tasks));}
   if(data.pellet){PD=data.pellet;localStorage.setItem(PK,JSON.stringify(PD));}
   if(Array.isArray(data.renos)){renos=data.renos;localStorage.setItem(RK,JSON.stringify(renos));}
-  if(Array.isArray(data.travaux)){trvProjs=data.travaux;localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
+  if(Array.isArray(data.travaux)){trvProjs=data.travaux.filter(function(x){return!isDeleted(x.id);});localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
   if(Array.isArray(data.notes)){notes=data.notes;localStorage.setItem(NK,JSON.stringify(notes));}
-  if(Array.isArray(data.events)){events=data.events;localStorage.setItem(EK,JSON.stringify(events));}
+  if(Array.isArray(data.events)){events=data.events.filter(function(x){return!isDeleted(x.id);});localStorage.setItem(EK,JSON.stringify(events));}
   if(data.compteurs){cptData=data.compteurs;localStorage.setItem(CPT_KEY,JSON.stringify(cptData));}
   if(data.budget){
-    if(Array.isArray(data.budget.charges))charges=data.budget.charges;
-    if(Array.isArray(data.budget.depenses))depenses=data.budget.depenses;
+    if(Array.isArray(data.budget.charges))charges=data.budget.charges.filter(function(x){return!isDeleted(x.id);});
+    if(Array.isArray(data.budget.depenses))depenses=data.budget.depenses.filter(function(x){return!isDeleted(x.id);});
     localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));
   }
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
