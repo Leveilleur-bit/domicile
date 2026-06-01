@@ -3095,19 +3095,59 @@ function renderBudget(){
   sv('bdg-this-month',function(e){e.innerHTML=cmH;});
   
   var clH='';
-  if(!charges.length){clH='<div class="empty"><div class="eico">&#128178;</div>Aucune charge fixe. Ajoutez assurance, internet...</div>';}
-  else{
-    window._chMap={};
-    charges.forEach(function(ch,ci){
-      window._chMap[ci]=ch.id;
-      var ann=chargeAnnual(ch);
-      clH+='<div class="charge-item" style="cursor:pointer;" data-action="edit-charge" data-id="'+ch.id+'">'
-        +'<span class="charge-name">'+eh(ch.name)+'</span>'
-        +'<span class="charge-freq '+ch.freq+'">'+FREQ_LBL[ch.freq]+'</span>'
-        +'<span class="charge-amount">'+ch.amount+' EUR</span>'
-        +'<span class="charge-annual">'+Math.round(ann)+'/an</span>'
-        +'<button class="bi" style="width:24px;height:24px;font-size:11px;" data-action="edit-charge" data-id="'+ch.id+'">&#9998;</button>'
-        +'</div>';
+  if(!charges.length){
+    clH='<div class="empty"><div class="eico">&#128178;</div>Aucune charge fixe.</div>';
+  } else {
+    var CAT_ICO2={credit:'&#128179;',assurance:'&#127705;',investissement:'&#128200;',abonnement:'&#128241;',logement:'&#127968;',autre:'&#128203;',logement_old:'&#127968;',energie:'&#9889;',internet:'&#128241;',impots:'&#128203;'};
+    var catOrder2=['credit','assurance','investissement','abonnement','logement','autre'];
+    // Grouper par catégorie
+    var cgroups={};
+    charges.forEach(function(ch){
+      var cat=ch.cat||'autre';
+      // Migrer anciens types vers nouveaux
+      if(cat==='energie'||cat==='impots')cat='autre';
+      if(cat==='internet')cat='abonnement';
+      if(!cgroups[cat])cgroups[cat]=[];
+      cgroups[cat].push(ch);
+    });
+    // Ajouter les catégories non standard en fin
+    Object.keys(cgroups).forEach(function(cat){
+      if(catOrder2.indexOf(cat)===-1)catOrder2.push(cat);
+    });
+    catOrder2.forEach(function(cat){
+      var items=cgroups[cat];
+      if(!items||!items.length)return;
+      var totalAnn=items.reduce(function(s,ch){return s+chargeAnnual(ch);},0);
+      var totalMon=items.reduce(function(s,ch){
+        if(ch.freq==='monthly')return s+(parseFloat(ch.amount)||0);
+        if(ch.freq==='quarterly')return s+(parseFloat(ch.amount)||0)/3;
+        if(ch.freq==='yearly')return s+(parseFloat(ch.amount)||0)/12;
+        return s;
+      },0);
+      var col=(CHARGE_COLS&&CHARGE_COLS[cat])||'var(--dim)';
+      var lbl=(CHARGE_CATS&&CHARGE_CATS[cat])||cat;
+      var ico=CAT_ICO2[cat]||'&#128203;';
+      var groupId='ch-group-'+cat;
+      clH+='<div style="margin-bottom:4px;">'
+        +'<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;cursor:pointer;" data-action="toggle-ch-group" data-group="'+groupId+'">'
+        +'<span style="font-size:14px;">'+ico+'</span>'
+        +'<span style="flex:1;font-size:12px;font-weight:500;color:var(--text);">'+lbl+'</span>'
+        +'<span style="font-size:10px;color:var(--dim);">'+Math.round(totalMon)+' EUR/mois</span>'
+        +'<span style="font-family:Bebas Neue,sans-serif;font-size:16px;color:'+col+';margin-left:8px;">'+Math.round(totalAnn)+'/an</span>'
+        +'<span style="font-size:10px;color:var(--dim);margin-left:6px;" data-chevron="'+groupId+'">&#9654;</span>'
+        +'</div>'
+        +'<div id="'+groupId+'" style="display:none;padding:4px 0 4px 12px;border-left:2px solid '+col+';margin-left:8px;">';
+      items.forEach(function(ch){
+        var ann=chargeAnnual(ch);
+        clH+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;cursor:pointer;" data-action="edit-charge" data-id="'+ch.id+'">'
+          +'<span style="flex:1;font-size:11px;color:var(--text);">'+eh(ch.name)+'</span>'
+          +'<span class="charge-freq '+ch.freq+'">'+FREQ_LBL[ch.freq]+'</span>'
+          +'<span style="font-family:Bebas Neue,sans-serif;font-size:14px;color:var(--text);">'+ch.amount+' EUR</span>'
+          +'<span style="font-size:10px;color:var(--dim);">'+Math.round(ann)+'/an</span>'
+          +'<button class="bi" style="width:22px;height:22px;font-size:10px;" data-action="edit-charge" data-id="'+ch.id+'">&#9998;</button>'
+          +'</div>';
+      });
+      clH+='</div></div>';
     });
   }
   sv('charges-list',function(e){
@@ -3115,7 +3155,19 @@ function renderBudget(){
     e.onclick=function(ev){
       var el=ev.target;
       while(el&&el!==e){
-        if(el.getAttribute('data-action')==='edit-charge'){
+        var action=el.getAttribute('data-action');
+        if(action==='toggle-ch-group'){
+          var gid=el.getAttribute('data-group');
+          var grp=document.getElementById(gid);
+          var chev=el.querySelector('[data-chevron]');
+          if(grp){
+            var open=grp.style.display!=='none';
+            grp.style.display=open?'none':'block';
+            if(chev)chev.innerHTML=open?'&#9654;':'&#9660;';
+          }
+          return;
+        }
+        if(action==='edit-charge'){
           openChargeEdit(el.getAttribute('data-id'));return;
         }
         el=el.parentElement;
