@@ -2556,10 +2556,19 @@ function renderCpt(){
       +'<span class="cpt-hist-index '+color+'">'+r.index.toLocaleString('fr-FR')+'</span>'
       +'<span class="cpt-hist-conso '+color+'">'+conso+'</span>'
       +'<span class="cpt-hist-note">'+eh(r.note||'')+'</span>'
-      +'<button class="bi del" style="width:22px;height:22px;font-size:10px;flex-shrink:0;" onclick="delReleve(\x27"+cptTab+"\x27,\x27"+r.id+"\x27)">&#10005;</button>'
+      +'<button class="bi del" style="width:22px;height:22px;font-size:10px;flex-shrink:0;" data-action="del-releve" data-type='+cptTab+' data-id='+r.id+'>&#10005;</button>'
       +'</div>';
   });
   hist.innerHTML=h;
+  hist.onclick=function(ev){
+    var el=ev.target;
+    while(el&&el!==hist){
+      if(el.getAttribute('data-action')==='del-releve'){
+        delReleve(el.getAttribute('data-type'),el.getAttribute('data-id'));return;
+      }
+      el=el.parentElement;
+    }
+  };
 }
 
 function renderStats2(){
@@ -3025,16 +3034,27 @@ function renderBudget(){
   else{
     depsYear.forEach(function(d){
       var depCatCol={courses:'var(--green)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',autre:'var(--dim)'}[d.cat]||'var(--dim)';
-      dpH+='<div class="charge-item" style="cursor:pointer;" onclick="openDepEdit(\x27"+d.id+"\x27)">'
+      dpH+='<div class="charge-item" style="cursor:pointer;" data-action="open-dep" data-id="'+d.id+'">'
         +'<span class="charge-name">'+eh(d.name)+'</span>'
         +'<span class="charge-freq monthly" style="background:rgba(0,0,0,.2);color:'+depCatCol+';border-color:'+depCatCol+';">'+eh(d.cat)+'</span>'
         +'<span style="font-size:10px;color:var(--dim);">'+fd(d.date)+'</span>'
         +'<span class="charge-amount">'+d.amount+' EUR</span>'
-        +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="event.stopPropagation();openDepEdit(\x27"+d.id+"\x27)">&#9998;</button>'
+        +'<button class="bi" style="width:24px;height:24px;font-size:11px;" data-action="open-dep" data-id="'+d.id+'">&#9998;</button>'
         +'</div>';
     });
   }
-  sv('deps-list',function(e){e.innerHTML=dpH;});
+  sv('deps-list',function(e){
+    e.innerHTML=dpH;
+    e.onclick=function(ev){
+      var el=ev.target;
+      while(el&&el!==e){
+        if(el.getAttribute('data-action')==='open-dep'){
+          openDepEdit(el.getAttribute('data-id'));return;
+        }
+        el=el.parentElement;
+      }
+    };
+  });
 }
 
 var TRV_KEY='dtravaux_v1';
