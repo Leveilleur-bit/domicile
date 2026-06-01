@@ -3191,7 +3191,7 @@ function renderTrv(){
       +'<div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">'
       +'<select onchange="trvStat_idx("+pidx+",this.value)" style="padding:5px 8px;font-size:11px;width:auto;">'+sopt+'</select>'
       +(est?'<span style="font-size:10px;color:var(--dim);">Budget: '+est+' EUR</span>':'')
-      +'<button class="bi del" style="margin-left:auto;" onclick="trvDelConfirm(\x27"+p.id+"\x27)">&#10005; Supprimer</button>'
+      +'<button class="bi del" style="margin-left:auto;" onclick="trvDelIdx_p("+pidx+")">&#10005; Supprimer</button>'
       +'</div>'
       // Achats
       +'<div style="margin-bottom:6px;">'
@@ -3259,6 +3259,8 @@ function trvAddBdg(pid){
   p._o=true;le.value='';if(ae)ae.value='';saveTrv();renderTrv();toast('Achat ajoute');
 }
 function trvDelBdg(pid,bid){var p=trvProjs.find(function(x){return x.id===pid;});if(p){p.budget_lines=(p.budget_lines||[]).filter(function(x){return x.id!==bid;});p._o=true;}saveTrv();renderTrv();toast('Supprime');}
+function trvDelIdx_p(idx){var id=window._trvMap&&window._trvMap[idx];if(id)trvDel(id);}
+
 function trvDelConfirm(id){trvDel(id);}
 
 function trvDel(id){if(!confirm('Supprimer ce projet ?'))return;markDeleted(id);trvProjs=trvProjs.filter(function(x){return x.id!==id;});saveTrv();renderTrv();toast('Supprime');}
