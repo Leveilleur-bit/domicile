@@ -895,11 +895,11 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
       </div>
       <div><label class="flbl">Cat.</label>
         <select id="charge-cat">
-          <option value="logement">Logement</option>
-          <option value="energie">Energie</option>
+          <option value="credit">Credit</option>
           <option value="assurance">Assurance</option>
-          <option value="internet">Internet/Tel</option>
-          <option value="impots">Impots</option>
+          <option value="investissement">Investissement</option>
+          <option value="abonnement">Abonnement</option>
+          <option value="logement">Logement</option>
           <option value="autre">Autre</option>
         </select>
       </div>
@@ -962,6 +962,45 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
       <div style="display:flex;gap:8px;">
         <button class="bs" onclick="closeEvtModal()">Annuler</button>
         <button class="bp" onclick="saveEvt()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARGE EDIT MODAL -->
+<div id="charge-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeChargeModal(event)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:18px 16px 28px;width:100%;max-width:560px;animation:fu .3s ease;border-top:3px solid var(--copper);">
+    <div style="font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:16px;letter-spacing:3px;color:var(--cl);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+      <span>Modifier la charge</span><button class="bi" onclick="closeChargeModal()">&#10005;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Libelle</label><input type="text" id="cm-name"></div>
+      <div><label class="flbl">Montant (EUR)</label><input type="number" id="cm-amount" min="0" step="0.01"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div><label class="flbl">Frequence</label>
+        <select id="cm-freq">
+          <option value="monthly">Mensuelle</option>
+          <option value="quarterly">Trimestrielle</option>
+          <option value="yearly">Annuelle</option>
+        </select>
+      </div>
+      <div><label class="flbl">Categorie</label>
+        <select id="cm-cat">
+          <option value="credit">Credit</option>
+          <option value="assurance">Assurance</option>
+          <option value="investissement">Investissement</option>
+          <option value="abonnement">Abonnement</option>
+          <option value="logement">Logement</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px;">
+      <button class="bi del" style="width:auto;padding:0 12px;font-size:11px;" onclick="deleteCharge()">&#10005; Supprimer</button>
+      <div style="display:flex;gap:8px;">
+        <button class="bs" onclick="closeChargeModal()">Annuler</button>
+        <button class="bp" onclick="saveCharge()">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -2225,6 +2264,46 @@ function trvStat_idx(idx,st){var id=window._trvMap&&window._trvMap[idx]?window._
 function trvDel_idx(idx){var id=window._trvMap&&window._trvMap[idx]?window._trvMap[idx]:null;if(id)trvDel(id);}
 function trvDelBdg_idx(pidx,bid){var id=window._trvMap&&window._trvMap[pidx];if(id)trvDelBdg(id,bid);}
 
+var chargeEditId=null;
+function openChargeEdit(id){
+  var c=charges.find(function(x){return x.id===id;});if(!c)return;
+  chargeEditId=id;
+  var m=g('charge-modal');if(!m)return;
+  sv('cm-name',function(e){e.value=c.name||'';});
+  sv('cm-amount',function(e){e.value=c.amount||0;});
+  sv('cm-freq',function(e){e.value=c.freq||'monthly';});
+  sv('cm-cat',function(e){e.value=c.cat||'autre';});
+  m.classList.remove('hidden');m.style.display='flex';
+}
+function closeChargeModal(ev){
+  if(ev&&ev.target!==g('charge-modal'))return;
+  var m=g('charge-modal');if(m){m.classList.add('hidden');m.style.display='none';}
+  chargeEditId=null;
+}
+function saveCharge(){
+  if(!chargeEditId)return;
+  var c=charges.find(function(x){return x.id===chargeEditId;});if(!c)return;
+  var n=g('cm-name');if(n&&n.value.trim())c.name=n.value.trim();
+  var a=g('cm-amount');if(a)c.amount=parseFloat(a.value)||0;
+  var f=g('cm-freq');if(f)c.freq=f.value;
+  var cat=g('cm-cat');if(cat)c.cat=cat.value;
+  saveBudget();
+  var m=g('charge-modal');if(m){m.classList.add('hidden');m.style.display='none';}
+  chargeEditId=null;
+  renderBudget();toast('Charge mise a jour');
+}
+function deleteCharge(){
+  if(!chargeEditId)return;
+  var c=charges.find(function(x){return x.id===chargeEditId;});
+  if(!c||!confirm('Supprimer "'+c.name+'" ?'))return;
+  markDeleted(chargeEditId);
+  charges=charges.filter(function(x){return x.id!==chargeEditId;});
+  saveBudget();
+  var m=g('charge-modal');if(m){m.classList.add('hidden');m.style.display='none';}
+  chargeEditId=null;
+  renderBudget();toast('Supprimee');
+}
+
 function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();}
 
 function defP(){
@@ -2884,8 +2963,8 @@ function saveBudget(){
 scheduleGhPush();
 }
 
-var CHARGE_CATS={logement:'Logement',energie:'Energie',assurance:'Assurance',internet:'Internet/Tel',impots:'Impots',autre:'Autre'};
-var CHARGE_COLS={logement:'var(--blue)',energie:'var(--amber)',assurance:'var(--green)',internet:'var(--purple)',impots:'var(--red)',autre:'var(--dim)',travaux:'var(--amber)',entretien:'var(--green)',equipement:'var(--blue)'};
+var CHARGE_CATS={credit:'Credit',assurance:'Assurance',investissement:'Investissement',abonnement:'Abonnement',logement:'Logement',autre:'Autre'};
+var CHARGE_COLS={credit:'var(--red)',assurance:'var(--blue)',investissement:'var(--green)',abonnement:'var(--purple)',logement:'var(--amber)',autre:'var(--dim)'};
 var FREQ_MULT={monthly:12,quarterly:4,yearly:1};
 var FREQ_LBL={monthly:'Mensuelle',quarterly:'Trimestrielle',yearly:'Annuelle'};
 
@@ -3022,16 +3101,27 @@ function renderBudget(){
     charges.forEach(function(ch,ci){
       window._chMap[ci]=ch.id;
       var ann=chargeAnnual(ch);
-      clH+='<div class="charge-item">'
+      clH+='<div class="charge-item" style="cursor:pointer;" data-action="edit-charge" data-id="'+ch.id+'">'
         +'<span class="charge-name">'+eh(ch.name)+'</span>'
         +'<span class="charge-freq '+ch.freq+'">'+FREQ_LBL[ch.freq]+'</span>'
         +'<span class="charge-amount">'+ch.amount+' EUR</span>'
         +'<span class="charge-annual">'+Math.round(ann)+'/an</span>'
-        +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="delChargeIdx('+ci+')">&#10005;</button>'
+        +'<button class="bi" style="width:24px;height:24px;font-size:11px;" data-action="edit-charge" data-id="'+ch.id+'">&#9998;</button>'
         +'</div>';
     });
   }
-  sv('charges-list',function(e){e.innerHTML=clH;});
+  sv('charges-list',function(e){
+    e.innerHTML=clH;
+    e.onclick=function(ev){
+      var el=ev.target;
+      while(el&&el!==e){
+        if(el.getAttribute('data-action')==='edit-charge'){
+          openChargeEdit(el.getAttribute('data-id'));return;
+        }
+        el=el.parentElement;
+      }
+    };
+  });
   
   var dpH='';
   var depsYear=depenses.filter(function(d){return new Date(d.date).getFullYear()===now.getFullYear();}).sort(function(a,b){return b.date.localeCompare(a.date);});
