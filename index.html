@@ -1994,7 +1994,7 @@ function ghApplyRemote(data,sha){
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
   if(data.quickzone){
     qzNote=data.quickzone.note||'';
-    qzActions=data.quickzone.actions||[];
+    qzActions=(data.quickzone.actions||[]).filter(function(a){return !isDeleted(a.id);});
     localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions}));
   }
 }
@@ -2058,13 +2058,16 @@ function ghPush(){
 // ── PULL silencieux (polling) ──
 function ghSilentPull(){
   if(!ghToken())return;
-  ghFetch(function(data,sha,err){
-    if(err||!data)return;
+  ghFetch(function(remoteData,sha,err){
+    if(err||!remoteData)return;
     if(sha===_ghSha)return; // Rien de nouveau
-    ghApplyRemote(data,sha);
+    // Fusionner avec les données locales (respecte les suppressions)
+    var local=ghLocalData();
+    var merged=ghMerge(local,remoteData);
+    ghApplyRemote(merged,sha);
     saveGhConfig();
     renderAll();
-    toast('\u21bb Synchronise');
+    toast('↻ Synchronise');
   });
 }
 
