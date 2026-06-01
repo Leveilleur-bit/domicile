@@ -3033,17 +3033,48 @@ function renderBudget(){
   
   var dpH='';
   var depsYear=depenses.filter(function(d){return new Date(d.date).getFullYear()===now.getFullYear();}).sort(function(a,b){return b.date.localeCompare(a.date);});
-  if(!depsYear.length){dpH='<div class="empty"><div class="eico">&#128203;</div>Aucune depense ponctuelle saisie</div>';}
-  else{
+  if(!depsYear.length){
+    dpH='<div class="empty"><div class="eico">&#128203;</div>Aucune depense ponctuelle saisie</div>';
+  } else {
+    // Grouper par catégorie
+    var CAT_LBL={courses:'Courses',travaux:'Travaux',entretien:'Entretien',equipement:'Equipement',autre:'Autre'};
+    var CAT_COL={courses:'var(--green)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',autre:'var(--dim)'};
+    var CAT_ICO={courses:'&#128722;',travaux:'&#127959;',entretien:'&#9881;',equipement:'&#128187;',autre:'&#128203;'};
+    var catOrder=['courses','travaux','entretien','equipement','autre'];
+    var groups={};
     depsYear.forEach(function(d){
-      var depCatCol={courses:'var(--green)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',autre:'var(--dim)'}[d.cat]||'var(--dim)';
-      dpH+='<div class="charge-item" style="cursor:pointer;" data-action="open-dep" data-id="'+d.id+'">'
-        +'<span class="charge-name">'+eh(d.name)+'</span>'
-        +'<span class="charge-freq monthly" style="background:rgba(0,0,0,.2);color:'+depCatCol+';border-color:'+depCatCol+';">'+eh(d.cat)+'</span>'
-        +'<span style="font-size:10px;color:var(--dim);">'+fd(d.date)+'</span>'
-        +'<span class="charge-amount">'+d.amount+' EUR</span>'
-        +'<button class="bi" style="width:24px;height:24px;font-size:11px;" data-action="open-dep" data-id="'+d.id+'">&#9998;</button>'
-        +'</div>';
+      var cat=d.cat||'autre';
+      if(!groups[cat])groups[cat]=[];
+      groups[cat].push(d);
+    });
+    catOrder.forEach(function(cat){
+      var items=groups[cat];
+      if(!items||!items.length)return;
+      var total=items.reduce(function(s,d){return s+(d.amount||0);},0);
+      var col=CAT_COL[cat]||'var(--dim)';
+      var lbl=CAT_LBL[cat]||cat;
+      var ico=CAT_ICO[cat]||'&#128203;';
+      var groupId='dep-group-'+cat;
+      // Ligne de groupe cliquable
+      dpH+='<div style="margin-bottom:4px;">'
+        +'<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;cursor:pointer;" data-action="toggle-dep-group" data-group="'+groupId+'">'
+        +'<span style="font-size:14px;">'+ico+'</span>'
+        +'<span style="flex:1;font-size:12px;font-weight:500;color:var(--text);">'+lbl+'</span>'
+        +'<span style="font-size:10px;color:var(--dim);">'+items.length+' op&eacute;ration'+(items.length>1?'s':'')+'</span>'
+        +'<span style="font-family:Bebas Neue,sans-serif;font-size:16px;color:'+col+';margin-left:8px;">'+Math.round(total)+' EUR</span>'
+        +'<span style="font-size:10px;color:var(--dim);margin-left:6px;" data-chevron="'+groupId+'">&#9654;</span>'
+        +'</div>'
+        // Détail caché par défaut
+        +'<div id="'+groupId+'" style="display:none;padding:4px 0 4px 12px;border-left:2px solid '+col+';margin-left:8px;">';
+      items.forEach(function(d){
+        dpH+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;cursor:pointer;" data-action="open-dep" data-id="'+d.id+'">'
+          +'<span style="flex:1;font-size:11px;color:var(--text);">'+eh(d.name)+'</span>'
+          +'<span style="font-size:10px;color:var(--dim);">'+fd(d.date)+'</span>'
+          +'<span style="font-family:Bebas Neue,sans-serif;font-size:14px;color:'+col+';">'+d.amount+' EUR</span>'
+          +'<button class="bi" style="width:22px;height:22px;font-size:10px;" data-action="open-dep" data-id="'+d.id+'">&#9998;</button>'
+          +'</div>';
+      });
+      dpH+='</div></div>';
     });
   }
   sv('deps-list',function(e){
@@ -3051,7 +3082,19 @@ function renderBudget(){
     e.onclick=function(ev){
       var el=ev.target;
       while(el&&el!==e){
-        if(el.getAttribute('data-action')==='open-dep'){
+        var action=el.getAttribute('data-action');
+        if(action==='toggle-dep-group'){
+          var gid=el.getAttribute('data-group');
+          var grp=document.getElementById(gid);
+          var chev=el.querySelector('[data-chevron]');
+          if(grp){
+            var open=grp.style.display!=='none';
+            grp.style.display=open?'none':'block';
+            if(chev)chev.innerHTML=open?'&#9654;':'&#9660;';
+          }
+          return;
+        }
+        if(action==='open-dep'){
           openDepEdit(el.getAttribute('data-id'));return;
         }
         el=el.parentElement;
