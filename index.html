@@ -1690,6 +1690,7 @@ function deleteDepEdit(){
   if(!depEditId)return;
   var d=depenses.find(function(x){return x.id===depEditId;});
   if(!d||!confirm('Supprimer "'+d.name+'" ?'))return;
+  markDeleted(depEditId);
   depenses=depenses.filter(function(x){return x.id!==depEditId;});
   saveBudget();
   var m=g('dep-modal');if(m){m.classList.add('hidden');m.style.display='none';}
@@ -1937,8 +1938,8 @@ function ghMerge(local,remote){
     events:mergeArr(local.events,remote.events,'id'),
     compteurs:mergeCpt(local.compteurs,remote.compteurs),
     budget:{
-      charges:mergeArr(local.budget&&local.budget.charges,remote.budget&&remote.budget.charges,'id'),
-      depenses:mergeArr(local.budget&&local.budget.depenses,remote.budget&&remote.budget.depenses,'id')
+      charges:mergeArr(local.budget&&local.budget.charges,remote.budget&&remote.budget.charges,'id').filter(function(x){return!isDeleted(x.id);}),
+      depenses:mergeArr(local.budget&&local.budget.depenses,remote.budget&&remote.budget.depenses,'id').filter(function(x){return!isDeleted(x.id);})
     },
     conges:mergeArr(local.conges,remote.conges,'id'),
     quickzone:mergeQZ(local.quickzone,remote.quickzone)
@@ -2888,7 +2889,7 @@ var CHARGE_COLS={logement:'var(--blue)',energie:'var(--amber)',assurance:'var(--
 var FREQ_MULT={monthly:12,quarterly:4,yearly:1};
 var FREQ_LBL={monthly:'Mensuelle',quarterly:'Trimestrielle',yearly:'Annuelle'};
 
-function chargeAnnual(ch){return (parseFloat(ch.amount)||0)*(FREQ_MULT[ch.freq]||1);}
+function chargeAnnual(ch){return Math.round(((parseFloat(ch.amount)||0)*(FREQ_MULT[ch.freq]||1))*100)/100;}
 
 function addCharge(){
   var n=g('charge-name'),a=g('charge-amount'),f=g('charge-freq'),cat=g('charge-cat');
@@ -2899,6 +2900,7 @@ function addCharge(){
 }
 
 function delCharge(id){
+  markDeleted(id);
   charges=charges.filter(function(x){return x.id!==id;});
   saveBudget();renderBudget();toast('Supprimee');
 }
@@ -3024,7 +3026,7 @@ function renderBudget(){
         +'<span class="charge-name">'+eh(ch.name)+'</span>'
         +'<span class="charge-freq '+ch.freq+'">'+FREQ_LBL[ch.freq]+'</span>'
         +'<span class="charge-amount">'+ch.amount+' EUR</span>'
-        +'<span class="charge-annual">'+ann+'/an</span>'
+        +'<span class="charge-annual">'+Math.round(ann)+'/an</span>'
         +'<button class="bi del" style="width:24px;height:24px;font-size:11px;" onclick="delChargeIdx('+ci+')">&#10005;</button>'
         +'</div>';
     });
