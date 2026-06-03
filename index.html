@@ -610,7 +610,10 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     </div>
     <button class="bp" onclick="addEvt()">+ Ajouter</button>
   </div>
-  <div class="stit">Vue annuelle</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <div class="stit" id="cal-view-title" style="margin:0;">Vue annuelle</div>
+    <button class="fb" id="cal-mode-btn" onclick="calToggleMode()">&#128197; Vue mois</button>
+  </div>
   <div class="cgrid" id="cg"></div>
 </div>
 
@@ -1511,6 +1514,7 @@ function togglePiece(hdr){
 }
 
 function renderCal(){
+  if(calMode==='month'){renderCalMonth();return;}
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
   var now=new Date(),cg=g('cg');if(!cg)return;
   var h='';
@@ -1523,6 +1527,133 @@ function renderCal(){
     h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'">'+MN[i]+'</div><div class="cbody">'+th+'</div></div>';
   }
   cg.innerHTML=h;
+}
+
+function renderCalMonth(){
+  var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  var DN=['L','M','M','J','V','S','D'];
+  var cg=g('cg');if(!cg)return;
+  var base=new Date();
+  var viewDate=new Date(base.getFullYear(),base.getMonth()+calMonthOffset,1);
+  var year=viewDate.getFullYear(),month=viewDate.getMonth();
+  var today=new Date();today.setHours(0,0,0,0);
+  // Premier jour de la semaine (lundi=0)
+  var firstDay=new Date(year,month,1).getDay();
+  firstDay=(firstDay+6)%7; // Lundi=0
+  var daysInMonth=new Date(year,month+1,0).getDate();
+  // Construire un index des événements par jour
+  function eventsForDay(day){
+    var ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    var items=[];
+    if(calViewTab==='all'||calViewTab==='tasks'){
+      tasks.forEach(function(t){
+        var d=new Date(t.date);
+        if(d.getFullYear()===year&&d.getMonth()===month&&d.getDate()===day){
+          items.push({type:'task',name:t.name,done:t.done,id:t.id});
+        }
+      });
+    }
+    if(calViewTab==='all'||calViewTab==='events'){
+      events.forEach(function(ev){
+        var d=new Date(ev.date);
+        var match=d.getFullYear()===year&&d.getMonth()===month&&d.getDate()===day;
+        if(ev.recur==='yearly'&&d.getMonth()===month&&d.getDate()===day)match=true;
+        if(match)items.push({type:'evt',name:ev.title,evType:ev.type,id:ev.id});
+      });
+      // Congés
+      conges.forEach(function(cn){
+        var s=new Date(cn.start),e=new Date(cn.end);
+        var cur=new Date(year,month,day);
+        if(cur>=s&&cur<=e)items.push({type:'conge',name:cn.name});
+      });
+    }
+    // Echéances de charges (jour du mois basé sur leur date)
+    if(calViewTab==='all'){
+      charges.forEach(function(ch){
+        var cd=new Date(ch.date);
+        var dueDay=cd.getDate();
+        if(dueDay>daysInMonth)dueDay=daysInMonth;
+        var show=false;
+        if(ch.freq==='monthly')show=(dueDay===day);
+        else if(ch.freq==='yearly')show=(cd.getMonth()===month&&dueDay===day);
+        else if(ch.freq==='quarterly'){
+          var mdiff=(month-cd.getMonth()+12)%3;
+          show=(mdiff===0&&dueDay===day);
+        }
+        if(show)items.push({type:'charge',name:ch.name,amount:ch.amount});
+      });
+    }
+    return items;
+  }
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+    +'<button class="bi" style="width:36px;height:36px;" onclick="calMonthNav(-1)">&#9664;</button>'
+    +'<div style="font-family:Bebas Neue,sans-serif;font-size:20px;letter-spacing:2px;color:var(--cl);">'+MN[month]+' '+year+'</div>'
+    +'<button class="bi" style="width:36px;height:36px;" onclick="calMonthNav(1)">&#9654;</button>'
+    +'</div>';
+  // En-têtes jours
+  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;">';
+  DN.forEach(function(d){h+='<div style="text-align:center;font-size:10px;color:var(--dim);padding:3px 0;">'+d+'</div>';});
+  h+='</div>';
+  // Grille jours
+  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
+  for(var b=0;b<firstDay;b++)h+='<div></div>';
+  for(var day=1;day<=daysInMonth;day++){
+    var items=eventsForDay(day);
+    var cur=new Date(year,month,day);cur.setHours(0,0,0,0);
+    var isToday=cur.getTime()===today.getTime();
+    var dots='';
+    items.slice(0,4).forEach(function(it){
+      var col=it.type==='task'?(it.done?'var(--green)':'var(--amber)'):it.type==='evt'?'var(--copper)':it.type==='conge'?'var(--blue)':it.type==='charge'?'var(--red)':'var(--dim)';
+      dots+='<div style="width:5px;height:5px;border-radius:50%;background:'+col+';"></div>';
+    });
+    var hasItems=items.length>0;
+    h+='<div data-calday="'+day+'" style="min-height:48px;background:'+(isToday?'rgba(212,140,75,.15)':'var(--bg2)')+';border:1px solid '+(isToday?'var(--copper)':'var(--border)')+';border-radius:5px;padding:4px;cursor:'+(hasItems?'pointer':'default')+';display:flex;flex-direction:column;gap:2px;">'
+      +'<div style="font-size:11px;color:'+(isToday?'var(--copper)':'var(--text)')+';font-weight:'+(isToday?'600':'400')+';">'+day+'</div>'
+      +'<div style="display:flex;gap:2px;flex-wrap:wrap;">'+dots+'</div>'
+      +(items.length>4?'<div style="font-size:7px;color:var(--dim);">+'+(items.length-4)+'</div>':'')
+      +'</div>';
+  }
+  h+='</div>';
+  // Détail du jour sélectionné
+  h+='<div id="cal-day-detail" style="margin-top:12px;"></div>';
+  cg.innerHTML=h;
+  // Event listener pour afficher le détail d'un jour
+  cg.querySelectorAll('[data-calday]').forEach(function(cell){
+    cell.onclick=function(){
+      var day=parseInt(this.getAttribute('data-calday'));
+      var items=eventsForDay(day);
+      var det=g('cal-day-detail');if(!det)return;
+      if(!items.length){det.innerHTML='';return;}
+      var dh='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;">'
+        +'<div style="font-size:12px;color:var(--cl);font-family:Bebas Neue,sans-serif;letter-spacing:1px;margin-bottom:8px;">'+day+' '+MN[month]+'</div>';
+      items.forEach(function(it){
+        var col=it.type==='task'?(it.done?'var(--green)':'var(--amber)'):it.type==='evt'?'var(--copper)':it.type==='conge'?'var(--blue)':it.type==='charge'?'var(--red)':'var(--dim)';
+        var ico=it.type==='task'?'&#9989;':it.type==='evt'?'&#127881;':it.type==='conge'?'&#127958;':it.type==='charge'?'&#128181;':'';
+        dh+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">'
+          +'<span style="width:6px;height:6px;border-radius:50%;background:'+col+';flex-shrink:0;"></span>'
+          +'<span style="font-size:11px;">'+ico+' '+eh(it.name)+'</span>'
+          +(it.amount?'<span style="margin-left:auto;font-size:11px;color:var(--red);">'+it.amount+' EUR</span>':'')
+          +'</div>';
+      });
+      dh+='</div>';
+      det.innerHTML=dh;
+    };
+  });
+}
+
+function calMonthNav(dir){
+  calMonthOffset+=dir;
+  renderCalMonth();
+}
+
+function calToggleMode(){
+  calMode=calMode==='year'?'month':'year';
+  if(calMode==='month')calMonthOffset=0;
+  var btn=g('cal-mode-btn');
+  if(btn)btn.innerHTML=calMode==='year'?'&#128197; Vue mois':'&#128198; Vue annee';
+  var titleEl=g('cal-view-title');
+  if(titleEl)titleEl.textContent=calMode==='year'?'Vue annuelle':'Vue mensuelle';
+  renderCal();
 }
 
 function renderHist(){
@@ -3619,6 +3750,8 @@ function deleteNote(){
 var EK='devts_v1';
 var events=[];
 var calViewTab='all';
+var calMode='year';
+var calMonthOffset=0;
 
 function loadEvts(){try{events=JSON.parse(localStorage.getItem(EK))||[];}catch(e){events=[];}}
 function saveEvts(){localStorage.setItem(EK,JSON.stringify(events));}
