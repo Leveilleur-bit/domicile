@@ -1963,8 +1963,11 @@ function ghMerge(local,remote){
     if(!rem)return loc||{note:'',actions:[]};
     if(!loc)return rem;
     var actions=mergeArr(loc.actions||[],rem.actions||[],'id').filter(function(a){return!isDeleted(a.id)&&!a.done;});
-    var note=(loc.note||'').length>=(rem.note||'').length?loc.note:rem.note;
-    return{note:note,actions:actions};
+    // Note: garder la plus recente selon timestamp
+    var locTs=loc.noteTs||0,remTs=rem.noteTs||0;
+    var note=locTs>=remTs?loc.note:rem.note;
+    var noteTs=Math.max(locTs,remTs);
+    return{note:note,noteTs:noteTs,actions:actions};
   }
   return {
     v:3,ts:Date.now(),deleted:_deletedIds,
@@ -1991,7 +1994,7 @@ function ghLocalData(){
     notes:notes,events:events,compteurs:cptData,
     budget:{charges:charges,depenses:depenses},
     conges:conges,
-    quickzone:{note:qzNote,actions:qzActions}
+    quickzone:{note:qzNote,actions:qzActions,noteTs:window._qzNoteTs||0}
   };
 }
 
@@ -2021,9 +2024,15 @@ function ghApplyRemote(data,sha){
   }
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
   if(data.quickzone){
-    qzNote=data.quickzone.note||'';
-    qzActions=(data.quickzone.actions||[]).filter(function(a){return !isDeleted(a.id);});
-    localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions}));
+    // Ne pas ecraser la note si l'utilisateur est en train d'editer
+    var ta=g('qz-note');
+    var editing=ta&&document.activeElement===ta;
+    if(!editing){
+      qzNote=data.quickzone.note||'';
+      window._qzNoteTs=data.quickzone.noteTs||0;
+    }
+    qzActions=(data.quickzone.actions||[]).filter(function(a){return !isDeleted(a.id)&&!a.done;});
+    localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions,noteTs:window._qzNoteTs||0}));
   }
 }
 
@@ -2153,12 +2162,12 @@ var QZ_DEFAULTS=[
 function loadQZ(){
   try{
     var r=localStorage.getItem(QZ_KEY);
-    if(r){var d=JSON.parse(r);qzNote=d.note||'';qzActions=d.actions||[];}
+    if(r){var d=JSON.parse(r);qzNote=d.note||'';qzActions=d.actions||[];window._qzNoteTs=d.noteTs||0;}
     else{qzActions=[];}
   }catch(e){qzNote='';qzActions=[];}
 }
 function saveQZ(){
-  localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions}));
+  localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions,noteTs:window._qzNoteTs||0}));
   scheduleGhPush();
 }
 
@@ -2220,6 +2229,7 @@ function renderQZ(){
 
 function qzSaveNote(val){
   qzNote=val;
+  window._qzNoteTs=Date.now();
   clearTimeout(window._qzNoteTimer);
   window._qzNoteTimer=setTimeout(function(){saveQZ();},1000);
 }
