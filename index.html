@@ -1515,6 +1515,7 @@ function togglePiece(hdr){
 
 function renderCal(){
   if(calMode==='month'){renderCalMonth();return;}
+  var cgEl2=g('cg');if(cgEl2)cgEl2.className='cgrid';
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
   var now=new Date(),cg=g('cg');if(!cg)return;
   var h='';
@@ -1530,6 +1531,7 @@ function renderCal(){
 }
 
 function renderCalMonth(){
+  var cgEl=g('cg');if(cgEl)cgEl.className='';
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
   var DN=['L','M','M','J','V','S','D'];
   var cg=g('cg');if(!cg)return;
