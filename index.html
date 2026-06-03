@@ -1962,8 +1962,7 @@ function ghMerge(local,remote){
   function mergeQZ(loc,rem){
     if(!rem)return loc||{note:'',actions:[]};
     if(!loc)return rem;
-    var actions=mergeArr(loc.actions||[],rem.actions||[],'id');
-    
+    var actions=mergeArr(loc.actions||[],rem.actions||[],'id').filter(function(a){return!isDeleted(a.id)&&!a.done;});
     var note=(loc.note||'').length>=(rem.note||'').length?loc.note:rem.note;
     return{note:note,actions:actions};
   }
@@ -2227,8 +2226,8 @@ function qzSaveNote(val){
 
 function qzCheck(idx){
   if(!qzActions[idx])return;
-  qzActions[idx].done=true;
-  qzActions[idx].doneAt=new Date().toISOString();
+  markDeleted(qzActions[idx].id);
+  qzActions.splice(idx,1);
   saveQZ();renderQZ();
 }
 
