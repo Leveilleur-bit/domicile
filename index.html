@@ -732,6 +732,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
         <span style="font-size:9px;color:var(--dim);">sacs</span>
       </div>
     </div>
+      <div id="pstk-alert" style="display:none;"></div>
     <div class="pc">
       <div class="pclbl">Historique saisons</div>
       <div id="phist"></div>
@@ -2380,8 +2381,21 @@ function renderP(){
       +'</div>';
   });
   var s=PD.stk||0,th=PD.thr||10,skg=s*(PD.kgs||15);
-  sv('pstk',function(e){e.textContent=s;});
+  sv('pthr',function(e){if(document.activeElement!==e)e.value=th;});
+  sv('pstk',function(e){
+    e.textContent=s;
+    e.style.color=s<=th?'var(--red)':s<=th*1.5?'var(--amber)':'';
+  });
   sv('pskg',function(e){e.textContent=skg+' kg';});
+  // Alerte seuil stock
+  sv('pstk-alert',function(e){
+    if(s<=th){
+      e.style.display='block';
+      e.innerHTML='<div style="margin-top:8px;padding:7px 10px;background:rgba(229,90,90,.12);border:1px solid var(--red);border-radius:5px;font-size:10px;color:var(--red);">&#9888; Stock bas ('+s+' sac'+(s>1?'s':'')+') - pensez a commander !</div>';
+    } else {
+      e.style.display='none';e.innerHTML='';
+    }
+  });
   sv('plastresupply',function(e){
     if(PD.lastResupply){
       e.innerHTML='Dernier ravitaillement : <span style="color:var(--cl);">'+fd(PD.lastResupply)+'</span>'
@@ -2437,6 +2451,7 @@ function pStock(d){
   saveP();renderP();
   toast(d>0?'+'+d+' sac'+(d>1?'s':'')+' en stock':'Mis a jour');
 }
+
 function savePT(){if(!PD)return;var v=parseInt(g('ptgt').value);if(v>0){PD.tgt=v;saveP();renderP();}}
 function savePThr(){if(!PD)return;var v=parseInt(g('pthr').value);if(v>0){PD.thr=v;saveP();renderP();}}
 function savePPrice(){if(!PD)return;var v=parseFloat(g('pprice').value);if(!isNaN(v)&&v>=0){PD.price=v;saveP();renderP();}}
