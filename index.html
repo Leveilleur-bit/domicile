@@ -3210,12 +3210,13 @@ function renderBudget(){
   var maxM=1;monthly.forEach(function(m){if(m.total>maxM)maxM=m.total;});
   var chartH='',lblH='';
   monthly.forEach(function(m,i){
-    var hf=Math.round(m.fixes/maxM*70),ht=Math.round(m.travaux/maxM*70),he=Math.round(m.entretien/maxM*70);
+    var hf=Math.round(m.fixes/maxM*70),ht=Math.round(m.travaux/maxM*70),he=Math.round(m.entretien/maxM*70),hd=Math.round(m.deps/maxM*70);
     var isCur=i===now.getMonth();
     var lbl=m.total>0?(m.total>=1000?(m.total/1000).toFixed(1)+'k':Math.round(m.total)+''):'';
     chartH+='<div class="bdg-month-wrap">'
       +'<div style="font-size:7px;color:'+(isCur?'var(--amber)':'var(--dim)')+';text-align:center;height:11px;line-height:11px;">'+lbl+'</div>'
       +'<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:70px;gap:1px;">'
+      +(hd?'<div class="bdg-month-bar" style="height:'+hd+'px;background:var(--copper);opacity:.9;" title="Depenses: '+Math.round(m.deps)+' EUR"></div>':'')
       +(he?'<div class="bdg-month-bar" style="height:'+he+'px;background:var(--green);opacity:.9;" title="Entretien: '+Math.round(m.entretien)+' EUR"></div>':'')
       +(ht?'<div class="bdg-month-bar" style="height:'+ht+'px;background:var(--amber);opacity:.9;" title="Travaux: '+Math.round(m.travaux)+' EUR"></div>':'')
       +(hf?'<div class="bdg-month-bar" style="height:'+hf+'px;background:var(--blue);opacity:.9;" title="Fixes: '+Math.round(m.fixes)+' EUR"></div>':'')
