@@ -3225,7 +3225,13 @@ function renderBudget(){
   sv('bdg-month-chart',function(e){e.innerHTML=chartH;});
   
   var cats={};
-  charges.forEach(function(ch){var k=CHARGE_CATS[ch.cat]||ch.cat;if(!cats[k])cats[k]=0;cats[k]+=chargeAnnual(ch);});
+  charges.forEach(function(ch){
+    var cat=ch.cat||'autre';
+    if(cat==='energie'||cat==='impots')cat='autre';
+    if(cat==='internet')cat='abonnement';
+    var k=CHARGE_CATS[cat]||'Autre';
+    if(!cats[k])cats[k]=0;cats[k]+=chargeAnnual(ch);
+  });
   if(bd.travaux)cats['Travaux']=(cats['Travaux']||0)+bd.travaux;
   if(bd.entretien)cats['Entretien']=(cats['Entretien']||0)+bd.entretien;
   depenses.forEach(function(d){var k=d.cat==='travaux'?'Travaux':d.cat==='entretien'?'Entretien':'Autre';if(!cats[k])cats[k]=0;cats[k]+=d.amount||0;});
