@@ -1116,7 +1116,12 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
       <div><label class="flbl">Type</label><select id="note-type-inp" onchange="toggleNoteType()"><option value="text">Texte libre</option><option value="checklist">Check-list</option></select></div>
-      <div><label class="flbl">Epingler</label><div style="display:flex;align-items:center;gap:8px;padding:9px 0;"><div id="note-pin-toggle" onclick="this.classList.toggle('on')" style="width:38px;height:20px;background:var(--border);border-radius:10px;position:relative;cursor:pointer;transition:background .2s;"><style>#note-pin-toggle.on{background:var(--green);}#note-pin-toggle::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s;}#note-pin-toggle.on::after{transform:translateX(18px);}</style></div><span style="font-size:10px;color:var(--dim);">En haut</span></div></div>
+      <div><label class="flbl">Epingler</label><div style="display:flex;align-items:center;gap:8px;padding:9px 0;"><div id="note-pin-toggle" onclick="this.classList.toggle('on')" style="width:38px;height:20px;background:var(--border);border-radius:10px;position:relative;cursor:pointer;transition:background .2s;"><style>#note-pin-toggle.on{background:var(--green);}#note-pin-toggle::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s;}#note-pin-toggle.on::after{transform:translateX(18px);}
+.toggle-switch{width:44px;height:24px;background:var(--bg);border:1px solid var(--border);border-radius:12px;cursor:pointer;position:relative;transition:all .25s;flex-shrink:0;}
+.toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dim);transition:all .25s;}
+.toggle-switch.on{background:var(--cl);border-color:var(--cl);}
+.toggle-switch.on::after{left:22px;background:#fff;}
+</style></div><span style="font-size:10px;color:var(--dim);">En haut</span></div></div>
     </div>
     <div id="note-text-wrap" style="margin-bottom:8px;"><label class="flbl">Contenu</label><textarea id="note-content-inp" placeholder="Votre note..." style="min-height:80px;line-height:1.5;resize:vertical;"></textarea></div>
     <div id="note-cl-wrap" style="display:none;margin-bottom:8px;">
