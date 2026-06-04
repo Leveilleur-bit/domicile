@@ -447,7 +447,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 /* Graphe mensuel */
 .bdg-month-chart{display:flex;align-items:flex-end;gap:4px;height:90px;margin-bottom:6px;}
 .bdg-month-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
-.bdg-month-bar{width:100%;border-radius:3px 3px 0 0;min-height:2px;}
+.bdg-month-bar{width:100%;}
 .bdg-month-lbl{font-size:8px;color:var(--dim);}
 /* Charges fixes */
 .charge-item{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;margin-bottom:5px;font-size:11px;transition:border-color .15s;}
@@ -866,10 +866,10 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     <div class="bdg-month-chart" id="bdg-month-chart"></div>
     <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--dim);" id="bdg-month-lbls"></div>
     <div style="display:flex;gap:12px;margin-top:8px;font-size:9px;color:var(--dim);">
-      <span><span style="display:inline-block;width:8px;height:8px;background:var(--blue);border-radius:2px;margin-right:4px;"></span>Fixes</span>
-      <span><span style="display:inline-block;width:8px;height:8px;background:var(--amber);border-radius:2px;margin-right:4px;"></span>Travaux</span>
-      <span><span style="display:inline-block;width:8px;height:8px;background:var(--green);border-radius:2px;margin-right:4px;"></span>Entretien</span>
-      <span><span style="display:inline-block;width:8px;height:8px;background:var(--copper);border-radius:2px;margin-right:4px;"></span>Depenses</span>
+      <span><span style="display:inline-block;width:8px;height:8px;background:#7aadcc;border-radius:2px;margin-right:4px;"></span>Fixes</span>
+      <span><span style="display:inline-block;width:8px;height:8px;background:#f0c060;border-radius:2px;margin-right:4px;"></span>Travaux</span>
+      <span><span style="display:inline-block;width:8px;height:8px;background:#6bbf8e;border-radius:2px;margin-right:4px;"></span>Entretien</span>
+      <span><span style="display:inline-block;width:8px;height:8px;background:#c97eb8;border-radius:2px;margin-right:4px;"></span>Depenses</span>
     </div>
   </div>
 
@@ -3210,18 +3210,20 @@ function renderBudget(){
   var maxM=1;monthly.forEach(function(m){if(m.total>maxM)maxM=m.total;});
   var chartH='',lblH='';
   monthly.forEach(function(m,i){
+    // Couleurs distinctes: Fixes=bleu, Travaux=ambre, Entretien=vert, Depenses=rose
+    var COL_FIX='#7aadcc',COL_TRV='#f0c060',COL_ENT='#6bbf8e',COL_DEP='#c97eb8';
     var hf=Math.round(m.fixes/maxM*70),ht=Math.round(m.travaux/maxM*70),he=Math.round(m.entretien/maxM*70),hd=Math.round(m.deps/maxM*70);
     var isCur=i===now.getMonth();
     var lbl=m.total>0?(m.total>=1000?(m.total/1000).toFixed(1)+'k':Math.round(m.total)+''):'';
     chartH+='<div class="bdg-month-wrap">'
-      +'<div style="font-size:7px;color:'+(isCur?'var(--amber)':'var(--dim)')+';text-align:center;height:11px;line-height:11px;">'+lbl+'</div>'
-      +'<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:70px;gap:1px;">'
-      +(hd?'<div class="bdg-month-bar" style="height:'+hd+'px;background:var(--copper);opacity:.9;" title="Depenses: '+Math.round(m.deps)+' EUR"></div>':'')
-      +(he?'<div class="bdg-month-bar" style="height:'+he+'px;background:var(--green);opacity:.9;" title="Entretien: '+Math.round(m.entretien)+' EUR"></div>':'')
-      +(ht?'<div class="bdg-month-bar" style="height:'+ht+'px;background:var(--amber);opacity:.9;" title="Travaux: '+Math.round(m.travaux)+' EUR"></div>':'')
-      +(hf?'<div class="bdg-month-bar" style="height:'+hf+'px;background:var(--blue);opacity:.9;" title="Fixes: '+Math.round(m.fixes)+' EUR"></div>':'')
+      +'<div style="font-size:7px;color:'+(isCur?'var(--cl)':'var(--dim)')+';text-align:center;height:11px;line-height:11px;">'+lbl+'</div>'
+      +'<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:70px;">'
+      +(hd?'<div class="bdg-month-bar" style="height:'+hd+'px;background:'+COL_DEP+';" title="Depenses: '+Math.round(m.deps)+' EUR"></div>':'')
+      +(he?'<div class="bdg-month-bar" style="height:'+he+'px;background:'+COL_ENT+';" title="Entretien: '+Math.round(m.entretien)+' EUR"></div>':'')
+      +(ht?'<div class="bdg-month-bar" style="height:'+ht+'px;background:'+COL_TRV+';" title="Travaux: '+Math.round(m.travaux)+' EUR"></div>':'')
+      +(hf?'<div class="bdg-month-bar" style="height:'+hf+'px;background:'+COL_FIX+';" title="Fixes: '+Math.round(m.fixes)+' EUR"></div>':'')
       +'</div>'
-      +'<div class="bdg-month-lbl" style="color:'+(isCur?'var(--amber)':'var(--dim)')+';">'+m.m+'</div>'
+      +'<div class="bdg-month-lbl" style="color:'+(isCur?'var(--cl)':'var(--dim)')+';">'+m.m+'</div>'
       +'</div>';
   });
   sv('bdg-month-chart',function(e){e.innerHTML=chartH;});
