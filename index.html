@@ -3203,7 +3203,7 @@ function renderBudget(){
     mTravaux+=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===now.getFullYear();}).reduce(function(s,d){return s+(d.amount||0);},0);
     var mEnt=tasks.filter(function(t){return t.costLast&&t.doneDate&&new Date(t.doneDate).getMonth()===mi&&new Date(t.doneDate).getFullYear()===now.getFullYear();}).reduce(function(s,t){return s+(t.costLast||0);},0);
     mEnt+=PD&&PD.maint?PD.maint.filter(function(m){return m.cout&&m.done&&m.doneDate&&new Date(m.doneDate).getMonth()===mi&&new Date(m.doneDate).getFullYear()===now.getFullYear();}).reduce(function(s,m){return s+(m.cout||0);},0):0;
-    var mDeps=depenses.filter(function(d){return new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===now.getFullYear();}).reduce(function(s,d){return s+(d.amount||0);},0);
+    var mDeps=depenses.filter(function(d){return d.cat!=='travaux'&&d.cat!=='entretien'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===now.getFullYear();}).reduce(function(s,d){return s+(d.amount||0);},0);
     monthly.push({m:MN[mi],fixes:mFixes,travaux:mTravaux,entretien:mEnt,deps:mDeps,total:mFixes+mTravaux+mEnt+mDeps});
   }
   var maxM=1;monthly.forEach(function(m){if(m.total>maxM)maxM=m.total;});
