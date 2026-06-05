@@ -1549,6 +1549,7 @@ function renderCal(){
   cg.innerHTML=h;
 }
 
+function pad2(n){n=String(n);return n.length<2?'0'+n:n;}
 function renderCalMonth(){
   var cgEl=g('cg');if(cgEl)cgEl.className='';
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
@@ -1564,7 +1565,7 @@ function renderCalMonth(){
   var daysInMonth=new Date(year,month+1,0).getDate();
   // Construire un index des événements par jour
   function eventsForDay(day){
-    var ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    var ds=year+'-'+pad2(month+1)+'-'+pad2(day);
     var items=[];
     if(calViewTab==='all'||calViewTab==='tasks'){
       tasks.forEach(function(t){
@@ -3385,7 +3386,7 @@ function renderBudget(){
     var mgroups={};
     depsYear.forEach(function(d){
       var dt=new Date(d.date);
-      var mk=dt.getFullYear()+'-'+String(dt.getMonth()).padStart(2,'0');
+      var mk=dt.getFullYear()+'-'+pad2(dt.getMonth());
       if(!mgroups[mk])mgroups[mk]={items:[],month:dt.getMonth(),year:dt.getFullYear()};
       mgroups[mk].items.push(d);
     });
