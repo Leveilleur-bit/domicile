@@ -3377,38 +3377,62 @@ function renderBudget(){
   if(!depsYear.length){
     dpH='<div class="empty"><div class="eico">&#128203;</div>Aucune depense ponctuelle saisie</div>';
   } else {
-    // Grouper par catégorie
+    var MN_F=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
     var CAT_LBL={courses:'Courses',travaux:'Travaux',entretien:'Entretien',equipement:'Equipement',autre:'Autre'};
     var CAT_COL={courses:'var(--green)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',autre:'var(--dim)'};
     var CAT_ICO={courses:'&#128722;',travaux:'&#127959;',entretien:'&#9881;',equipement:'&#128187;',autre:'&#128203;'};
-    var catOrder=['courses','travaux','entretien','equipement','autre'];
-    var groups={};
+    // Grouper par mois
+    var mgroups={};
     depsYear.forEach(function(d){
-      var cat=d.cat||'autre';
-      if(!groups[cat])groups[cat]=[];
-      groups[cat].push(d);
+      var dt=new Date(d.date);
+      var mk=dt.getFullYear()+'-'+String(dt.getMonth()).padStart(2,'0');
+      if(!mgroups[mk])mgroups[mk]={items:[],month:dt.getMonth(),year:dt.getFullYear()};
+      mgroups[mk].items.push(d);
     });
-    catOrder.forEach(function(cat){
-      var items=groups[cat];
-      if(!items||!items.length)return;
+    // Trier les mois du plus recent au plus ancien
+    var mkeys=Object.keys(mgroups).sort(function(a,b){return b.localeCompare(a);});
+    mkeys.forEach(function(mk){
+      var grp=mgroups[mk];
+      var items=grp.items;
       var total=items.reduce(function(s,d){return s+(d.amount||0);},0);
-      var col=CAT_COL[cat]||'var(--dim)';
-      var lbl=CAT_LBL[cat]||cat;
-      var ico=CAT_ICO[cat]||'&#128203;';
-      var groupId='dep-group-'+cat;
-      // Ligne de groupe cliquable
+      var mlbl=MN_F[grp.month]+' '+grp.year;
+      var groupId='dep-month-'+mk;
+      // Calculer les totaux par catégorie pour ce mois
+      var catTotals={};
+      items.forEach(function(d){
+        var cat=d.cat||'autre';
+        if(!catTotals[cat])catTotals[cat]=0;
+        catTotals[cat]+=(d.amount||0);
+      });
+      // Ligne de mois cliquable
       dpH+='<div style="margin-bottom:4px;">'
         +'<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;cursor:pointer;" data-action="toggle-dep-group" data-group="'+groupId+'">'
-        +'<span style="font-size:14px;">'+ico+'</span>'
-        +'<span style="flex:1;font-size:12px;font-weight:500;color:var(--text);">'+lbl+'</span>'
+        +'<span style="font-size:14px;">&#128197;</span>'
+        +'<span style="flex:1;font-size:12px;font-weight:500;color:var(--text);">'+mlbl+'</span>'
         +'<span style="font-size:10px;color:var(--dim);">'+items.length+' op&eacute;ration'+(items.length>1?'s':'')+'</span>'
-        +'<span style="font-family:Bebas Neue,sans-serif;font-size:16px;color:'+col+';margin-left:8px;">'+Math.round(total)+' EUR</span>'
+        +'<span style="font-family:Bebas Neue,sans-serif;font-size:16px;color:var(--cl);margin-left:8px;">'+Math.round(total)+' EUR</span>'
         +'<span style="font-size:10px;color:var(--dim);margin-left:6px;" data-chevron="'+groupId+'">&#9654;</span>'
         +'</div>'
-        // Détail caché par défaut
-        +'<div id="'+groupId+'" style="display:none;padding:4px 0 4px 12px;border-left:2px solid '+col+';margin-left:8px;">';
+        +'<div id="'+groupId+'" style="display:none;padding:6px 0 4px 12px;border-left:2px solid var(--cl);margin-left:8px;">';
+      // D'abord le récapitulatif par catégorie
+      dpH+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
+      Object.keys(catTotals).forEach(function(cat){
+        var col=CAT_COL[cat]||'var(--dim)';
+        var lbl=CAT_LBL[cat]||cat;
+        var ico=CAT_ICO[cat]||'&#128203;';
+        dpH+='<div style="display:flex;align-items:center;gap:5px;padding:4px 9px;background:var(--bg3);border:1px solid '+col+';border-radius:12px;">'
+          +'<span style="font-size:11px;">'+ico+'</span>'
+          +'<span style="font-size:10px;color:var(--text);">'+lbl+'</span>'
+          +'<span style="font-size:11px;font-weight:600;color:'+col+';">'+Math.round(catTotals[cat])+' EUR</span>'
+          +'</div>';
+      });
+      dpH+='</div>';
+      // Puis le détail des opérations
       items.forEach(function(d){
+        var cat=d.cat||'autre';
+        var col=CAT_COL[cat]||'var(--dim)';
         dpH+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;cursor:pointer;" data-action="open-dep" data-id="'+d.id+'">'
+          +'<span style="width:6px;height:6px;border-radius:50%;background:'+col+';flex-shrink:0;"></span>'
           +'<span style="flex:1;font-size:11px;color:var(--text);">'+eh(d.name)+'</span>'
           +'<span style="font-size:10px;color:var(--dim);">'+fd(d.date)+'</span>'
           +'<span style="font-family:Bebas Neue,sans-serif;font-size:14px;color:'+col+';">'+d.amount+' EUR</span>'
