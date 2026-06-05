@@ -867,7 +867,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   </div>
 
   <!-- Graphe 12 mois -->
-  <div class="stit">Depenses sur 12 mois</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div class="stit" style="margin:0;">Depenses sur 12 mois</div><select id="budget-year-sel" onchange="setBudgetYear(this.value)" style="width:auto;padding:4px 8px;font-size:12px;"></select></div>
   <div class="card" style="padding:14px;margin-bottom:14px;">
     <div class="bdg-month-chart" id="bdg-month-chart"></div>
     <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--dim);" id="bdg-month-lbls"></div>
@@ -3171,9 +3171,8 @@ function delDep(id){
   saveBudget();renderBudget();toast('Supprimee');
 }
 
-function getBudgetData(){
-  var now=new Date();
-  var yr=now.getFullYear();
+function getBudgetData(yr){
+  if(!yr)yr=(typeof budgetYear!=='undefined'?budgetYear:new Date().getFullYear());
   
   var fixesAnn=charges.reduce(function(s,c){return s+chargeAnnual(c);},0);
   
@@ -3188,9 +3187,25 @@ function getBudgetData(){
   return {total:total,fixes:fixesAnn,travaux:travauxAnn,entretien:entretienAnn,deps:depsAnn};
 }
 
+function setBudgetYear(v){
+  budgetYear=parseInt(v)||new Date().getFullYear();
+  renderBudget();
+}
+
 function renderBudget(){
-  var bd=getBudgetData();
+  var curYear=budgetYear;
+  var bd=getBudgetData(curYear);
   var now=new Date();
+  // Rendre le sélecteur d'année
+  sv('budget-year-sel',function(e){
+    var years={};
+    depenses.forEach(function(d){years[new Date(d.date).getFullYear()]=true;});
+    years[new Date().getFullYear()]=true;
+    var yl=Object.keys(years).map(function(y){return parseInt(y);}).sort(function(a,b){return b-a;});
+    var opts='';
+    yl.forEach(function(y){opts+='<option value="'+y+'"'+(y===budgetYear?' selected':'')+'>'+y+'</option>';});
+    e.innerHTML=opts;
+  });
   var MN=['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
   
   sv('bdg-total-ann',function(e){e.textContent=bd.total>=1000?(bd.total/1000).toFixed(1)+'k':bd.total;});
@@ -3215,12 +3230,12 @@ function renderBudget(){
       return s;
     },0);
     var mTravaux=trvProjs.reduce(function(s,p){
-      return s+(p.budget_lines||[]).filter(function(b){return new Date(b.date).getMonth()===mi&&new Date(b.date).getFullYear()===now.getFullYear();}).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);
+      return s+(p.budget_lines||[]).filter(function(b){return new Date(b.date).getMonth()===mi&&new Date(b.date).getFullYear()===curYear;}).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);
     },0);
-    mTravaux+=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===now.getFullYear();}).reduce(function(s,d){return s+(d.amount||0);},0);
-    var mEnt=tasks.filter(function(t){return t.costLast&&t.doneDate&&new Date(t.doneDate).getMonth()===mi&&new Date(t.doneDate).getFullYear()===now.getFullYear();}).reduce(function(s,t){return s+(t.costLast||0);},0);
-    mEnt+=PD&&PD.maint?PD.maint.filter(function(m){return m.cout&&m.done&&m.doneDate&&new Date(m.doneDate).getMonth()===mi&&new Date(m.doneDate).getFullYear()===now.getFullYear();}).reduce(function(s,m){return s+(m.cout||0);},0):0;
-    var mDeps=depenses.filter(function(d){return d.cat!=='travaux'&&d.cat!=='entretien'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===now.getFullYear();}).reduce(function(s,d){return s+(d.amount||0);},0);
+    mTravaux+=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===curYear;}).reduce(function(s,d){return s+(d.amount||0);},0);
+    var mEnt=tasks.filter(function(t){return t.costLast&&t.doneDate&&new Date(t.doneDate).getMonth()===mi&&new Date(t.doneDate).getFullYear()===curYear;}).reduce(function(s,t){return s+(t.costLast||0);},0);
+    mEnt+=PD&&PD.maint?PD.maint.filter(function(m){return m.cout&&m.done&&m.doneDate&&new Date(m.doneDate).getMonth()===mi&&new Date(m.doneDate).getFullYear()===curYear;}).reduce(function(s,m){return s+(m.cout||0);},0):0;
+    var mDeps=depenses.filter(function(d){return d.cat!=='travaux'&&d.cat!=='entretien'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===curYear;}).reduce(function(s,d){return s+(d.amount||0);},0);
     monthly.push({m:MN[mi],fixes:mFixes,travaux:mTravaux,entretien:mEnt,deps:mDeps,total:mFixes+mTravaux+mEnt+mDeps});
   }
   var maxM=1;monthly.forEach(function(m){if(m.total>maxM)maxM=m.total;});
@@ -3359,7 +3374,7 @@ function renderBudget(){
   });
   
   var dpH='';
-  var depsYear=depenses.filter(function(d){return new Date(d.date).getFullYear()===now.getFullYear();}).sort(function(a,b){return b.date.localeCompare(a.date);});
+  var depsYear=depenses.filter(function(d){return new Date(d.date).getFullYear()===curYear;}).sort(function(a,b){return b.date.localeCompare(a.date);});
   if(!depsYear.length){
     dpH='<div class="empty"><div class="eico">&#128203;</div>Aucune depense ponctuelle saisie</div>';
   } else {
@@ -3803,6 +3818,7 @@ var EK='devts_v1';
 var events=[];
 var calViewTab='all';
 var calMode='year';
+var budgetYear=new Date().getFullYear();
 var calMonthOffset=0;
 
 function loadEvts(){try{events=JSON.parse(localStorage.getItem(EK))||[];}catch(e){events=[];}}
