@@ -1532,22 +1532,7 @@ function togglePiece(hdr){
   if(pt)pt.classList.toggle('hidden');
 }
 
-function renderCal(){
-  if(calMode==='month'){renderCalMonth();return;}
-  var cgEl2=g('cg');if(cgEl2)cgEl2.className='cgrid';
-  var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
-  var now=new Date(),cg=g('cg');if(!cg)return;
-  var h='';
-  for(var i=0;i<12;i++){
-    var mt=tasks.filter(function(t){var d=new Date(t.date);return d.getFullYear()===now.getFullYear()&&d.getMonth()===i;});
-    mt.sort(function(a,b){return a.date.localeCompare(b.date);});
-    var ip=i<now.getMonth(),th='';
-    if(!mt.length){th='<span style="font-size:9px;color:var(--dim);">-</span>';}
-    else{mt.forEach(function(t){var sc=t.done?'done':(ip&&!t.done?'urgent':tstat(t));th+='<div class="ctask '+sc+'" title="'+eh(t.name)+'">'+eh(t.name)+'</div>';});}
-    h+='<div class="cmon"><div class="chdr'+(i===now.getMonth()?' cur':'')+'">'+MN[i]+'</div><div class="cbody">'+th+'</div></div>';
-  }
-  cg.innerHTML=h;
-}
+
 
 function pad2(n){n=String(n);return n.length<2?'0'+n:n;}
 function renderCalMonth(){
@@ -3956,6 +3941,8 @@ importData=function(input){
 
 var _origRenderCal=renderCal;
 renderCal=function(){
+  if(calMode==='month'){renderCalMonth();return;}
+  var cg0=g('cg');if(cg0)cg0.className='cgrid';
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
   var now=new Date(),cg=g('cg');if(!cg)return;
   var h='';
