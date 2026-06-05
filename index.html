@@ -3939,8 +3939,7 @@ importData=function(input){
   reader.readAsText(file);
 };
 
-var _origRenderCal=renderCal;
-renderCal=function(){
+function renderCal(){
   if(calMode==='month'){renderCalMonth();return;}
   var cg0=g('cg');if(cg0)cg0.className='cgrid';
   var MN=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
@@ -3995,7 +3994,7 @@ renderCal=function(){
     });
     cl.innerHTML=lh;
   }
-};
+}
 
 function trvAddStep_idx(idx){var id=window._trvMap&&window._trvMap[idx]?window._trvMap[idx]:null;if(id)trvAddStep(id);}
 function trvCheckStep_idx(pidx,si){
