@@ -1416,9 +1416,45 @@ function renderStats(){
   sv('bdg-tasks',function(e){e.textContent=urg.length;e.className=urg.length?'tbadge show':'tbadge';});
   
   sv('urg-banner',function(e){
-    if(urg.length>0){
-      e.innerHTML='<div class="urgbanner"><span>&#9888; <strong>'+urg.length+' tache'+(urg.length>1?'s':'')+' en retard</strong>'+(sn.length?' - '+sn.length+' ce mois':'')+'</span><button onclick="goTasks()">Voir</button></div>';
-    } else { e.innerHTML=''; }
+    var alerts=[];
+    // Taches en retard
+    if(urg.length>0)alerts.push({txt:'&#9888; '+urg.length+' tache'+(urg.length>1?'s':'')+' en retard',col:'var(--red)',act:'goTasks()'});
+    // Stock pellets bas (saison active)
+    var nm3=new Date().getMonth();
+    var pelletActive=(nm3>=9||nm3<=4);
+    if(pelletActive&&PD&&typeof PD.stk!=='undefined'){
+      var th3=PD.thr||10;
+      if(PD.stk<=th3)alerts.push({txt:'&#128293; Stock pellets bas ('+PD.stk+' sac'+(PD.stk>1?'s':'')+')',col:'var(--red)',act:"showView('pellet')"});
+    }
+    // Anniversaires dans les 7 jours
+    var today4=new Date();today4.setHours(0,0,0,0);
+    var bdaySoon=[];
+    events.forEach(function(ev){
+      if(ev.type!=='birthday')return;
+      var d=new Date(ev.date);
+      var ty=new Date(today4.getFullYear(),d.getMonth(),d.getDate());ty.setHours(0,0,0,0);
+      if(ty<today4)ty.setFullYear(today4.getFullYear()+1);
+      var dd=Math.floor((ty-today4)/86400000);
+      if(dd>=0&&dd<=7)bdaySoon.push({name:ev.title,days:dd});
+    });
+    bdaySoon.forEach(function(b){
+      alerts.push({txt:'&#127881; '+b.name+(b.days===0?" aujourd'hui !":' dans '+b.days+'j'),col:'var(--cl)',act:"showView('cal')"});
+    });
+    // Relevé compteurs (1er du mois)
+    var t5=new Date();
+    if(t5.getDate()<=3){
+      var elecD=cptData&&cptData.elec?cptData.elec:[];
+      var lastM=new Date(t5.getFullYear(),t5.getMonth()-1,1);
+      var lastE=elecD.length?elecD[elecD.length-1]:null;
+      if(!lastE||new Date(lastE.date)<lastM)alerts.push({txt:'&#128202; Pensez a relever les compteurs',col:'var(--blue)',act:"showView('cpt')"});
+    }
+    if(!alerts.length){e.innerHTML='';return;}
+    var h='';
+    alerts.forEach(function(a){
+      h+='<div class="urgbanner" style="border-left:3px solid '+a.col+';margin-bottom:6px;cursor:pointer;" onclick="'+a.act+'">'
+        +'<span>'+a.txt+'</span><button onclick="'+a.act+'">Voir</button></div>';
+    });
+    e.innerHTML=h;
   });
 }
 
