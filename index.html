@@ -474,7 +474,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 <header>
   <div>
     <span class="logo">DOMICILE</span>
-    <span class="logo-sub">CARNET D'ENTRETIEN</span>
+    <span class="logo-sub">CARNET D'ENTRETIEN <span id="house-name-display" style="color:var(--cl);"></span></span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <div id="hdate"></div>
@@ -616,6 +616,15 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
     </div>
     <button class="bp" onclick="addEvt()">+ Ajouter</button>
   </div>
+  <div class="stit" style="margin-top:14px;">Ajouter des conges</div>
+  <div class="card" style="padding:14px;margin-bottom:14px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div><label class="flbl">Libelle</label><input type="text" id="conge-name" placeholder="Vacances ete..."></div>
+      <div><label class="flbl">Debut</label><input type="date" id="conge-start"></div>
+      <div><label class="flbl">Fin</label><input type="date" id="conge-end"></div>
+    </div>
+    <button class="bp" onclick="addConge()">+ Ajouter</button>
+  </div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
     <div class="stit" id="cal-view-title" style="margin:0;">Vue annuelle</div>
     <button class="fb" id="cal-mode-btn" onclick="calToggleMode()">&#128197; Vue mois</button>
@@ -741,7 +750,13 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
         <span style="font-size:9px;color:var(--dim);">sacs</span>
       </div>
     </div>
-      <div id="pstk-alert" style="display:none;"></div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:7px;">
+        <label class="flbl" style="margin:0;white-space:nowrap;">Prix du sac</label>
+        <input type="number" id="pprice" min="0" step="0.1" style="width:65px;padding:5px 7px;font-size:12px;" onchange="savePPrice()">
+        <span style="font-size:9px;color:var(--dim);">EUR</span>
+      </div>
+      <div id="pbudget-chauff" style="margin-top:8px;font-size:11px;line-height:1.5;"></div>
+<div id="pstk-alert" style="display:none;"></div>
     <div class="pc">
       <div class="pclbl">Historique saisons</div>
       <div id="phist"></div>
@@ -1149,6 +1164,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
         <button class="bs" style="flex:1;font-size:10px;" onclick="ghPush()">&#8593; Sauvegarder</button>
         <button class="bs" style="flex:1;font-size:10px;" onclick="ghPull()">&#8595; Restaurer</button>
       </div>
+      <button class="bs" style="width:100%;margin-top:6px;font-size:10px;padding:7px;" onclick="ghRestoreBackup()">&#8630; Annuler la derniere restauration</button>
       <div style="font-size:9px;color:var(--dim);margin-top:5px;" id="sync-last"></div>
     </div>
     <div style="margin-bottom:16px;">
@@ -2281,6 +2297,28 @@ function ghSilentPull(){
   });
 }
 
+function ghBackupLocal(){
+  // Sauvegarde de secours locale avant toute restauration
+  try{
+    var snap=JSON.stringify(ghLocalData());
+    localStorage.setItem('domicile_backup_pre_restore',snap);
+    localStorage.setItem('domicile_backup_pre_restore_ts',String(Date.now()));
+  }catch(e){}
+}
+function ghRestoreBackup(){
+  try{
+    var snap=localStorage.getItem('domicile_backup_pre_restore');
+    if(!snap){toast('Aucune sauvegarde de secours');return;}
+    var ts=parseInt(localStorage.getItem('domicile_backup_pre_restore_ts')||'0');
+    var dateStr=ts?new Date(ts).toLocaleString('fr-FR'):'inconnue';
+    if(!confirm('Annuler la restauration et revenir aux donnees du '+dateStr+' ?'))return;
+    var data=JSON.parse(snap);
+    ghApplyRemote(data,_ghSha);
+    renderAll();
+    toast('Donnees locales retablies');
+    scheduleGhPush();
+  }catch(e){toast('Erreur de recuperation');}
+}
 function ghPull(){
   if(!ghToken()){toast('Token non configure');return;}
   ghStatus('\u21bb Chargement...','var(--amber)');
@@ -2288,10 +2326,11 @@ function ghPull(){
     if(err||!data){ghStatus('Hors ligne','var(--amber)');toast('Impossible de contacter GitHub');return;}
     var dateStr=data.ts?new Date(data.ts).toLocaleString('fr-FR'):'inconnue';
     if(!confirm('Restaurer la sauvegarde du '+dateStr+' ?'))return;
+    ghBackupLocal();
     ghApplyRemote(data,sha);
     saveGhConfig();
     renderAll();
-    toast('Restaure depuis GitHub');
+    toast('Restaure - annulable via Parametres');
   });
 }
 
@@ -3215,7 +3254,8 @@ function getBudgetData(yr){
   var travauxAnn=trvProjs.reduce(function(s,p){return s+(p.budget_lines||[]).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);},0);
   travauxAnn+=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getFullYear()===yr;}).reduce(function(s,d){return s+(d.amount||0);},0);
   
-  var entretienAnn=tasks.filter(function(t){return t.costLast&&new Date(t.doneDate||t.date).getFullYear()===yr;}).reduce(function(s,t){return s+(t.costLast||0);},0);
+  var entretienAnn=tasks.filter(function(t){return t.costLast&&new Date(t.doneDate||t.date).getFullYear()===yr;
+  entretienAnn+=depenses.filter(function(d){return d.cat==='entretien'&&new Date(d.date).getFullYear()===yr;}).reduce(function(s,d){return s+(d.amount||0);},0);}).reduce(function(s,t){return s+(t.costLast||0);},0);
   entretienAnn+=PD&&PD.maint?PD.maint.filter(function(m){return m.cout&&m.done&&new Date(m.doneDate||m.date).getFullYear()===yr;}).reduce(function(s,m){return s+(m.cout||0);},0):0;
   
   var depsAnn=depenses.filter(function(d){return new Date(d.date).getFullYear()===yr&&d.cat!=='travaux'&&d.cat!=='entretien';}).reduce(function(s,d){return s+(d.amount||0);},0);
@@ -3270,6 +3310,7 @@ function renderBudget(){
     },0);
     mTravaux+=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===curYear;}).reduce(function(s,d){return s+(d.amount||0);},0);
     var mEnt=tasks.filter(function(t){return t.costLast&&t.doneDate&&new Date(t.doneDate).getMonth()===mi&&new Date(t.doneDate).getFullYear()===curYear;}).reduce(function(s,t){return s+(t.costLast||0);},0);
+    mEnt+=depenses.filter(function(d){return d.cat==='entretien'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===curYear;}).reduce(function(s,d){return s+(d.amount||0);},0);
     mEnt+=PD&&PD.maint?PD.maint.filter(function(m){return m.cout&&m.done&&m.doneDate&&new Date(m.doneDate).getMonth()===mi&&new Date(m.doneDate).getFullYear()===curYear;}).reduce(function(s,m){return s+(m.cout||0);},0):0;
     var mDeps=depenses.filter(function(d){return d.cat!=='travaux'&&d.cat!=='entretien'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===curYear;}).reduce(function(s,d){return s+(d.amount||0);},0);
     monthly.push({m:MN[mi],fixes:mFixes,travaux:mTravaux,entretien:mEnt,deps:mDeps,total:mFixes+mTravaux+mEnt+mDeps});
