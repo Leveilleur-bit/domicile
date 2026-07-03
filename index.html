@@ -1975,6 +1975,7 @@ function addConge(){
 scheduleGhPush();
 }
 function delConge(id){
+  markDeleted(id);
   conges=conges.filter(function(x){return x.id!==id;});
   saveConges();renderCal();toast('Supprime');
 }
@@ -2169,13 +2170,23 @@ function ghMerge(local,remote){
     });
     return result;
   }
+  function mergePellet(loc,rem){
+    if(!rem)return loc||{};
+    if(!loc)return rem;
+    var result=mergeObj(loc,rem);
+    // Fusion item-level pour maint et seasons (protege les suppressions)
+    result.maint=mergeArr(loc.maint||[],rem.maint||[],'id').filter(function(m){return!isDeleted(m.id);});
+    result.seasons=mergeArr(loc.seasons||[],rem.seasons||[],'k');
+    return result;
+  }
+
   
   function mergeCpt(loc,rem){
     if(!rem)return loc||{elec:[],eau:[]};
     if(!loc)return rem;
     return{
-      elec:mergeArr(loc.elec||[],rem.elec||[],'date'),
-      eau:mergeArr(loc.eau||[],rem.eau||[],'date')
+      elec:mergeArr(loc.elec||[],rem.elec||[],'id').filter(function(r){return!isDeleted(r.id);}),
+      eau:mergeArr(loc.eau||[],rem.eau||[],'id').filter(function(r){return!isDeleted(r.id);})
     };
   }
   
@@ -2192,7 +2203,7 @@ function ghMerge(local,remote){
   return {
     v:3,ts:Date.now(),deleted:_deletedIds,
     tasks:mergeArr(local.tasks,remote.tasks,'id'),
-    pellet:mergeObj(local.pellet,remote.pellet),
+    pellet:mergePellet(local.pellet,remote.pellet),
     renos:mergeArr(local.renos,remote.renos,'id'),
     travaux:mergeArr(local.travaux,remote.travaux,'id'),
     notes:mergeArr(local.notes,remote.notes,'id'),
@@ -2719,7 +2730,7 @@ function addMaint(){
 }
 function mDn(id){if(!PD)return;var m=PD.maint.find(function(x){return x.id===id;});if(m){m.done=true;m.doneDate=tod();}saveP();renderP();toast('Effectue');}
 function mUnd(id){if(!PD)return;var m=PD.maint.find(function(x){return x.id===id;});if(m){m.done=false;m.doneDate=null;}saveP();renderP();toast('Reouvert');}
-function mDel(id){if(!PD)return;PD.maint=PD.maint.filter(function(x){return x.id!==id;});saveP();renderP();toast('Supprime');}
+function mDel(id){if(!PD)return;markDeleted(id);PD.maint=PD.maint.filter(function(x){return x.id!==id;});saveP();renderP();toast('Supprime');}
 
 function loadR(){try{renos=JSON.parse(localStorage.getItem(RK))||[];}catch(e){renos=[];}}
 function saveR(){localStorage.setItem(RK,JSON.stringify(renos));}
@@ -2834,6 +2845,7 @@ function switchCptTab(tab,btn){
 }
 
 function delReleve(type,id){
+  markDeleted(id);
   cptData[type]=cptData[type].filter(function(r){return r.id!==id;});
   saveCpt();renderCpt();toast('Releve supprime');
 }
