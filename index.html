@@ -2683,6 +2683,27 @@ function renderP(){
     hist.onclick=function(ev){
       var el=ev.target;
       while(el&&el!==hist){
+        if(el.getAttribute('data-action')==='edit-season'){
+          var esi=parseInt(el.getAttribute('data-idx'));
+          var ess=all[esi];
+          var newYear=prompt('Annee de debut de saison (ex: 2024 pour Nov 2024-Avr 2025) :',ess.k.split('-')[0]);
+          if(newYear===null)return;
+          var ny=parseInt(newYear);
+          if(isNaN(ny)){toast('Annee invalide');return;}
+          var newCount=prompt('Nombre de sacs utilises :',ess.c);
+          if(newCount===null)return;
+          var nc=parseInt(newCount);
+          if(isNaN(nc)||nc<0){toast('Nombre invalide');return;}
+          var newKey=ny+'-'+(ny+1);
+          var realIdx=PD.seasons.findIndex(function(x){return x.k===ess.k;});
+          if(realIdx>=0){
+            PD.seasons[realIdx].k=newKey;
+            PD.seasons[realIdx].l=slbl(newKey);
+            PD.seasons[realIdx].c=nc;
+          }
+          saveP();renderP();toast('Saison mise a jour');
+          return;
+        }
         if(el.getAttribute('data-action')==='season-detail'){
           var si=parseInt(el.getAttribute('data-idx'));
           var ss=all[si];
@@ -2700,7 +2721,9 @@ function renderP(){
             +'<div><span style="color:var(--dim);">Poids total</span><br><strong style="color:var(--text);">'+kgsUsed+' kg</strong></div>'
             +'<div><span style="color:var(--dim);">Cout saison</span><br><strong style="color:var(--copper);">'+costTxt+'</strong></div>'
             +'<div><span style="color:var(--dim);">Prix/sac</span><br><strong style="color:var(--text);">'+(ss.price?ss.price+' EUR':'-')+'</strong></div>'
-            +'</div></div>';
+            +'</div>'
+            +(ss.cur?'':'<button class="bi" style="width:auto;padding:0 10px;margin-top:8px;font-size:10px;" data-action="edit-season" data-idx="'+si+'">&#9998; Modifier</button>')
+            +'</div>';
           box.style.display='block';box.setAttribute('data-cur',si);
           return;
         }
