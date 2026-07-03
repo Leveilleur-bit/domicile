@@ -143,7 +143,8 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 
 /* CALENDAR */
 .cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.cmon{background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cmon{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s;}
+.cmon:hover{border-color:var(--cl);}
 .chdr{background:var(--bg3);padding:8px 12px;font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:13px;letter-spacing:3px;color:var(--cl);border-bottom:1px solid var(--border);}
 .chdr.cur{color:var(--amber);border-bottom-color:rgba(240,192,96,.3);}
 .cbody{padding:8px;min-height:44px;}
@@ -596,40 +597,53 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 
 <!-- CALENDAR -->
 <div class="view" id="view-cal">
-  <div style="display:flex;gap:6px;margin-bottom:10px;">
-    <button class="fb on" onclick="calTab('all',this)">&#128197; Tout</button>
-    <button class="fb" onclick="calTab('tasks',this)">&#9989; Entretien</button>
-    <button class="fb" onclick="calTab('events',this)">&#127881; Evenements</button>
-  </div>
-  <div class="card" style="margin-bottom:12px;">
-    <div class="stit" style="font-size:11px;">Ajouter un evenement</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div><label class="flbl">Titre</label><input type="text" id="evt-title" placeholder="Anniversaire Marie..."></div>
-      <div><label class="flbl">Date</label><input type="date" id="evt-date"></div>
-      <div><label class="flbl">Type</label>
-        <select id="evt-type" onchange="onEvtTypeChange(this)"><option value="birthday">&#127881; Anniversaire</option><option value="rdv">&#128197; RDV</option><option value="evt">&#11088; Evenement</option><option value="fete">&#127878; Fete</option></select>
-      </div>
+  <!-- Calendrier en premier -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+    <div class="stit" id="cal-view-title" style="margin:0;">Vue mensuelle</div>
+    <div style="display:flex;gap:6px;">
+      <button class="fb on" onclick="calTab('all',this)">Tout</button>
+      <button class="fb" onclick="calTab('tasks',this)">&#9989;</button>
+      <button class="fb" onclick="calTab('events',this)">&#127881;</button>
+      <button class="fb" id="cal-mode-btn" onclick="calToggleMode()" style="border-color:var(--cl);color:var(--cl);">&#128198; Annee</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div><label class="flbl">Rappel</label><select id="evt-reminder"><option value="0">Pas de rappel</option><option value="1">1 jour avant</option><option value="3">3 jours avant</option><option value="7">1 semaine avant</option><option value="14">2 semaines avant</option><option value="30">1 mois avant</option></select></div>
-      <div><label class="flbl">Recurrence</label><select id="evt-recur"><option value="none">Aucune</option><option value="yearly">Chaque annee</option></select></div>
-    </div>
-    <button class="bp" onclick="addEvt()">+ Ajouter</button>
-  </div>
-  <div class="stit" style="margin-top:14px;">Ajouter des conges</div>
-  <div class="card" style="padding:14px;margin-bottom:14px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
-      <div><label class="flbl">Libelle</label><input type="text" id="conge-name" placeholder="Vacances ete..."></div>
-      <div><label class="flbl">Debut</label><input type="date" id="conge-start"></div>
-      <div><label class="flbl">Fin</label><input type="date" id="conge-end"></div>
-    </div>
-    <button class="bp" onclick="addConge()">+ Ajouter</button>
-  </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-    <div class="stit" id="cal-view-title" style="margin:0;">Vue annuelle</div>
-    <button class="fb" id="cal-mode-btn" onclick="calToggleMode()">&#128197; Vue mois</button>
   </div>
   <div class="cgrid" id="cg"></div>
+
+  <!-- Actions d'ajout repliables -->
+  <div style="display:flex;gap:8px;margin-top:16px;">
+    <button class="bs" style="flex:1;padding:10px;font-size:11px;" onclick="calFormToggle('cal-form-evt',this)">&#127881; + Evenement</button>
+    <button class="bs" style="flex:1;padding:10px;font-size:11px;" onclick="calFormToggle('cal-form-conge',this)">&#127958; + Conges</button>
+  </div>
+
+  <div id="cal-form-evt" style="display:none;margin-top:10px;">
+    <div class="card" style="padding:14px;border-left:3px solid var(--cl);">
+      <div class="stit" style="font-size:11px;">Nouvel evenement</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div><label class="flbl">Titre</label><input type="text" id="evt-title" placeholder="Anniversaire Marie..."></div>
+        <div><label class="flbl">Date</label><input type="date" id="evt-date"></div>
+        <div><label class="flbl">Type</label>
+          <select id="evt-type" onchange="onEvtTypeChange(this)"><option value="birthday">&#127881; Anniversaire</option><option value="rdv">&#128197; RDV</option><option value="evt">&#11088; Evenement</option><option value="fete">&#127878; Fete</option></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div><label class="flbl">Rappel</label><select id="evt-reminder"><option value="0">Pas de rappel</option><option value="1">1 jour avant</option><option value="3">3 jours avant</option><option value="7">1 semaine avant</option><option value="14">2 semaines avant</option><option value="30">1 mois avant</option></select></div>
+        <div><label class="flbl">Recurrence</label><select id="evt-recur"><option value="none">Aucune</option><option value="yearly">Chaque annee</option></select></div>
+      </div>
+      <button class="bp" style="width:100%;" onclick="addEvt()">+ Ajouter l'evenement</button>
+    </div>
+  </div>
+
+  <div id="cal-form-conge" style="display:none;margin-top:10px;">
+    <div class="card" style="padding:14px;border-left:3px solid var(--blue);">
+      <div class="stit" style="font-size:11px;">Nouveaux conges</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div><label class="flbl">Libelle</label><input type="text" id="conge-name" placeholder="Vacances ete..."></div>
+        <div><label class="flbl">Debut</label><input type="date" id="conge-start"></div>
+        <div><label class="flbl">Fin</label><input type="date" id="conge-end"></div>
+      </div>
+      <button class="bp" style="width:100%;" onclick="addConge()">+ Ajouter les conges</button>
+    </div>
+  </div>
 </div>
 
 <!-- HISTORY -->
@@ -1666,7 +1680,8 @@ function renderCalMonth(){
       dots+='<div style="width:5px;height:5px;border-radius:50%;background:'+col+';"></div>';
     });
     var hasItems=items.length>0;
-    h+='<div data-calday="'+day+'" style="min-height:48px;background:'+(isToday?'rgba(212,140,75,.15)':'var(--bg2)')+';border:1px solid '+(isToday?'var(--copper)':'var(--border)')+';border-radius:5px;padding:4px;cursor:'+(hasItems?'pointer':'default')+';display:flex;flex-direction:column;gap:2px;">'
+    var isWE=((firstDay+day-1)%7)>=5;
+    h+='<div data-calday="'+day+'" style="min-height:54px;background:'+(isToday?'rgba(212,140,75,.18)':isWE?'var(--bg3)':'var(--bg2)')+';border:1px solid '+(isToday?'var(--copper)':'var(--border)')+';border-radius:6px;padding:5px;cursor:'+(hasItems?'pointer':'default')+';display:flex;flex-direction:column;gap:2px;">'
       +'<div style="font-size:11px;color:'+(isToday?'var(--copper)':'var(--text)')+';font-weight:'+(isToday?'600':'400')+';">'+day+'</div>'
       +'<div style="display:flex;gap:2px;flex-wrap:wrap;">'+dots+'</div>'
       +(items.length>4?'<div style="font-size:7px;color:var(--dim);">+'+(items.length-4)+'</div>':'')
@@ -1703,6 +1718,19 @@ function renderCalMonth(){
 function calMonthNav(dir){
   calMonthOffset+=dir;
   renderCalMonth();
+}
+
+function calFormToggle(id,btn){
+  var el=g(id);if(!el)return;
+  var other=id==='cal-form-evt'?'cal-form-conge':'cal-form-evt';
+  var oel=g(other);
+  var open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(oel)oel.style.display='none';
+  if(!open){
+    // Scroll vers le formulaire ouvert
+    setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'nearest'});},80);
+  }
 }
 
 function calToggleMode(){
@@ -1941,6 +1969,7 @@ function addConge(){
   conges.push({id:uid(),name:name.value.trim(),start:start.value,end:end.value});
   name.value='';start.value='';end.value='';
   saveConges();renderCal();
+  var fc=g('cal-form-conge');if(fc)fc.style.display='none';
   var days=Math.round((new Date(end.value||start.value)-new Date(start.value))/86400000)+1;
   toast('Conges ajoutes');
 scheduleGhPush();
@@ -3894,7 +3923,7 @@ function deleteNote(){
 var EK='devts_v1';
 var events=[];
 var calViewTab='all';
-var calMode='year';
+var calMode='month';
 var budgetYear=new Date().getFullYear();
 var calMonthOffset=0;
 
