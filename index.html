@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E">
 <meta name="theme-color" content="#1a1f2e">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Domicile v2 - 06/05/2026</title>
@@ -716,7 +717,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   <div class="phero">
     <div class="pflame" id="pflame">&#x1F525;</div>
     <div>
-      <div class="pslbl">Saison en cours</div>
+      <div class="pslbl" id="pslbl-txt">Saison en cours</div>
       <div class="psn" id="psn">-</div>
       <div class="psd" id="psd">-</div>
     </div>
@@ -2200,6 +2201,7 @@ function ghMerge(local,remote){
   function mergePellet(loc,rem){
     if(!rem)return loc||{};
     if(!loc)return rem;
+    ensureMaintIds(loc.maint);ensureMaintIds(rem.maint);
     var result=mergeObj(loc,rem);
     // Fusion item-level pour maint et seasons (protege les suppressions)
     result.maint=mergeArr(loc.maint||[],rem.maint||[],'id').filter(function(m){return!isDeleted(m.id);});
@@ -2211,6 +2213,7 @@ function ghMerge(local,remote){
   function mergeCpt(loc,rem){
     if(!rem)return loc||{elec:[],eau:[]};
     if(!loc)return rem;
+    ensureCptIds(loc);ensureCptIds(rem);
     return{
       elec:mergeArr(loc.elec||[],rem.elec||[],'id').filter(function(r){return!isDeleted(r.id);}),
       eau:mergeArr(loc.eau||[],rem.eau||[],'id').filter(function(r){return!isDeleted(r.id);})
@@ -2608,11 +2611,41 @@ function loadP(){
     var r=localStorage.getItem(PK),p=r?JSON.parse(r):null;
     if(p&&typeof p==='object'){
       PD={};
+      var pk=Object.keys(p);
+      for(var j=0;j<pk.length;j++){PD[pk[j]]=p[pk[j]];}
       var ks=Object.keys(def);
-      for(var i=0;i<ks.length;i++){PD[ks[i]]=(p[ks[i]]!==undefined&&p[ks[i]]!==null)?p[ks[i]]:def[ks[i]];}
+      for(var i=0;i<ks.length;i++){if(PD[ks[i]]===undefined||PD[ks[i]]===null)PD[ks[i]]=def[ks[i]];}
     }else{PD=def;}
   }catch(e){PD=def;}
   if(!PD)PD=def;
+  ensureMaintIds(PD.maint);
+  pAutoRollover();
+}
+function curSeasonKey(){
+  // Saison courante ou a venir : nov-avr = en cours, mai-oct = prochaine
+  var n=new Date(),m=n.getMonth(),y=n.getFullYear();
+  if(m<=3)return (y-1)+'-'+y;
+  return y+'-'+(y+1);
+}
+function ensureMaintIds(arr){
+  if(!Array.isArray(arr))return;
+  arr.forEach(function(x,i){if(x&&!x.id)x.id='m_'+(x.date||'')+'_'+(x.name||x.t||'')+'_'+i;});
+}
+function pAutoRollover(){
+  // En pleine saison de chauffe, si la saison enregistree est perimee : archivage auto
+  if(!PD||!PD.sk)return;
+  var m=new Date().getMonth();
+  if(!(m>=10||m<=3))return;
+  var cur=curSeasonKey();
+  if(parseInt(PD.sk)>=parseInt(cur))return;
+  if(PD.cnt>0){
+    if(!Array.isArray(PD.seasons))PD.seasons=[];
+    var idx=PD.seasons.findIndex(function(x){return x.k===PD.sk;});
+    var e={k:PD.sk,l:slbl(PD.sk),c:PD.cnt,price:PD.price||0,kgs:PD.kgs||15};
+    if(idx>=0)PD.seasons[idx]=e;else PD.seasons.unshift(e);
+  }
+  PD.sk=cur;PD.cnt=0;
+  saveP();
 }
 function saveP(){if(PD)localStorage.setItem(PK,JSON.stringify(PD));}
 function slbl(sk){var p=sk.split('-');return'Nov '+p[0]+' - Avr '+p[1];}
@@ -2639,6 +2672,7 @@ function renderP(){
   sv('pprog',function(e){e.style.width=pct+'%';});
   sv('pprogl',function(e){e.textContent=pct+'% - '+(tg-c>0?(tg-c)+' sacs restants':'Objectif atteint !');});
   
+  sv('pslbl-txt',function(e){e.textContent=active?'Saison en cours':'Derniere saison';});
   sv('pautonomy',function(e){
     if(!active){e.style.display='none';return;}
     e.style.display='block';
@@ -2791,11 +2825,8 @@ function pClose(){
   for(var i=0;i<PD.seasons.length;i++){if(PD.seasons[i].k===PD.sk){idx=i;break;}}
   var e={k:PD.sk,l:sl,c:PD.cnt,price:PD.price||0,kgs:PD.kgs||15};
   if(idx>=0)PD.seasons[idx]=e;else PD.seasons.unshift(e);
-  var nd=new Date(),nm=nd.getMonth(),ny2=nd.getFullYear();
-  var nextSk;
-  if(nm>=10)nextSk=(ny2+1)+'-'+(ny2+2);       // oct-dec: prochaine = ann+1
-  else if(nm<=3)nextSk=ny2+'-'+(ny2+1);        // jan-avr: prochaine = cette ann
-  else nextSk=ny2+'-'+(ny2+1);                 // mai-sep: prochaine = cet automne
+  var nextSk=curSeasonKey();
+  if(parseInt(nextSk)<=parseInt(PD.sk)){var sy=parseInt(PD.sk)+1;nextSk=sy+'-'+(sy+1);}
   PD.sk=nextSk;PD.cnt=0;
   saveP();renderP();toast('Saison cloturee - '+e.c+' sacs');
 }
@@ -2897,6 +2928,14 @@ function loadCpt(){
   catch(e){cptData={elec:[],eau:[]};}
   if(!cptData.elec)cptData.elec=[];
   if(!cptData.eau)cptData.eau=[];
+  ensureCptIds(cptData);
+}
+function ensureCptIds(cd){
+  if(!cd)return;
+  ['elec','eau'].forEach(function(t){
+    if(!Array.isArray(cd[t]))return;
+    cd[t].forEach(function(r){if(r&&!r.id)r.id='c_'+t+'_'+r.date+'_'+r.index;});
+  });
 }
 function saveCpt(){localStorage.setItem(CPT_KEY,JSON.stringify(cptData));}
 
@@ -3106,56 +3145,9 @@ function renderStats2(){
   sv('stats-prest',function(e){e.innerHTML=ph;});
 }
 
-function exportData(){
-  var data={
-    version:1,
-    date:new Date().toISOString(),
-    tasks:tasks,
-    pellet:PD,
-    renos:renos,
-    compteurs:cptData
-  };
-  var json=JSON.stringify(data,null,2);
-  var blob=new Blob([json],{type:'application/json'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  var d=new Date();
-  var dateStr=d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();
-  a.href=url;
-  a.download='domicile-sauvegarde-'+dateStr+'.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  toast('Sauvegarde exportee - ' + tasks.length + ' taches, ' + renos.length + ' projets');
-}
 
-function importData(input){
-  var file=input.files[0];
-  if(!file)return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      var data=JSON.parse(e.target.result);
-      if(!data.version||!data.tasks){
-        toast('Fichier invalide - sauvegarde non reconnue');
-        return;
-      }
-      if(!confirm('Remplacer toutes les donnees actuelles par cette sauvegarde du '+new Date(data.date).toLocaleDateString('fr-FR')+'  ?'))return;
-      if(Array.isArray(data.tasks)){tasks=data.tasks;saveT();}
-      if(data.pellet&&typeof data.pellet==='object'){PD=data.pellet;saveP();}
-      if(Array.isArray(data.renos)){renos=data.renos;saveR();}
-      if(data.compteurs&&typeof data.compteurs==='object'){cptData=data.compteurs;saveCpt();}
-      if(data.budget&&typeof data.budget==='object'){charges=data.budget.charges||[];depenses=data.budget.depenses||[];saveBudget();}
-      renderAll();
-      toast('Sauvegarde restauree - '+tasks.length+' taches, '+renos.length+' projets');
-    }catch(err){
-      toast('Erreur de lecture - fichier corrompu ?');
-    }
-    input.value='';
-  };
-  reader.readAsText(file);
-}
+
+
 
 function init(){
   var now=new Date();
@@ -3177,7 +3169,7 @@ var SET_KEY='domicile_settings_v1';
 var appSettings={houseName:'',accentColor:'#c8855a',accentLight:'#e8a882',notifEnabled:false,notifTime:'19:00'};
 
 function loadSettings(){
-  try{var r=localStorage.getItem(SET_KEY);if(r){var s=JSON.parse(r);Object.keys(appSettings).forEach(function(k){if(s[k]!==undefined)appSettings[k]=s[k];});}}catch(e){}
+  try{var r=localStorage.getItem(SET_KEY);if(r){var s=JSON.parse(r);Object.keys(s).forEach(function(k){if(s[k]!==undefined)appSettings[k]=s[k];});}}catch(e){}
   applySettings();
 }
 function saveSettings(){localStorage.setItem(SET_KEY,JSON.stringify(appSettings));}
@@ -3369,7 +3361,7 @@ function getBudgetData(yr){
   
   var fixesAnn=charges.reduce(function(s,c){return s+chargeAnnual(c);},0);
   
-  var travauxAnn=trvProjs.reduce(function(s,p){return s+(p.budget_lines||[]).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);},0);
+  var travauxAnn=trvProjs.reduce(function(s,p){return s+(p.budget_lines||[]).filter(function(b){return b.date?new Date(b.date).getFullYear()===yr:yr===new Date().getFullYear();}).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);},0);
   travauxAnn+=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getFullYear()===yr;}).reduce(function(s,d){return s+(d.amount||0);},0);
   
   var entretienAnn=tasks.filter(function(t){return t.costLast&&new Date(t.doneDate||t.date).getFullYear()===yr;
@@ -3393,7 +3385,11 @@ function renderBudget(){
   // Rendre le sélecteur d'année
   sv('budget-year-sel',function(e){
     var years={};
-    depenses.forEach(function(d){years[new Date(d.date).getFullYear()]=true;});
+    function addY(ds){if(!ds)return;var yy=new Date(ds).getFullYear();if(!isNaN(yy))years[yy]=true;}
+    depenses.forEach(function(d){addY(d.date);});
+    charges.forEach(function(c){addY(c.date);});
+    trvProjs.forEach(function(p){(p.budget_lines||[]).forEach(function(b){addY(b.date);});});
+    tasks.forEach(function(t){if(t.costLast)addY(t.doneDate||t.date);});
     years[new Date().getFullYear()]=true;
     var yl=Object.keys(years).map(function(y){return parseInt(y);}).sort(function(a,b){return b-a;});
     var opts='';
@@ -4111,43 +4107,42 @@ document.addEventListener('click',function(e){
   if(m&&b&&!m.contains(e.target)&&!b.contains(e.target)){m.style.display='none';}
 });
 
-var _origExport=exportData;
-exportData=function(){
-  var data={version:2,date:new Date().toISOString(),tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,notes:notes,events:events,compteurs:cptData,budget:{charges:charges,depenses:depenses},conges:conges};
+function exportData(){
+  var data=ghLocalData();
+  data.version=3;data.date=new Date().toISOString();data.deleted=_deletedIds;
+  var st={};Object.keys(appSettings).forEach(function(k){if(k!=='_ghToken')st[k]=appSettings[k];});
+  data.settings=st;
   var json=JSON.stringify(data,null,2);
   var blob=new Blob([json],{type:'application/json'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
   var d=new Date();
-  var ds=d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();
-  a.href=url;a.download='domicile-v2-'+ds+'.json';
+  a.href=url;a.download='domicile-'+d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'.json';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('Exporte - '+tasks.length+' taches, '+trvProjs.length+' travaux, '+notes.length+' notes');
-};
+  toast('Export complet - '+tasks.length+' taches, '+depenses.length+' depenses');
+}
 
-var _origImport=importData;
-importData=function(input){
+function importData(input){
   var file=input.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(e){
     try{
       var data=JSON.parse(e.target.result);
-      if(!data.tasks){toast('Fichier invalide');return;}
-      if(!confirm('Remplacer toutes les donnees par la sauvegarde du '+new Date(data.date).toLocaleDateString('fr-FR')+'?'))return;
-      if(Array.isArray(data.tasks)){tasks=data.tasks;saveT();}
-      if(data.pellet&&typeof data.pellet==='object'){PD=data.pellet;saveP();}
-      if(Array.isArray(data.renos)){renos=data.renos;saveR();}
-      if(Array.isArray(data.travaux)){trvProjs=data.travaux;saveTrv();}
-      if(Array.isArray(data.notes)){notes=data.notes;saveNotes();}
-      if(Array.isArray(data.events)){events=data.events;saveEvts();}
-      if(data.compteurs&&typeof data.compteurs==='object'){cptData=data.compteurs;saveCpt();}
-      if(Array.isArray(data.conges)){conges=data.conges;saveConges();}
-      renderAll();toast('Importe avec succes');
+      if(!data||!Array.isArray(data.tasks)){toast('Fichier invalide');input.value='';return;}
+      if(!confirm('Remplacer toutes les donnees par la sauvegarde du '+new Date(data.date||data.ts).toLocaleDateString('fr-FR')+' ?')){input.value='';return;}
+      ghBackupLocal();
+      ghApplyRemote(data,null);
+      if(data.settings&&typeof data.settings==='object'){
+        Object.keys(data.settings).forEach(function(k){if(k!=='_ghToken')appSettings[k]=data.settings[k];});
+        saveSettings();applySettings();
+      }
+      loadP();loadCpt();
+      renderAll();toast('Importe - annulable via Parametres');
     }catch(err){toast('Erreur de lecture');}
     input.value='';
   };
   reader.readAsText(file);
-};
+}
 
 function renderCal(){
   if(calMode==='month'){renderCalMonth();return;}
@@ -4230,10 +4225,8 @@ function trvDelStep_idx(pidx,si){
 
 init();
 
-if('serviceWorker' in navigator && location.protocol !== 'file:'){
-  window.addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
-  });
+if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
+  navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});}).catch(function(){});
 }
 </script>
 </body>
