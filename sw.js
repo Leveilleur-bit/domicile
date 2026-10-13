@@ -1,8 +1,10 @@
-const CACHE_NAME = 'domicile-v2';
+const CACHE_NAME = 'domicile-v3';
 const CORE_ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // Installation — cache les ressources core
@@ -33,6 +35,9 @@ self.addEventListener('activate', function(event) {
 // Fetch — strategies differentes selon le type de ressource
 self.addEventListener('fetch', function(event) {
   var url = event.request.url;
+
+  // Synchronisation GitHub et ecritures : jamais de cache, toujours le reseau
+  if (event.request.method !== 'GET' || url.indexOf('api.github.com') !== -1) return;
 
   // Polices (Bunny Fonts) — stale-while-revalidate
   // Cache d abord, mise a jour en arriere-plan
