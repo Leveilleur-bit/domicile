@@ -484,6 +484,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <div id="hdate"></div>
+    <button class="hbtn" onclick="openSearch()" title="Rechercher">&#128269;</button>
     <button class="hbtn" onclick="exportData()" title="Exporter">&#128229;</button>
     <label class="hbtn" style="cursor:pointer;" title="Importer">&#128228;<input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(this)"></label>
     <button id="settings-main-btn" onclick="openSettings()" title="Parametres" style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--dim);font-size:16px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:all .15s;">&#9881;<span id="settings-dot" style="position:absolute;top:-3px;right:-3px;width:8px;height:8px;background:var(--amber);border-radius:50%;display:none;"></span></button>
@@ -499,6 +500,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   <button class="tab" data-view="budget" onclick="showView('budget',this)"><span style="font-size:14px;display:block;">&#128176;</span>Budget</button>
   <button id="more-btn" onclick="toggleMore()" style="flex:0 0 44px;background:transparent;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:8px 4px;">&#8943;</button>
   <div id="more-menu" style="display:none;position:fixed;top:96px;right:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:165px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.7);">
+    <div onclick="goView('maison')" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#127968; Maison</div>
     <div onclick="showView('notes',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128203; Notes</div>
     <div onclick="showView('budget',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128176; Budget</div>
     <div onclick="showView('cpt',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:11px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128268; Compteurs</div>
@@ -651,6 +653,20 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   </div>
 </div>
 
+<!-- MAISON -->
+<div class="view" id="view-maison">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div class="stit" style="margin:0;">Equipements</div>
+    <button class="bs" style="padding:6px 12px;font-size:10px;" onclick="openEq(null)">+ Equipement</button>
+  </div>
+  <div id="eq-list" style="margin-bottom:22px;"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div class="stit" style="margin:0;">Contacts &amp; artisans</div>
+    <button class="bs" style="padding:6px 12px;font-size:10px;" onclick="openCt(null)">+ Contact</button>
+  </div>
+  <div id="ct-list"></div>
+</div>
+
 <!-- HISTORY -->
 <div class="view" id="view-hist">
   <div class="stit">Taches effectuees</div>
@@ -750,6 +766,7 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
         <span style="font-size:9px;color:var(--dim);">sacs</span>
       </div>
       <div id="pautonomy"></div>
+      <div id="pcompare" style="display:none;margin-top:10px;"></div>
     </div>
     <div class="pc grn" id="pcstk">
       <div class="pclbl">Stock disponible</div>
@@ -1012,6 +1029,65 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
   </div>
 </div>
 
+<!-- SEARCH MODAL -->
+<div id="search-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:250;align-items:flex-start;justify-content:center;backdrop-filter:blur(4px);padding-top:56px;" onclick="closeSearch(event)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;width:calc(100% - 24px);max-width:560px;max-height:75vh;display:flex;flex-direction:column;border-top:3px solid var(--copper);">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+      <input type="search" id="search-inp" placeholder="Rechercher..." oninput="runSearch()" autocomplete="off" style="flex:1;">
+      <button class="bi" onclick="closeSearch()">&#10005;</button>
+    </div>
+    <div id="search-results" style="overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- EQUIPEMENT MODAL -->
+<div id="eq-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeEqModal(event)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:18px 16px 28px;width:100%;max-width:560px;animation:fu .3s ease;border-top:3px solid var(--copper);max-height:90vh;overflow-y:auto;">
+    <div style="font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:16px;letter-spacing:3px;color:var(--cl);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;"><span id="eq-modal-title">Equipement</span><button class="bi" onclick="closeEqModal()">&#10005;</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Nom</label><input type="text" id="eq-name" placeholder="Chauffe-eau, poele..."></div>
+      <div><label class="flbl">Piece</label><input type="text" id="eq-room" placeholder="Garage, cuisine..."></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Marque / modele</label><input type="text" id="eq-brand"></div>
+      <div><label class="flbl">Prix (EUR)</label><input type="number" id="eq-price" min="0" step="0.01"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Date d'achat</label><input type="date" id="eq-buy"></div>
+      <div><label class="flbl">Fin de garantie</label><input type="date" id="eq-warranty"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Dernier entretien</label><input type="date" id="eq-service"></div>
+      <div></div>
+    </div>
+    <div style="margin-bottom:14px;"><label class="flbl">Notes</label><textarea id="eq-notes" rows="3" placeholder="Reference, numero de serie, installateur..."></textarea></div>
+    <div style="display:flex;gap:8px;">
+      <button class="bp" style="flex:1;" onclick="saveEq()">Enregistrer</button>
+      <button class="bs" id="eq-del-btn" style="color:var(--red);border-color:var(--red);" onclick="delEq()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT MODAL -->
+<div id="ct-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeCtModal(event)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:18px 16px 28px;width:100%;max-width:560px;animation:fu .3s ease;border-top:3px solid var(--copper);max-height:90vh;overflow-y:auto;">
+    <div style="font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:16px;letter-spacing:3px;color:var(--cl);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;"><span id="ct-modal-title">Contact</span><button class="bi" onclick="closeCtModal()">&#10005;</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Nom</label><input type="text" id="ct-name" placeholder="Nom ou entreprise"></div>
+      <div><label class="flbl">Metier</label><input type="text" id="ct-trade" placeholder="Ramoneur, plombier..."></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div><label class="flbl">Telephone</label><input type="tel" id="ct-phone"></div>
+      <div><label class="flbl">Email</label><input type="email" id="ct-email"></div>
+    </div>
+    <div style="margin-bottom:14px;"><label class="flbl">Notes</label><textarea id="ct-notes" rows="3" placeholder="Tarifs, dernier passage, avis..."></textarea></div>
+    <div style="display:flex;gap:8px;">
+      <button class="bp" style="flex:1;" onclick="saveCt()">Enregistrer</button>
+      <button class="bs" id="ct-del-btn" style="color:var(--red);border-color:var(--red);" onclick="delCt()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
 <!-- CHARGE EDIT MODAL -->
 <div id="charge-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeChargeModal(event)">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:18px 16px 28px;width:100%;max-width:560px;animation:fu .3s ease;border-top:3px solid var(--copper);">
@@ -1239,8 +1315,8 @@ var TK='dtasks_v4', PK='dpellet_v4', RK='dreno_v4';
 var tasks=[], PD=null, renos=[], tFilter='all', rFilter='all';
 
 function uid(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);}
-function tod(){return new Date().toISOString().split('T')[0];}
-function ds(y,m,d){return new Date(y,m,d).toISOString().split('T')[0];}
+function tod(){return isoD(new Date());}
+function ds(y,m,d){return isoD(new Date(y,m,d));}
 function fd(s){if(!s)return'-';return new Date(s).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});}
 function du(s){var t=new Date();t.setHours(0,0,0,0);var diff=Math.floor((new Date(s)-t)/86400000);if(diff<0)return Math.abs(diff)+'j de retard';if(diff===0)return"Aujourd'hui";if(diff===1)return'Demain';return'dans '+diff+'j';}
 function eh(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -1263,6 +1339,7 @@ function showView(v,tab){
   if(v==='stats')renderStats2();
   if(v==='cpt')renderCpt();
   if(v==='budget'){loadBudget();renderBudget();}
+  if(v==='maison')renderMaison();
 }
 
 function loadT(){try{tasks=JSON.parse(localStorage.getItem(TK))||[];}catch(e){tasks=[];}if(!tasks.length)tasks=defT();}
@@ -1385,7 +1462,7 @@ function mDone(id){
   saveT();renderAll();toast('Marquee comme effectuee');
 }
 function mUndone(id){var t=tasks.find(function(x){return x.id===id;});if(t){t.done=false;t.doneDate=null;}saveT();renderAll();toast('Reouvert');}
-function dTask(id){tasks=tasks.filter(function(x){return x.id!==id;});saveT();renderAll();toast('Supprimee');}
+function dTask(id){markDeleted(id);tasks=tasks.filter(function(x){return x.id!==id;});saveT();renderAll();toast('Supprimee');}
 
 function ftask(f,btn){
   tFilter=f;
@@ -1461,7 +1538,7 @@ function renderStats(){
     var pelletActive=(nm3>=9||nm3<=4);
     if(pelletActive&&PD&&typeof PD.stk!=='undefined'){
       var th3=PD.thr||10;
-      if(PD.stk<=th3)alerts.push({txt:'&#128293; Stock pellets bas ('+PD.stk+' sac'+(PD.stk>1?'s':'')+')',col:'var(--red)',act:"showView('pellet')"});
+      if(PD.stk<=th3)alerts.push({txt:'&#128293; Stock pellets bas ('+PD.stk+' sac'+(PD.stk>1?'s':'')+')',col:'var(--red)',act:"goView('pellet')"});
     }
     // Anniversaires dans les 7 jours
     var today4=new Date();today4.setHours(0,0,0,0);
@@ -1475,7 +1552,7 @@ function renderStats(){
       if(dd>=0&&dd<=7)bdaySoon.push({name:ev.title,days:dd});
     });
     bdaySoon.forEach(function(b){
-      alerts.push({txt:'&#127881; '+b.name+(b.days===0?" aujourd'hui !":' dans '+b.days+'j'),col:'var(--cl)',act:"showView('cal')"});
+      alerts.push({txt:'&#127881; '+b.name+(b.days===0?" aujourd'hui !":' dans '+b.days+'j'),col:'var(--cl)',act:"goView('cal')"});
     });
     // Relevé compteurs (1er du mois)
     var t5=new Date();
@@ -1483,8 +1560,13 @@ function renderStats(){
       var elecD=cptData&&cptData.elec?cptData.elec:[];
       var lastM=new Date(t5.getFullYear(),t5.getMonth()-1,1);
       var lastE=elecD.length?elecD[elecD.length-1]:null;
-      if(!lastE||new Date(lastE.date)<lastM)alerts.push({txt:'&#128202; Pensez a relever les compteurs',col:'var(--blue)',act:"showView('cpt')"});
+      if(!lastE||new Date(lastE.date)<lastM)alerts.push({txt:'&#128202; Pensez a relever les compteurs',col:'var(--blue)',act:"goView('cpt')"});
     }
+    (carnet.equip||[]).forEach(function(q){
+      if(!q.warrantyEnd)return;
+      var wd=Math.floor((new Date(q.warrantyEnd)-today4)/86400000);
+      if(wd>=0&&wd<=30)alerts.push({txt:'&#128737; Garantie '+eh(q.name)+' : fin dans '+wd+'j',col:'var(--amber)',act:"goView('maison')"});
+    });
     if(!alerts.length){e.innerHTML='';return;}
     var h='';
     alerts.forEach(function(a){
@@ -2209,6 +2291,9 @@ function ghMerge(local,remote){
     // Fusion item-level pour maint et seasons (protege les suppressions)
     result.maint=mergeArr(loc.maint||[],rem.maint||[],'id').filter(function(m){return!isDeleted(m.id);});
     result.seasons=mergeArr(loc.seasons||[],rem.seasons||[],'k');
+    var lg={};
+    [rem.logs||{},loc.logs||{}].forEach(function(src){Object.keys(src).forEach(function(sk){if(!lg[sk])lg[sk]={};var o=src[sk]||{};Object.keys(o).forEach(function(d){lg[sk][d]=Math.max(lg[sk][d]||0,o[d]||0);});});});
+    result.logs=lg;
     return result;
   }
 
@@ -2247,7 +2332,11 @@ function ghMerge(local,remote){
       depenses:mergeArr(local.budget&&local.budget.depenses,remote.budget&&remote.budget.depenses,'id').filter(function(x){return!isDeleted(x.id);})
     },
     conges:mergeArr(local.conges,remote.conges,'id'),
-    quickzone:mergeQZ(local.quickzone,remote.quickzone)
+    quickzone:mergeQZ(local.quickzone,remote.quickzone),
+    carnet:{
+      equip:mergeArr(local.carnet&&local.carnet.equip,remote.carnet&&remote.carnet.equip,'id').filter(function(x){return!isDeleted(x.id);}),
+      contacts:mergeArr(local.carnet&&local.carnet.contacts,remote.carnet&&remote.carnet.contacts,'id').filter(function(x){return!isDeleted(x.id);})
+    }
   };
 }
 
@@ -2258,7 +2347,8 @@ function ghLocalData(){
     notes:notes,events:events,compteurs:cptData,
     budget:{charges:charges,depenses:depenses},
     conges:conges,
-    quickzone:{note:qzNote,actions:qzActions,noteTs:window._qzNoteTs||0}
+    quickzone:{note:qzNote,actions:qzActions,noteTs:window._qzNoteTs||0},
+    carnet:carnet
   };
 }
 
@@ -2287,6 +2377,10 @@ function ghApplyRemote(data,sha){
     localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));
   }
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+  if(data.carnet&&typeof data.carnet==='object'){
+    carnet={equip:(data.carnet.equip||[]).filter(function(x){return!isDeleted(x.id);}),contacts:(data.carnet.contacts||[]).filter(function(x){return!isDeleted(x.id);})};
+    try{localStorage.setItem(CARNET_KEY,JSON.stringify(carnet));}catch(e){}
+  }
   if(data.quickzone){
     // Ne pas ecraser la note si l'utilisateur est en train d'editer
     var ta=g('qz-note');
@@ -2675,6 +2769,7 @@ function renderP(){
   sv('pprog',function(e){e.style.width=pct+'%';});
   sv('pprogl',function(e){e.textContent=pct+'% - '+(tg-c>0?(tg-c)+' sacs restants':'Objectif atteint !');});
   
+  renderPCompare(c);
   sv('pslbl-txt',function(e){e.textContent=active?'Saison en cours':'Derniere saison';});
   sv('pautonomy',function(e){
     if(!active){e.style.display='none';return;}
@@ -2741,7 +2836,7 @@ function renderP(){
     if(c>0||active){var idx=-1;for(var i=0;i<all.length;i++){if(all[i].k===PD.sk){idx=i;break;}}var cur={k:PD.sk,l:sl,c:c,cur:true};if(idx===-1)all.unshift(cur);else all[idx]=cur;}
     var mx=1;for(var i=0;i<all.length;i++){if(all[i].c>mx)mx=all[i].c;}
     if(!all.length){hist.innerHTML='<div style="color:var(--dim);font-size:10px;padding:8px 0;">Aucun historique</div>';return;}
-    var h='';all.forEach(function(ss,si){var w=Math.round(ss.c/mx*100);h+='<div class="phrow" data-action="season-detail" data-idx="'+si+'" style="cursor:pointer;"><span class="phyr">'+(ss.l||ss.k)+'</span><div class="phbar"><div class="phbarfill" style="width:'+w+'%"></div></div><span class="phn">'+ss.c+'</span><span class="phkg">'+(ss.c*(ss.kgs||PD.kgs||15))+' kg</span>'+(ss.cur?'<span style="font-size:8px;color:var(--copper);">EN COURS</span>':'')+'</div>';});
+    var h='';all.forEach(function(ss,si){var w=Math.round(ss.c/mx*100);h+='<div class="phrow" data-action="season-detail" data-idx="'+si+'" style="cursor:pointer;"><span class="phyr">'+(ss.l||ss.k)+'</span><div class="phbar"><div class="phbarfill" style="width:'+w+'%"></div></div><span class="phn">'+ss.c+'</span><span class="phkg">'+(ss.c*(ss.kgs||PD.kgs||15))+' kg</span>'+(ss.cur?'<span style="font-size:8px;color:var(--copper);">EN COURS</span>':'')+(!ss.cur&&parseInt(ss.k,10)>=parseInt(curSeasonKey(),10)?'<span style="font-size:8px;color:var(--red);">A CORRIGER</span>':'')+'</div>';});
     h+='<div id="season-detail-box" style="display:none;margin-top:10px;"></div>';
     hist.innerHTML=h;
     hist.onclick=function(ev){
@@ -2810,7 +2905,7 @@ function renderP(){
   });
 }
 
-function pUsed(d){if(!PD)return;PD.cnt=Math.max(0,(PD.cnt||0)+d);if(d>0)PD.stk=Math.max(0,(PD.stk||0)-d);else if(d<0)PD.stk=(PD.stk||0)+Math.abs(d);saveP();renderP();var s=PD.stk||0,th=PD.thr||10;if(d>0&&s<=th&&s>0)toast(d+' sac'+(d>1?'s':'')+' utilise - Stock bas: '+s);else if(d>0&&s===0)toast('Stock epuise !');else if(d>0)toast('+'+d+' sac'+(d>1?'s':'')+' utilise');else toast('Correction appliquee');}
+function pUsed(d){if(!PD)return;if(d<0&&!(PD.cnt>0))return;PD.cnt=Math.max(0,(PD.cnt||0)+d);pLogBag(d);if(d>0)PD.stk=Math.max(0,(PD.stk||0)-d);else if(d<0)PD.stk=(PD.stk||0)+Math.abs(d);saveP();renderP();var s=PD.stk||0,th=PD.thr||10;if(d>0&&s<=th&&s>0)toast(d+' sac'+(d>1?'s':'')+' utilise - Stock bas: '+s);else if(d>0&&s===0)toast('Stock epuise !');else if(d>0)toast('+'+d+' sac'+(d>1?'s':'')+' utilise');else toast('Correction appliquee');}
 function pStock(d){
   if(!PD)return;
   PD.stk=Math.max(0,(PD.stk||0)+d);
@@ -2874,7 +2969,6 @@ function openEdit(id){
   var modal=document.getElementById('edit-modal');
   if(modal){modal.classList.remove('hidden');modal.style.display='flex';}
   if(n)n.focus();
-scheduleGhPush();
 }
 
 function closeEditModal(){
@@ -2917,6 +3011,7 @@ function saveEdit(){
 function deleteFromModal(){
   if(!editId)return;
   if(!confirm('Supprimer cette tache ?'))return;
+  markDeleted(editId);
   tasks=tasks.filter(function(x){return x.id!==editId;});
   closeEditModal();
   saveT();renderAll();toast('Supprimee');
@@ -3160,12 +3255,13 @@ function init(){
   sv('cpt-date',function(e){e.value=tod();});
   sv('dep-date',function(e){e.value=tod();});
   sv('evt-date',function(e){e.value=tod();});
-  loadSettings();loadGhConfig();loadDeletedIds();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();loadQZ();
+  loadSettings();loadGhConfig();loadDeletedIds();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();loadQZ();loadCarnet();
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
   
   setTimeout(function(){if(appSettings._ghToken)ghSilentPull();},2000);
+  setTimeout(seedDefaults,4000);
 }
 
 var SET_KEY='domicile_settings_v1';
@@ -3407,31 +3503,7 @@ function renderBudget(){
   sv('bdg-entretien-ann',function(e){e.textContent=bd.entretien>=1000?(bd.entretien/1000).toFixed(1)+'k':Math.round(bd.entretien);});
   
   var monthly=[];
-  for(var mi=0;mi<12;mi++){
-    var mFixes=charges.reduce(function(s,ch){
-      var amt=parseFloat(ch.amount)||0;
-      if(ch.freq==='monthly')return s+amt;
-      if(ch.freq==='quarterly'){
-        var base=ch.date?new Date(ch.date).getMonth():0;
-        
-        if((mi-base+12)%3===0)return s+amt;
-      }
-      if(ch.freq==='yearly'){
-        var chM=ch.date?new Date(ch.date).getMonth():0;
-        if(mi===chM)return s+amt;
-      }
-      return s;
-    },0);
-    var mTravaux=trvProjs.reduce(function(s,p){
-      return s+(p.budget_lines||[]).filter(function(b){return new Date(b.date).getMonth()===mi&&new Date(b.date).getFullYear()===curYear;}).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);
-    },0);
-    mTravaux+=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===curYear;}).reduce(function(s,d){return s+(d.amount||0);},0);
-    var mEnt=tasks.filter(function(t){return t.costLast&&t.doneDate&&new Date(t.doneDate).getMonth()===mi&&new Date(t.doneDate).getFullYear()===curYear;}).reduce(function(s,t){return s+(t.costLast||0);},0);
-    mEnt+=depenses.filter(function(d){return d.cat==='entretien'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===curYear;}).reduce(function(s,d){return s+(d.amount||0);},0);
-    mEnt+=PD&&PD.maint?PD.maint.filter(function(m){return m.cout&&m.done&&m.doneDate&&new Date(m.doneDate).getMonth()===mi&&new Date(m.doneDate).getFullYear()===curYear;}).reduce(function(s,m){return s+(m.cout||0);},0):0;
-    var mDeps=depenses.filter(function(d){return d.cat!=='travaux'&&d.cat!=='entretien'&&new Date(d.date).getMonth()===mi&&new Date(d.date).getFullYear()===curYear;}).reduce(function(s,d){return s+(d.amount||0);},0);
-    monthly.push({m:MN[mi],fixes:mFixes,travaux:mTravaux,entretien:mEnt,deps:mDeps,total:mFixes+mTravaux+mEnt+mDeps});
-  }
+  for(var mi=0;mi<12;mi++){var bm=budgetMonth(curYear,mi);bm.m=MN[mi];monthly.push(bm);}
   var maxM=1;monthly.forEach(function(m){if(m.total>maxM)maxM=m.total;});
   var chartH='',lblH='';
   monthly.forEach(function(m,i){
@@ -3477,13 +3549,22 @@ function renderBudget(){
   });
   sv('bdg-cats',function(e){e.innerHTML=catsH||'<span style="color:var(--dim);font-size:11px;">Aucune donnee</span>';});
   
-  var cm=monthly[now.getMonth()];
+  var MNF=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  var cmi=now.getMonth();
+  var cm=monthly[cmi];
   var cmH='<div style="font-family:Bebas Neue,sans-serif;font-size:28px;letter-spacing:2px;color:var(--copper);">'+Math.round(cm.total)+' EUR</div>'
-    +'<div style="font-size:10px;color:var(--dim);margin-bottom:10px;">ce mois</div>';
+    +'<div style="font-size:10px;color:var(--dim);margin-bottom:10px;">'+(curYear===now.getFullYear()?'ce mois':MNF[cmi]+' '+curYear)+'</div>';
   if(cm.fixes)cmH+='<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);"><span style="color:var(--dim);">Charges fixes</span><span style="color:var(--blue);">'+Math.round(cm.fixes)+' EUR</span></div>';
   if(cm.travaux)cmH+='<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);"><span style="color:var(--dim);">Travaux</span><span style="color:var(--amber);">'+Math.round(cm.travaux)+' EUR</span></div>';
   if(cm.entretien)cmH+='<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;"><span style="color:var(--dim);">Entretien</span><span style="color:var(--green);">'+Math.round(cm.entretien)+' EUR</span></div>';
+  if(cm.deps)cmH+='<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;"><span style="color:var(--dim);">Depenses</span><span style="color:#c97eb8;">'+Math.round(cm.deps)+' EUR</span></div>';
   if(!cm.total)cmH+='<div style="color:var(--dim);font-size:11px;">Aucune depense ce mois</div>';
+  var cmP=budgetMonth(curYear-1,cmi);
+  var vNow=cm.travaux+cm.entretien+cm.deps,vPrev=cmP.travaux+cmP.entretien+cmP.deps;
+  cmH+='<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);font-size:10px;color:var(--dim);line-height:1.7;">';
+  if(vPrev>0){var cpct=Math.round((vNow-vPrev)/vPrev*100);cmH+=MNF[cmi]+' '+(curYear-1)+' : <span style="color:var(--text);">'+Math.round(vPrev)+' EUR</span> hors charges fixes<br>'+MNF[cmi]+' '+curYear+' : <span style="color:var(--text);">'+Math.round(vNow)+' EUR</span> <span style="color:'+(cpct>0?'var(--red)':'var(--green)')+';">('+(cpct>0?'+':'')+cpct+'%)</span>';}
+  else cmH+='Comparaison avec '+MNF[cmi].toLowerCase()+' '+(curYear-1)+' : pas encore de donnees';
+  cmH+='</div>';
   sv('bdg-this-month',function(e){e.innerHTML=cmH;});
   
   var clH='';
@@ -4224,6 +4305,326 @@ function trvDelStep_idx(pidx,si){
   markDeleted(p.steps[si].id);
   p.steps.splice(si,1);p._o=true;
   saveTrv();renderTrv();ghPush();
+}
+
+// ══════════ NAVIGATION ══════════
+function goView(v){
+  var t=document.querySelector('.tab[data-view="'+v+'"]');
+  showView(v,t);
+  var mm=g('more-menu');if(mm)mm.style.display='none';
+}
+function mShow(id){var m=g(id);if(m){m.classList.remove('hidden');m.style.display='flex';}}
+function mHide(id){var m=g(id);if(m){m.classList.add('hidden');m.style.display='none';}}
+function isoD(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+
+// ══════════ BUDGET : UN MOIS DONNE ══════════
+function budgetMonth(yr,mi){
+  var mFixes=charges.reduce(function(s,ch){
+    var amt=parseFloat(ch.amount)||0;
+    if(ch.freq==='monthly')return s+amt;
+    if(ch.freq==='quarterly'){var base=ch.date?new Date(ch.date).getMonth():0;if((mi-base+12)%3===0)return s+amt;}
+    if(ch.freq==='yearly'){var chM=ch.date?new Date(ch.date).getMonth():0;if(mi===chM)return s+amt;}
+    return s;
+  },0);
+  function inM(ds2){if(!ds2)return false;var d=new Date(ds2);return d.getMonth()===mi&&d.getFullYear()===yr;}
+  var mTravaux=trvProjs.reduce(function(s,p){
+    return s+(p.budget_lines||[]).filter(function(b){return inM(b.date);}).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);
+  },0);
+  mTravaux+=depenses.filter(function(d){return d.cat==='travaux'&&inM(d.date);}).reduce(function(s,d){return s+(d.amount||0);},0);
+  var mEnt=tasks.filter(function(t){return t.costLast&&t.doneDate&&inM(t.doneDate);}).reduce(function(s,t){return s+(t.costLast||0);},0);
+  mEnt+=depenses.filter(function(d){return d.cat==='entretien'&&inM(d.date);}).reduce(function(s,d){return s+(d.amount||0);},0);
+  mEnt+=PD&&PD.maint?PD.maint.filter(function(m){return m.cout&&m.done&&inM(m.doneDate);}).reduce(function(s,m){return s+(m.cout||0);},0):0;
+  var mDeps=depenses.filter(function(d){return d.cat!=='travaux'&&d.cat!=='entretien'&&inM(d.date);}).reduce(function(s,d){return s+(d.amount||0);},0);
+  return{fixes:mFixes,travaux:mTravaux,entretien:mEnt,deps:mDeps,total:mFixes+mTravaux+mEnt+mDeps};
+}
+
+// ══════════ POELE : COMPARAISON SAISON PRECEDENTE ══════════
+function pLogBag(d){
+  if(!PD||!PD.sk||!d)return;
+  if(!PD.logs||typeof PD.logs!=='object')PD.logs={};
+  if(!PD.logs[PD.sk])PD.logs[PD.sk]={};
+  var td=tod();
+  PD.logs[PD.sk][td]=Math.max(0,(PD.logs[PD.sk][td]||0)+d);
+}
+function renderPCompare(c){
+  var e=g('pcompare');if(!e||!PD||!PD.sk)return;
+  var sy=parseInt(PD.sk,10),prevK=(sy-1)+'-'+sy,prev=null;
+  (PD.seasons||[]).forEach(function(s){if(s.k===prevK)prev=s;});
+  if(!prev||!prev.c){e.style.display='none';e.innerHTML='';return;}
+  var start=new Date(sy,10,1),now=new Date();now.setHours(0,0,0,0);
+  var el=Math.floor((now-start)/86400000)+1;
+  function line(lbl,val){return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;"><span style="color:var(--dim);">'+lbl+'</span><span style="color:var(--text);text-align:right;">'+val+'</span></div>';}
+  function pctTxt(a,b){var p=Math.round((a-b)/b*100);return ' <span style="color:'+(p>5?'var(--red)':p<-5?'var(--green)':'var(--dim)')+';">('+(p>0?'+':'')+p+'%)</span>';}
+  var h='<div style="border-top:1px dashed var(--border);padding-top:8px;">'
+    +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px;">Comparaison saison precedente</div>';
+  h+=line(prev.l||slbl(prevK),prev.c+' sacs');
+  if(el>=1&&el<=182){
+    var logs=PD.logs&&PD.logs[prevK];
+    if(logs){
+      var lim=new Date(sy-1,10,1);lim.setDate(lim.getDate()+el-1);
+      var ls=isoD(lim),sum=0;
+      Object.keys(logs).forEach(function(d){if(d<=ls)sum+=logs[d]||0;});
+      h+=line('A la meme date l&#39;an dernier',sum+' sacs');
+      if(sum>0)h+=line('Cette saison',c+' sacs'+pctTxt(c,sum));
+    } else if(el>=14&&c>0){
+      var proj=Math.round(c/el*181);
+      h+=line('Au rythme actuel','~'+proj+' sacs'+pctTxt(proj,prev.c));
+    } else {
+      h+='<div style="font-size:10px;color:var(--dim);padding-top:3px;">Projection disponible apres 2 semaines de chauffe</div>';
+    }
+  }
+  h+='</div>';
+  e.innerHTML=h;e.style.display='block';
+}
+
+// ══════════ CARNET MAISON ══════════
+var CARNET_KEY='domicile_carnet_v1';
+var carnet={equip:[],contacts:[]};
+var eqEditId=null,ctEditId=null;
+function loadCarnet(){
+  try{
+    var r=JSON.parse(localStorage.getItem(CARNET_KEY));
+    if(r&&typeof r==='object')carnet={equip:Array.isArray(r.equip)?r.equip:[],contacts:Array.isArray(r.contacts)?r.contacts:[]};
+  }catch(e){carnet={equip:[],contacts:[]};}
+}
+function saveCarnet(){try{localStorage.setItem(CARNET_KEY,JSON.stringify(carnet));}catch(e){}scheduleGhPush();}
+function eqWarranty(q){
+  if(!q.warrantyEnd)return '';
+  var t=new Date();t.setHours(0,0,0,0);
+  var dd=Math.floor((new Date(q.warrantyEnd)-t)/86400000);
+  var col=dd<0?'var(--dim)':dd<=60?'var(--amber)':'var(--green)';
+  var txt=dd<0?'Garantie expiree':'Garantie jusqu&#39;au '+fd(q.warrantyEnd);
+  return '<span style="font-size:9px;padding:2px 7px;border:1px solid '+col+';color:'+col+';border-radius:10px;white-space:nowrap;">'+txt+'</span>';
+}
+function renderMaison(){
+  var el=g('view-maison');if(!el)return;
+  var eh2=g('eq-list'),ch2=g('ct-list');
+  if(eh2){
+    if(!carnet.equip.length){eh2.innerHTML='<div class="empty">Aucun equipement. Ajoutez votre poele, chauffe-eau, electromenager...</div>';}
+    else{
+      var list=carnet.equip.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      var h='';
+      list.forEach(function(q){
+        var sub=[];if(q.brand)sub.push(eh(q.brand));if(q.room)sub.push(eh(q.room));
+        var meta=[];if(q.buyDate)meta.push('Achat '+fd(q.buyDate));if(q.lastService)meta.push('Entretien '+fd(q.lastService));if(q.price)meta.push(eh(String(q.price))+' EUR');
+        h+='<div data-act="eq" data-id="'+eh(q.id)+'" style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:6px;cursor:pointer;">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+          +'<div style="font-size:12px;color:var(--text);font-weight:500;">'+eh(q.name||'Sans nom')+'</div>'+eqWarranty(q)+'</div>'
+          +(sub.length?'<div style="font-size:10px;color:var(--dim);margin-top:2px;">'+sub.join(' &middot; ')+'</div>':'')
+          +(meta.length?'<div style="font-size:10px;color:var(--dim);margin-top:4px;">'+meta.join(' &middot; ')+'</div>':'')
+          +'</div>';
+      });
+      eh2.innerHTML=h;
+    }
+  }
+  if(ch2){
+    if(!carnet.contacts.length){ch2.innerHTML='<div class="empty">Aucun contact. Ajoutez ramoneur, plombier, electricien...</div>';}
+    else{
+      var list2=carnet.contacts.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      var h2='';
+      list2.forEach(function(c){
+        var tel=(c.phone||'').replace(/[^0-9+]/g,'');
+        h2+='<div data-act="ct" data-id="'+eh(c.id)+'" style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:6px;cursor:pointer;">'
+          +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-size:12px;color:var(--text);font-weight:500;">'+eh(c.name||'Sans nom')+'</div>'
+          +'<div style="font-size:10px;color:var(--dim);margin-top:2px;">'+eh(c.trade||'')+(c.trade&&c.phone?' &middot; ':'')+eh(c.phone||'')+'</div>'
+          +'</div>'
+          +(tel?'<a href="tel:'+eh(tel)+'" class="bi" style="width:34px;height:34px;text-decoration:none;font-size:15px;" title="Appeler">&#128222;</a>':'')
+          +(c.email?'<a href="mailto:'+eh(c.email)+'" class="bi" style="width:34px;height:34px;text-decoration:none;font-size:15px;" title="Ecrire">&#9993;</a>':'')
+          +'</div>';
+      });
+      ch2.innerHTML=h2;
+    }
+  }
+  el.onclick=function(ev){
+    var t=ev.target;
+    while(t&&t!==el){
+      if(t.tagName==='A')return;
+      var a=t.getAttribute&&t.getAttribute('data-act');
+      if(a==='eq'){openEq(t.getAttribute('data-id'));return;}
+      if(a==='ct'){openCt(t.getAttribute('data-id'));return;}
+      t=t.parentNode;
+    }
+  };
+}
+function openEq(id){
+  eqEditId=id;
+  var q=id?carnet.equip.find(function(x){return x.id===id;}):null;
+  if(id&&!q)return;
+  var f={name:'eq-name',room:'eq-room',brand:'eq-brand',buyDate:'eq-buy',warrantyEnd:'eq-warranty',price:'eq-price',lastService:'eq-service',notes:'eq-notes'};
+  Object.keys(f).forEach(function(k){sv(f[k],function(e){e.value=q&&q[k]!==undefined?q[k]:'';});});
+  sv('eq-modal-title',function(e){e.textContent=q?'Modifier l\x27equipement':'Nouvel equipement';});
+  sv('eq-del-btn',function(e){e.style.display=q?'block':'none';});
+  mShow('eq-modal');
+}
+function closeEqModal(ev){if(ev&&ev.target!==g('eq-modal'))return;mHide('eq-modal');eqEditId=null;}
+function saveEq(){
+  var n=g('eq-name');if(!n||!n.value.trim()){toast('Nom requis');return;}
+  var q=eqEditId?carnet.equip.find(function(x){return x.id===eqEditId;}):null;
+  if(!q){q={id:uid()};carnet.equip.push(q);}
+  q.name=n.value.trim();
+  q.room=(g('eq-room').value||'').trim();
+  q.brand=(g('eq-brand').value||'').trim();
+  q.buyDate=g('eq-buy').value||'';
+  q.warrantyEnd=g('eq-warranty').value||'';
+  q.price=g('eq-price').value||'';
+  q.lastService=g('eq-service').value||'';
+  q.notes=(g('eq-notes').value||'').trim();
+  saveCarnet();mHide('eq-modal');eqEditId=null;renderMaison();renderStats();toast('Equipement enregistre');
+}
+function delEq(){
+  if(!eqEditId)return;
+  var q=carnet.equip.find(function(x){return x.id===eqEditId;});
+  if(!confirm('Supprimer "'+(q?q.name:'')+'" ?'))return;
+  markDeleted(eqEditId);
+  carnet.equip=carnet.equip.filter(function(x){return x.id!==eqEditId;});
+  saveCarnet();mHide('eq-modal');eqEditId=null;renderMaison();toast('Supprime');
+}
+function openCt(id){
+  ctEditId=id;
+  var c=id?carnet.contacts.find(function(x){return x.id===id;}):null;
+  if(id&&!c)return;
+  var f={name:'ct-name',trade:'ct-trade',phone:'ct-phone',email:'ct-email',notes:'ct-notes'};
+  Object.keys(f).forEach(function(k){sv(f[k],function(e){e.value=c&&c[k]!==undefined?c[k]:'';});});
+  sv('ct-modal-title',function(e){e.textContent=c?'Modifier le contact':'Nouveau contact';});
+  sv('ct-del-btn',function(e){e.style.display=c?'block':'none';});
+  mShow('ct-modal');
+}
+function closeCtModal(ev){if(ev&&ev.target!==g('ct-modal'))return;mHide('ct-modal');ctEditId=null;}
+function saveCt(){
+  var n=g('ct-name');if(!n||!n.value.trim()){toast('Nom requis');return;}
+  var c=ctEditId?carnet.contacts.find(function(x){return x.id===ctEditId;}):null;
+  if(!c){c={id:uid()};carnet.contacts.push(c);}
+  c.name=n.value.trim();
+  c.trade=(g('ct-trade').value||'').trim();
+  c.phone=(g('ct-phone').value||'').trim();
+  c.email=(g('ct-email').value||'').trim();
+  c.notes=(g('ct-notes').value||'').trim();
+  saveCarnet();mHide('ct-modal');ctEditId=null;renderMaison();toast('Contact enregistre');
+}
+function delCt(){
+  if(!ctEditId)return;
+  var c=carnet.contacts.find(function(x){return x.id===ctEditId;});
+  if(!confirm('Supprimer "'+(c?c.name:'')+'" ?'))return;
+  markDeleted(ctEditId);
+  carnet.contacts=carnet.contacts.filter(function(x){return x.id!==ctEditId;});
+  saveCarnet();mHide('ct-modal');ctEditId=null;renderMaison();toast('Supprime');
+}
+
+// ══════════ RECHERCHE GLOBALE ══════════
+function nrm(s){
+  s=String(s||'').toLowerCase();
+  if(s.normalize)s=s.normalize('NFD').replace(/[̀-ͯ]/g,'');
+  return s;
+}
+function openSearch(){
+  var inp=g('search-inp');if(inp)inp.value='';
+  sv('search-results',function(e){
+    e.innerHTML='<div style="font-size:11px;color:var(--dim);padding:10px 4px;">Taches, depenses, charges, notes, evenements, travaux, equipements, contacts...</div>';
+    e.onclick=function(ev){
+      var t=ev.target;
+      while(t&&t!==e){
+        if(t.getAttribute&&t.getAttribute('data-kind')){searchOpen(t.getAttribute('data-kind'),t.getAttribute('data-id'));return;}
+        t=t.parentNode;
+      }
+    };
+  });
+  mShow('search-modal');
+  if(inp)setTimeout(function(){inp.focus();},50);
+}
+function closeSearch(ev){if(ev&&ev.target!==g('search-modal'))return;mHide('search-modal');}
+function runSearch(){
+  var inp=g('search-inp'),out=g('search-results');if(!inp||!out)return;
+  var q=nrm(inp.value).trim();
+  if(q.length<2){out.innerHTML='<div style="font-size:11px;color:var(--dim);padding:10px 4px;">Tapez au moins 2 lettres</div>';return;}
+  var words=q.split(/\s+/);
+  function hit(){var txt=nrm(Array.prototype.join.call(arguments,' '));for(var i=0;i<words.length;i++){if(txt.indexOf(words[i])<0)return false;}return true;}
+  var res=[];
+  function add(kind,id,ico,title,ctx){res.push({kind:kind,id:id,ico:ico,title:title,ctx:ctx});}
+  tasks.forEach(function(t){if(hit(t.name,t.notes,t.room,t.cat,t.prest))add('task',t.id,'&#9989;',t.name,'Tache &middot; '+fd(t.date)+(t.done?' &middot; faite':''));});
+  events.forEach(function(e){if(hit(e.title))add('evt',e.id,'&#127881;',e.title,'Evenement &middot; '+fd(e.date));});
+  conges.forEach(function(c){if(hit(c.name))add('conge',c.id,'&#127958;',c.name,'Conges &middot; '+fd(c.start)+' au '+fd(c.end));});
+  depenses.forEach(function(d){if(hit(d.name,d.cat))add('dep',d.id,'&#128181;',d.name,'Depense &middot; '+(d.amount||0)+' EUR &middot; '+fd(d.date));});
+  charges.forEach(function(c){if(hit(c.name,c.cat))add('charge',c.id,'&#128178;',c.name,'Charge fixe &middot; '+(c.amount||0)+' EUR');});
+  notes.forEach(function(n){var it=(n.items||[]).map(function(i){return i.text;}).join(' ');if(hit(n.title,n.content,it))add('note',n.id,'&#128203;',n.title||'Note','Note');});
+  trvProjs.forEach(function(p){var bl=(p.budget_lines||[]).map(function(b){return b.name||b.label||'';}).join(' ');var st=(p.steps||[]).map(function(s){return s.name||s.text||'';}).join(' ');if(hit(p.name,p.notes,p.contact,p.zone,bl,st))add('trv',p.id,'&#127959;',p.name,'Travaux &middot; '+(p.zone||''));});
+  if(PD&&Array.isArray(PD.maint))PD.maint.forEach(function(m){var nm=m.name||m.t||m.type||'';if(hit(nm,m.notes))add('maint',m.id,'&#128293;',nm,'Entretien poele'+(m.date?' &middot; '+fd(m.date):''));});
+  qzActions.forEach(function(a){var nm=a.name||a.text||'';if(hit(nm))add('qz',a.id,'&#9889;',nm,'Action rapide');});
+  carnet.equip.forEach(function(e){if(hit(e.name,e.brand,e.room,e.notes))add('eq',e.id,'&#128295;',e.name,'Equipement'+(e.brand?' &middot; '+e.brand:''));});
+  carnet.contacts.forEach(function(c){if(hit(c.name,c.trade,c.phone,c.email,c.notes))add('ct',c.id,'&#128100;',c.name,'Contact'+(c.trade?' &middot; '+c.trade:''));});
+  if(!res.length){out.innerHTML='<div style="font-size:11px;color:var(--dim);padding:10px 4px;">Aucun resultat</div>';return;}
+  var h='';
+  res.slice(0,40).forEach(function(r){
+    h+='<div data-kind="'+r.kind+'" data-id="'+eh(String(r.id||''))+'" style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-bottom:1px solid var(--border);cursor:pointer;">'
+      +'<span style="font-size:15px;flex-shrink:0;">'+r.ico+'</span>'
+      +'<div style="min-width:0;"><div style="font-size:12px;color:var(--text);">'+eh(r.title||'')+'</div>'
+      +'<div style="font-size:10px;color:var(--dim);">'+r.ctx+'</div></div></div>';
+  });
+  if(res.length>40)h+='<div style="font-size:10px;color:var(--dim);padding:8px;">+'+(res.length-40)+' autres resultats, precisez la recherche</div>';
+  out.innerHTML=h;
+}
+function searchOpen(kind,id){
+  mHide('search-modal');
+  if(kind==='task'){openEdit(id);return;}
+  if(kind==='evt'){goView('cal');openEvtEdit(id);return;}
+  if(kind==='conge'){goView('cal');return;}
+  if(kind==='dep'){goView('budget');openDepEdit(id);return;}
+  if(kind==='charge'){goView('budget');openChargeEdit(id);return;}
+  if(kind==='note'){goView('notes');openNoteEditor(id);return;}
+  if(kind==='trv'){var p=trvProjs.find(function(x){return x.id===id;});if(p){p._o=true;saveTrv();}goView('travaux');return;}
+  if(kind==='maint'){goView('pellet');return;}
+  if(kind==='qz'){goView('dash');return;}
+  if(kind==='eq'){goView('maison');openEq(id);return;}
+  if(kind==='ct'){goView('maison');openCt(id);return;}
+}
+
+// ══════════ DONNEES DE DEPART (une seule fois) ══════════
+function seedDefaults(){
+  var SK='domicile_seeds_v1',done={};
+  try{done=JSON.parse(localStorage.getItem(SK))||{};}catch(e){done={};}
+  var added=[];
+  function seen(id){return done[id]||isDeleted(id);}
+  function hasId(arr,id){return arr.some(function(x){return x.id===id;});}
+  function openTask(re){return tasks.some(function(t){return !t.done&&re.test(t.name||'');});}
+  var now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  if(!seen('seed-ramonage')){
+    var hasMaint=PD&&Array.isArray(PD.maint)&&PD.maint.some(function(x){return !x.done&&/ramon/i.test(x.name||x.t||'');});
+    if(!hasId(tasks,'seed-ramonage')&&!openTask(/ramon/i)&&!hasMaint){
+      tasks.push({id:'seed-ramonage',name:'Ramonage + entretien poele (pro)',room:'Salon',cat:'Entretien',date:(m<=9?ds(y,9,31):ds(y,m,now.getDate()+14)),notes:'Obligatoire chaque annee (assurance) - garder le certificat',recur:'yearly',done:false,doneDate:null});
+      added.push('ramonage');
+    }
+    done['seed-ramonage']=1;
+  }
+  if(!seen('seed-bisplit-filtres')){
+    if(!hasId(tasks,'seed-bisplit-filtres')&&!openTask(/filtre.*(split|clim)|(split|clim).*filtre/i)){
+      tasks.push({id:'seed-bisplit-filtres',name:'Nettoyer filtres bi-split',room:'General',cat:'Filtre',date:ds(y,m+1,1),notes:'Filtres des unites interieures : eau tiede, bien secher avant de remonter',recur:'quarterly',done:false,doneDate:null});
+      added.push('filtres');
+    }
+    done['seed-bisplit-filtres']=1;
+  }
+  if(!seen('seed-bisplit-pro')){
+    if(!hasId(tasks,'seed-bisplit-pro')&&!openTask(/(entretien|revision|controle).*(split|clim)/i)){
+      tasks.push({id:'seed-bisplit-pro',name:'Entretien bi-split par un pro',room:'Exterieur',cat:'Entretien',date:ds(m<=2?y:y+1,3,15),notes:'Avant l ete : nettoyage des echangeurs, controle etancheite et pression',recur:'yearly',done:false,doneDate:null});
+      added.push('pro');
+    }
+    done['seed-bisplit-pro']=1;
+  }
+  if(!seen('seed-eq-bisplit')){
+    if(!hasId(carnet.equip,'seed-eq-bisplit')&&!carnet.equip.some(function(q){return /split|clim/i.test(q.name||'');})){
+      carnet.equip.push({id:'seed-eq-bisplit',name:'Bi-split reversible',room:'',brand:'',buyDate:'',warrantyEnd:'',price:'',lastService:'',notes:'A completer : marque, date de pose, garantie, installateur'});
+      saveCarnet();added.push('equip');
+    }
+    done['seed-eq-bisplit']=1;
+  }
+  if(!seen('seed-trv-bisplit')){
+    if(!hasId(trvProjs,'seed-trv-bisplit')&&!trvProjs.some(function(p){return /clim|split/i.test(p.name||'');})){
+      trvProjs.unshift({id:'seed-trv-bisplit',name:'Installation bi-split reversible',zone:'General',status:'done',priority:'medium',budget:0,contact:'',notes:'Ajoutez le cout de l installation dans les achats',steps:[],budget_lines:[],_o:false});
+      saveTrv();added.push('projet');
+    }
+    done['seed-trv-bisplit']=1;
+  }
+  try{localStorage.setItem(SK,JSON.stringify(done));}catch(e){}
+  if(added.length){saveT();renderAll();scheduleGhPush();toast('Taches d\x27hiver et bi-split ajoutees');}
 }
 
 init();
