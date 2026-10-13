@@ -4,8 +4,8 @@
   "description": "Gestion de l'entretien de votre maison",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1a1f2e",
-  "theme_color": "#1a1f2e",
+  "background_color": "#16120f",
+  "theme_color": "#16120f",
   "orientation": "portrait-primary",
   "lang": "fr",
   "icons": [
