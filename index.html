@@ -1758,14 +1758,9 @@ function renderStats(){
     bdaySoon.forEach(function(b){
       alerts.push({txt:'&#127881; '+b.name+(b.days===0?" aujourd'hui !":' dans '+b.days+'j'),col:'var(--cl)',act:"goView('cal')"});
     });
-    // Relevé compteurs (1er du mois)
-    var t5=new Date();
-    if(t5.getDate()<=3){
-      var elecD=cptData&&cptData.elec?cptData.elec:[];
-      var lastM=new Date(t5.getFullYear(),t5.getMonth()-1,1);
-      var lastE=elecD.length?elecD[elecD.length-1]:null;
-      if(!lastE||new Date(lastE.date)<lastM)alerts.push({txt:'&#128202; Pensez a relever les compteurs',col:'var(--blue)',act:"goView('cpt')"});
-    }
+    // Relevé compteurs : des le 1er, tant que rien n'est saisi ce mois-ci
+    var cr=cptNeedsReleve();
+    if(cr.any)alerts.push({txt:'&#128202; Relev&#233; des compteurs '+(cr.elec?'&#9889;':'')+(cr.eau?'&#128167;':'')+' &#224; faire ce mois-ci',col:'var(--blue)',act:"goView('cpt')"});
     (carnet.equip||[]).forEach(function(q){
       if(!q.warrantyEnd)return;
       var wd=Math.floor((new Date(q.warrantyEnd)-today4)/86400000);
@@ -2062,7 +2057,7 @@ function renderHist(){
 function renderDashCpt(){
   var el=g('d-cpt-releve');if(!el)return;
   var today=new Date();
-  var isFirst=today.getDate()===1;
+  var crq=cptNeedsReleve(),isFirst=crq.any;
   var elecData=cptData.elec||[];
   var eauData=cptData.eau||[];
   var hasData=elecData.length>0||eauData.length>0;
@@ -2073,12 +2068,11 @@ function renderDashCpt(){
   if(isFirst){
     var lastElec=elecData.length?elecData[elecData.length-1]:null;
     var lastEau=eauData.length?eauData[eauData.length-1]:null;
-    var lastMonth=new Date(today.getFullYear(),today.getMonth()-1,1);
-    var needsElec=!lastElec||new Date(lastElec.date)<lastMonth;
-    var needsEau=!lastEau||new Date(lastEau.date)<lastMonth;
+    var needsElec=crq.elec;
+    var needsEau=crq.eau;
     if(needsElec||needsEau){
       h+='<div class="releve-banner">'
-        +'<span>&#128197; 1er du mois - Pensez a relever vos compteurs'+(needsElec?' &#9889;':'')+(needsEau?' &#128167;':'')+'</span>'
+        +'<span>&#128197; Pensez &#224; relever vos compteurs ce mois-ci'+(needsElec?' &#9889;':'')+(needsEau?' &#128167;':'')+'</span>'
         +'<button onclick="goToCpt()">Saisir</button>'
         +'</div>';
     }
@@ -3579,15 +3573,7 @@ function sendDailyNotif(){
   });
   
   var today2=new Date();
-  var isFirst2=today2.getDate()===1;
-  var needsCptReleve=false;
-  if(isFirst2){
-    var elecD=cptData.elec||[];var eauD=cptData.eau||[];
-    var lastMonth2=new Date(today2.getFullYear(),today2.getMonth()-1,1);
-    var lastE2=elecD.length?elecD[elecD.length-1]:null;
-    var lastW2=eauD.length?eauD[eauD.length-1]:null;
-    needsCptReleve=(!lastE2||new Date(lastE2.date)<lastMonth2)||(!lastW2||new Date(lastW2.date)<lastMonth2);
-  }
+  var needsCptReleve=cptNeedsReleve().any;
   if(!urgent.length&&!soon.length&&!bdayReminders.length&&!needsCptReleve)return;
   var msg='';
   if(urgent.length)msg+=urgent.length+' tâche'+(urgent.length>1?'s':'')+' en retard. ';
@@ -4565,6 +4551,23 @@ function fabGo(k){
   else if(k==='releve'){goView('cpt');focusEl('cpt-index');}
   else if(k==='eq'){goView('maison');openEq(null);}
   else if(k==='ct'){goView('maison');openCt(null);}
+}
+
+// ══════════ RELEVE DES COMPTEURS ══════════
+function cptNeedsReleve(){
+  // Un releve par mois : rappel des le 1er, jusqu'a ce qu'un releve soit saisi dans le mois.
+  // Un compteur jamais releve ne declenche pas de rappel.
+  var t=new Date(),m0=isoD(new Date(t.getFullYear(),t.getMonth(),1));
+  var out={elec:false,eau:false};
+  ['elec','eau'].forEach(function(k){
+    var arr=(cptData&&cptData[k])||[];
+    if(!arr.length)return;
+    var last='';
+    arr.forEach(function(r){if(r&&r.date&&r.date>last)last=r.date;});
+    out[k]=last<m0;
+  });
+  out.any=out.elec||out.eau;
+  return out;
 }
 
 // ══════════ NAVIGATION ══════════
