@@ -651,6 +651,53 @@ main{padding-bottom:96px;}
   [style*="grid-template-columns:2fr 1fr 1fr"],[style*="grid-template-columns:1fr 1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important;}
 }
 @media(min-width:769px){#more-menu .mm-io{display:none!important;}}
+
+/* Couleur violette (manquait : elements invisibles) */
+:root{--purple:#b99ad8;}
+body.light{--purple:#8a5fb8;}
+
+/* Cette semaine */
+#dash-week{margin-bottom:16px;}
+.wk-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;}
+.wk-head .stit{margin:0;flex:1;}
+.wk-link{background:none;border:none;color:var(--cl);font-family:var(--fb);font-size:13px;font-weight:600;cursor:pointer;padding:4px 0 4px 10px;}
+.wk-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:10px;}
+.wk-d{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 7px;border-radius:14px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:var(--fb);cursor:pointer;min-width:0;}
+.wk-d .w{font-size:11px;font-weight:600;color:var(--dim);text-transform:capitalize;}
+.wk-d .n{font-family:var(--fd);font-size:20px;font-weight:600;line-height:1.1;}
+.wk-d .dots{display:flex;gap:3px;height:6px;}
+.wk-d .dots i{width:6px;height:6px;border-radius:50%;display:block;}
+.wk-d.today{border-color:var(--copper);background:linear-gradient(170deg,var(--glow),var(--bg2));}
+.wk-d.today .w{color:var(--cl);}
+.wk-d.sel{background:var(--copper);border-color:var(--copper);}
+.wk-d.sel .w,.wk-d.sel .n{color:#1d140e;}
+.wk-d.we:not(.sel):not(.today){background:var(--bg3);}
+.wk-list{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px;box-shadow:var(--shadow);}
+.wk-day{font-size:12px;font-weight:700;color:var(--cl);padding:10px 0 2px;text-transform:capitalize;}
+.wk-it{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer;}
+.wk-it:last-child{border-bottom:none;}
+.wk-it .ic{width:22px;text-align:center;font-size:15px;flex-shrink:0;}
+.wk-it .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.wk-it .mt{font-size:12px;color:var(--dim);white-space:nowrap;}
+.wk-empty{font-size:13px;color:var(--dim);padding:12px 0;text-align:center;}
+
+/* Depense express */
+.qd-amt{display:flex;align-items:baseline;justify-content:center;gap:6px;margin:4px 0 16px;}
+.qd-amt input{font-family:var(--fd)!important;font-size:44px!important;font-weight:600;text-align:center;background:transparent!important;border:none!important;border-bottom:2px solid var(--border)!important;border-radius:0!important;width:200px;padding:4px!important;color:var(--text);box-shadow:none!important;}
+.qd-amt input:focus{border-bottom-color:var(--copper)!important;}
+.qd-amt span{font-family:var(--fd);font-size:30px;color:var(--dim);}
+.qd-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.qd-cat{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:14px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--fb);font-size:12px;font-weight:600;cursor:pointer;}
+.qd-cat span{font-size:22px;}
+.qd-cat:active{transform:scale(.95);border-color:var(--copper);background:var(--glow);}
+.qd-more{display:none;margin-top:12px;}
+.qd-more.open{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.qd-hint{font-size:12px;color:var(--dim);text-align:center;margin-top:12px;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+.shake{animation:shake .25s 2;}
+
+/* Pellets : palette */
+.pbtn.pal{width:auto;padding:0 12px;font-family:var(--fb);font-size:13px;font-weight:700;}
 </style>
 </head>
 <body>
@@ -685,8 +732,6 @@ main{padding-bottom:96px;}
     <div class="mm-item" onclick="showView('notes',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128203; Notes</div>
     <div class="mm-item mm-hide" onclick="showView('budget',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128176; Budget</div>
     <div class="mm-item" onclick="showView('cpt',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128268; Compteurs</div>
-    <div class="mm-item" onclick="showView('stats',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128202; Stats</div>
-    <div class="mm-item" onclick="showView('hist',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128203; Historique</div>
     <div class="mm-item mm-m mm-io" onclick="toggleMore();exportData()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128229; Exporter</div>
     <label class="mm-item mm-m mm-io" for="import-file" onclick="toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128228; Importer</label>
     <div class="mm-item mm-m" onclick="toggleMore();openSettings()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#9881; Réglages</div>
@@ -698,6 +743,7 @@ main{padding-bottom:96px;}
 <!-- DASHBOARD -->
 <div class="view on" id="view-dash">
   <div id="dash-hello"></div>
+  <div id="dash-week"></div>
   <div id="onboard-banner"></div>
   <div id="today-events"></div>
   <div id="dash-events"></div>
@@ -963,13 +1009,18 @@ main{padding-bottom:96px;}
       <div class="pbtns">
         <button class="pbtn p" onclick="pStock(1)">+</button>
         <button class="pbtn p w" onclick="pStock(10)">+10</button>
+        <button class="pbtn p pal" onclick="pPalette()" id="pal-btn">+ Palette</button>
         <button class="pbtn m" onclick="pStock(-1)">-</button>
       </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--dim);line-height:1.6;">Décrémente automatiquement a chaque sac utilise.</div>
+      <div style="margin-top:10px;font-size:11px;color:var(--dim);line-height:1.6;">Diminue automatiquement à chaque sac utilisé.</div>
       <div style="margin-top:8px;display:flex;align-items:center;gap:7px;">
         <label class="flbl" style="margin:0;white-space:nowrap;">Alerte sous</label>
         <input type="number" id="pthr" min="1" style="width:52px;padding:5px 7px;font-size:12px;" onchange="savePThr()">
         <span style="font-size:11px;color:var(--dim);">sacs</span>
+      </div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:7px;">
+        <label class="flbl" style="margin:0;white-space:nowrap;">Sacs par palette</label>
+        <input type="number" id="ppal" min="1" style="width:65px;padding:5px 7px;" onchange="savePPal()">
       </div>
     </div>
             <div style="margin-top:8px;display:flex;align-items:center;gap:7px;">
@@ -1166,9 +1217,12 @@ main{padding-bottom:96px;}
       <div><label class="flbl">Catégorie</label>
         <select id="dep-cat">
           <option value="courses">Courses</option>
+          <option value="enfants">Enfants / &#233;cole</option>
+          <option value="voiture">Voiture / carburant</option>
+          <option value="chauffage">Chauffage</option>
           <option value="travaux">Travaux</option>
           <option value="entretien">Entretien</option>
-          <option value="equipement">Equipement</option>
+          <option value="equipement">&#201;quipement</option>
           <option value="autre">Autre</option>
         </select>
       </div>
@@ -1327,9 +1381,12 @@ main{padding-bottom:96px;}
       <div><label class="flbl">Catégorie</label>
         <select id="dm-cat">
           <option value="courses">Courses</option>
+          <option value="enfants">Enfants / &#233;cole</option>
+          <option value="voiture">Voiture / carburant</option>
+          <option value="chauffage">Chauffage</option>
           <option value="travaux">Travaux</option>
           <option value="entretien">Entretien</option>
-          <option value="equipement">Equipement</option>
+          <option value="equipement">&#201;quipement</option>
           <option value="autre">Autre</option>
         </select>
       </div>
@@ -1491,13 +1548,26 @@ main{padding-bottom:96px;}
   </div>
 </div>
 
+<div id="qdep-modal" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:210;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeQuickDep(event)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:560px;animation:fu .25s ease;border-top:3px solid var(--copper);">
+    <div style="font-family:var(--fd);font-size:22px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;"><span>Nouvelle d&#233;pense</span><button class="bi" onclick="closeQuickDep()">&#10005;</button></div>
+    <div class="qd-amt"><input type="text" id="qd-amt" inputmode="decimal" placeholder="0" autocomplete="off"><span>&#8364;</span></div>
+    <div class="qd-cats" id="qd-cats"></div>
+    <div class="qd-hint">Touchez une cat&#233;gorie pour enregistrer &middot; <a href="#" onclick="qdMore(event)" style="color:var(--cl);">libell&#233; ou date</a></div>
+    <div class="qd-more" id="qd-more">
+      <div><label class="flbl">Libell&#233; (facultatif)</label><input type="text" id="qd-name" placeholder="Auto"></div>
+      <div><label class="flbl">Date</label><input type="date" id="qd-date"></div>
+    </div>
+  </div>
+</div>
+
 <button id="fab" onclick="openFab()" aria-label="Ajouter">+</button>
 <div id="fab-sheet" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeFab(event)">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:560px;animation:fu .25s ease;border-top:3px solid var(--copper);">
     <div style="font-family:var(--fd);font-size:22px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;"><span>Ajouter</span><button class="bi" onclick="closeFab()">&#10005;</button></div>
     <div class="fab-grid">
       <button class="fab-tile" onclick="fabGo('task')"><span>&#9989;</span>T&#226;che</button>
-      <button class="fab-tile" onclick="fabGo('dep')"><span>&#128182;</span>D&#233;pense</button>
+      <button class="fab-tile" onclick="fabGo('dep')" style="border-color:var(--copper);background:linear-gradient(160deg,var(--glow),var(--bg3));"><span>&#128182;</span>D&#233;pense</button>
       <button class="fab-tile" onclick="fabGo('evt')"><span>&#127881;</span>&#201;v&#233;nement</button>
       <button class="fab-tile" onclick="fabGo('note')"><span>&#128221;</span>Note</button>
       <button class="fab-tile" onclick="fabGo('qz')"><span>&#9889;</span>Action rapide</button>
@@ -2339,7 +2409,7 @@ function renderDashEvents(){
     }
     if(isNaN(thisYear.getTime()))return;
     var diff=Math.floor((thisYear-today)/86400000);
-    if(diff>=0&&diff<=30){
+    if(diff>=8&&diff<=30){
       upcoming.push({title:e.title,type:e.type,diff:diff,date:thisYear,id:e.id});
     }
   });
@@ -2892,7 +2962,7 @@ function deleteCharge(){
   renderBudget();toast('Supprimee');
 }
 
-function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();renderDashPellet();renderDashHello();}
+function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();renderDashPellet();renderDashHello();renderDashWeek();}
 
 function defP(){
   var n=new Date(),m=n.getMonth(),y=n.getFullYear();
@@ -2974,13 +3044,11 @@ function renderP(){
     e.style.display='block';
     if(c<3){e.innerHTML='<span style="color:var(--dim);font-size:12px;">Pas assez de donnees (min. 3 sacs)</span>';return;}
     
-    var now3=new Date();
-    var seasonStart=new Date(now3.getMonth()<=3?now3.getFullYear()-1:now3.getFullYear(),10,1);
-    var daysElapsed=Math.max(1,Math.floor((now3-seasonStart)/86400000));
-    var sacPerDay=c/daysElapsed;
+    var au=pAutonomy();
+    var sacPerDay=au?au.perDay:0;
     var stk=PD.stk||0;
-    if(sacPerDay<=0||stk<=0){e.innerHTML='<span style="color:var(--dim);font-size:12px;">Stock vide ou consommation nulle</span>';return;}
-    var daysLeft=Math.round(stk/sacPerDay);
+    if(!au||sacPerDay<=0||stk<=0){e.innerHTML='<span style="color:var(--dim);font-size:12px;">Stock vide ou consommation nulle</span>';return;}
+    var daysLeft=au.days;
     var col=daysLeft<=7?'var(--red)':daysLeft<=14?'var(--amber)':'var(--green)';
     var icon=daysLeft<=7?'&#9888;':daysLeft<=14?'&#9888;':'&#9685;';
     e.innerHTML='<div style="margin-top:8px;padding:7px 10px;background:var(--bg3);border-radius:5px;border-left:3px solid '+col+';">'
@@ -2992,6 +3060,8 @@ function renderP(){
   });
   var s=PD.stk||0,th=PD.thr||10,skg=s*(PD.kgs||15);
   sv('pthr',function(e){if(document.activeElement!==e)e.value=th;});
+  sv('ppal',function(e){if(document.activeElement!==e)e.value=PD.palette||66;});
+  sv('pal-btn',function(e){e.textContent='+ Palette ('+(PD.palette||66)+')';});
   sv('pstk',function(e){
     e.textContent=s;
     e.style.color=s<=th?'var(--red)':s<=th*1.5?'var(--amber)':'';
@@ -3107,9 +3177,9 @@ function pUsed(d){if(!PD)return;if(d<0&&!(PD.cnt>0))return;PD.cnt=Math.max(0,(PD
 function pStock(d){
   if(!PD)return;
   PD.stk=Math.max(0,(PD.stk||0)+d);
-  if(d>0){PD.lastResupply=tod();PD.lastResupplyQty=(PD.lastResupplyQty||0)+d;}
+  if(d>0){PD.lastResupplyQty=(PD.lastResupply===tod()?(PD.lastResupplyQty||0):0)+d;PD.lastResupply=tod();}
   saveP();renderP();
-  toast(d>0?'+'+d+' sac'+(d>1?'s':'')+' en stock':'Mis a jour');
+  toast(d>0?'+'+d+' sac'+(d>1?'s':'')+' en stock':'Stock mis \u00e0 jour');
 }
 
 function savePT(){if(!PD)return;var v=parseInt(g('ptgt').value);if(v>0){PD.tgt=v;saveP();renderP();}}
@@ -3725,13 +3795,13 @@ function renderBudget(){
   });
   if(bd.travaux)cats['Travaux']=(cats['Travaux']||0)+bd.travaux;
   if(bd.entretien)cats['Entretien']=(cats['Entretien']||0)+bd.entretien;
-  depenses.forEach(function(d){var k=d.cat==='travaux'?'Travaux':d.cat==='entretien'?'Entretien':'Autre';if(!cats[k])cats[k]=0;cats[k]+=d.amount||0;});
+  depenses.forEach(function(d){if(new Date(d.date).getFullYear()!==curYear)return;var k=DEP_LBL[d.cat]||'Autre';if(!cats[k])cats[k]=0;cats[k]+=d.amount||0;});
   var catKeys=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];});
   var maxC=1;catKeys.forEach(function(k){if(cats[k]>maxC)maxC=cats[k];});
   var catsH='';
   catKeys.forEach(function(k){
     var pct=Math.round(cats[k]/bd.total*100)||0;
-    var col=CHARGE_COLS[k.toLowerCase()]||'var(--dim)';
+    var col=CHARGE_COLS[k.toLowerCase()]||DEP_COL_BY_LBL[k]||'var(--dim)';
     catsH+='<div class="bdg-cat-row">'
       +'<div class="bdg-cat-top"><span style="color:var(--text);">'+k+'</span><span style="color:var(--dim);">'+Math.round(cats[k])+' EUR ('+pct+'%)</span></div>'
       +'<div class="bdg-cat-bg"><div class="bdg-cat-fill" style="width:'+Math.round(cats[k]/maxC*100)+'%;background:'+col+';"></div></div>'
@@ -3844,9 +3914,7 @@ function renderBudget(){
     dpH='<div class="empty"><div class="eico">&#128203;</div>Aucune depense ponctuelle saisie</div>';
   } else {
     var MN_F=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
-    var CAT_LBL={courses:'Courses',travaux:'Travaux',entretien:'Entretien',equipement:'Equipement',autre:'Autre'};
-    var CAT_COL={courses:'var(--green)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',autre:'var(--dim)'};
-    var CAT_ICO={courses:'&#128722;',travaux:'&#127959;',entretien:'&#9881;',equipement:'&#128187;',autre:'&#128203;'};
+    var CAT_LBL=DEP_LBL,CAT_COL=DEP_COL,CAT_ICO=DEP_ICO;
     // Grouper par mois
     var mgroups={};
     depsYear.forEach(function(d){
@@ -4526,7 +4594,7 @@ function renderDashPellet(){
   el.innerHTML='<div class="ember">'
     +'<div class="ember-ico">&#128293;</div>'
     +'<div class="ember-txt"><div class="ember-t">Po&#234;le</div>'
-    +'<div class="ember-s">'+c+' sac'+(c>1?'s':'')+' cette saison &middot; <span style="color:'+(s<=th?'var(--red)':'inherit')+';">stock '+s+'</span></div></div>'
+    +'<div class="ember-s">'+c+' sac'+(c>1?'s':'')+' cette saison &middot; <span style="color:'+(s<=th?'var(--red)':'inherit')+';">stock '+s+(pAutonomy()?' (~'+Math.max(1,Math.round(pAutonomy().days/7))+' sem.)':'')+'</span></div></div>'
     +'<button class="ember-minus" onclick="dashBag(-1)" title="Retirer un sac" aria-label="Retirer un sac">&minus;</button>'
     +'<button class="ember-btn" onclick="dashBag(1)">+1 sac</button>'
     +'</div>';
@@ -4543,7 +4611,7 @@ function fabGo(k){
   mHide('fab-sheet');
   function focusEl(id){setTimeout(function(){var e=g(id);if(!e)return;try{e.scrollIntoView({block:'center',behavior:'smooth'});}catch(x){}e.focus();},150);}
   if(k==='task'){goView('tasks');focusEl('q-name');}
-  else if(k==='dep'){goView('budget');focusEl('dep-name');}
+  else if(k==='dep'){openQuickDep();}
   else if(k==='evt'){goView('cal');var f=g('cal-form-evt');if(f&&f.style.display==='none')calFormToggle('cal-form-evt');focusEl('evt-title');}
   else if(k==='conge'){goView('cal');var f2=g('cal-form-conge');if(f2&&f2.style.display==='none')calFormToggle('cal-form-conge');focusEl('conge-name');}
   else if(k==='note'){goView('notes');openNoteEditor(null);}
@@ -4568,6 +4636,149 @@ function cptNeedsReleve(){
   });
   out.any=out.elec||out.eau;
   return out;
+}
+
+// ══════════ CATEGORIES DE DEPENSES ══════════
+var DEP_ORDER=['courses','enfants','voiture','chauffage','travaux','entretien','equipement','autre'];
+var DEP_LBL={courses:'Courses',enfants:'Enfants',voiture:'Voiture',chauffage:'Chauffage',travaux:'Travaux',entretien:'Entretien',equipement:'Équipement',autre:'Autre'};
+var DEP_ICO={courses:'&#128722;',enfants:'&#127890;',voiture:'&#9981;',chauffage:'&#128293;',travaux:'&#127959;',entretien:'&#128295;',equipement:'&#128187;',autre:'&#128203;'};
+var DEP_COL={courses:'var(--green)',enfants:'var(--purple)',voiture:'var(--blue)',chauffage:'var(--red)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',autre:'var(--dim)'};
+var DEP_COL_BY_LBL={};DEP_ORDER.forEach(function(k){DEP_COL_BY_LBL[DEP_LBL[k]]=DEP_COL[k];});
+
+// ══════════ DEPENSE EXPRESS ══════════
+function openQuickDep(){
+  sv('qd-amt',function(e){e.value='';});
+  sv('qd-name',function(e){e.value='';});
+  sv('qd-date',function(e){e.value=tod();});
+  var mo=g('qd-more');if(mo)mo.className='qd-more';
+  var h='';
+  DEP_ORDER.forEach(function(k){h+='<button class="qd-cat" data-cat="'+k+'"><span>'+DEP_ICO[k]+'</span>'+DEP_LBL[k]+'</button>';});
+  sv('qd-cats',function(e){
+    e.innerHTML=h;
+    e.onclick=function(ev){var t=ev.target;while(t&&t!==e){if(t.getAttribute&&t.getAttribute('data-cat')){saveQuickDep(t.getAttribute('data-cat'));return;}t=t.parentNode;}};
+  });
+  mShow('qdep-modal');
+  setTimeout(function(){var i=g('qd-amt');if(i)i.focus();},120);
+}
+function closeQuickDep(ev){if(ev&&ev.target!==g('qdep-modal'))return;mHide('qdep-modal');}
+function qdMore(ev){if(ev)ev.preventDefault();var m=g('qd-more');if(m)m.className=m.className.indexOf('open')>=0?'qd-more':'qd-more open';}
+function parseAmt(v){v=String(v||'').replace(/\s/g,'').replace(',','.').replace(/[^0-9.]/g,'');var f=parseFloat(v);return isNaN(f)?0:Math.round(f*100)/100;}
+function saveQuickDep(cat){
+  var inp=g('qd-amt'),amt=parseAmt(inp&&inp.value);
+  if(!(amt>0)){if(inp){inp.className='shake';setTimeout(function(){inp.className='';},600);inp.focus();}toast('Indiquez un montant');return;}
+  var nm=(g('qd-name')&&g('qd-name').value||'').trim()||DEP_LBL[cat]||'Dépense';
+  var dt=(g('qd-date')&&g('qd-date').value)||tod();
+  depenses.push({id:uid(),name:nm,amount:amt,cat:cat,date:dt});
+  saveBudget();
+  mHide('qdep-modal');
+  var d0=new Date(dt),tot=0;
+  depenses.forEach(function(d){var x=new Date(d.date);if(d.cat===cat&&x.getMonth()===d0.getMonth()&&x.getFullYear()===d0.getFullYear())tot+=d.amount||0;});
+  renderAll();
+  if(navigator.vibrate){try{navigator.vibrate(15);}catch(e){}}
+  toast(fmtEur(amt)+' · '+(DEP_LBL[cat]||'')+' — '+fmtEur(tot)+' ce mois');
+}
+function fmtEur(v){var r=Math.round(v*100)/100;return (r%1?r.toFixed(2).replace('.',','):String(r))+' €';}
+
+// ══════════ PELLETS : PALETTE + AUTONOMIE ══════════
+function savePPal(){if(!PD)return;var v=parseInt(g('ppal').value,10);if(v>0){PD.palette=v;saveP();renderP();}}
+function pPalette(){
+  if(!PD)return;
+  var n=PD.palette||66;
+  if(!confirm('Ajouter une palette de '+n+' sacs au stock ?'))return;
+  pStock(n);
+  if(PD.price>0&&confirm('Ajouter aussi la dépense de '+fmtEur(n*PD.price)+' au budget (Chauffage) ?')){
+    depenses.push({id:uid(),name:'Palette de pellets ('+n+' sacs)',amount:Math.round(n*PD.price*100)/100,cat:'chauffage',date:tod()});
+    saveBudget();renderBudget();
+  }
+  renderDashPellet();
+}
+function pAutonomy(){
+  if(!PD)return null;
+  var now=new Date(),m=now.getMonth();
+  if(!(m>=10||m<=3))return null;
+  var c=PD.cnt||0;if(c<3)return null;
+  var start=new Date(m<=3?now.getFullYear()-1:now.getFullYear(),10,1);
+  var el=Math.max(1,Math.floor((now-start)/86400000));
+  var per=c/el;if(!(per>0))return null;
+  return{perDay:per,days:Math.round((PD.stk||0)/per)};
+}
+
+// ══════════ ACCUEIL : CETTE SEMAINE ══════════
+var wkSel=null;
+function dayItems(d){
+  var ds=isoD(d),items=[],mo=d.getMonth(),da=d.getDate();
+  var EI={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'};
+  events.forEach(function(e){
+    if(!e.date)return;
+    var ed=new Date(e.date);
+    var hit=e.recur==='yearly'?(ed.getMonth()===mo&&ed.getDate()===da):e.date===ds;
+    if(hit)items.push({k:'evt',id:e.id,ico:EI[e.type]||'&#11088;',name:e.title,o:0});
+  });
+  tasks.forEach(function(t){if(!t.done&&t.date===ds)items.push({k:'task',id:t.id,ico:'&#9989;',name:t.name,meta:t.room&&t.room!=='General'?t.room:'',o:1});});
+  conges.forEach(function(c){if(c.start<=ds&&c.end>=ds)items.push({k:'conge',id:c.id,ico:'&#127958;',name:c.name,meta:c.end>ds?'jusqu\u2019au '+new Date(c.end).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'dernier jour',o:2,cont:c.start<ds});});
+  var dim=new Date(d.getFullYear(),mo+1,0).getDate();
+  charges.forEach(function(ch){
+    if(!ch.date)return;
+    var cd=new Date(ch.date),due=Math.min(cd.getDate(),dim),hit=false;
+    if(due!==da)return;
+    if(ch.freq==='monthly')hit=true;
+    else if(ch.freq==='yearly')hit=cd.getMonth()===mo;
+    else if(ch.freq==='quarterly')hit=(mo-cd.getMonth()+12)%3===0;
+    if(hit)items.push({k:'charge',id:ch.id,ico:'&#128178;',name:ch.name,meta:fmtEur(parseFloat(ch.amount)||0),o:3});
+  });
+  items.sort(function(a,b){return a.o-b.o;});
+  return items;
+}
+function renderDashWeek(){
+  var el=g('dash-week');if(!el)return;
+  var t0=new Date();t0.setHours(0,0,0,0);
+  var days=[],COL={evt:'var(--purple)',task:'var(--amber)',conge:'var(--blue)',charge:'var(--red)'};
+  for(var i=0;i<7;i++){var d=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()+i);days.push({d:d,items:dayItems(d)});}
+  var h='<div class="wk-head"><div class="stit">Cette semaine</div><button class="wk-link" data-wk="cal">Calendrier &#8250;</button></div><div class="wk-strip">';
+  days.forEach(function(x,i){
+    var we=x.d.getDay()===0||x.d.getDay()===6;
+    var ks={};x.items.forEach(function(it){ks[it.k]=1;});
+    var dots='';Object.keys(ks).slice(0,3).forEach(function(k){dots+='<i style="background:'+COL[k]+'"></i>';});
+    h+='<button class="wk-d'+(i===0?' today':'')+(we?' we':'')+(wkSel===i?' sel':'')+'" data-wd="'+i+'">'
+      +'<span class="w">'+x.d.toLocaleDateString('fr-FR',{weekday:'short'}).replace('.','')+'</span>'
+      +'<span class="n">'+x.d.getDate()+'</span><span class="dots">'+dots+'</span></button>';
+  });
+  h+='</div><div class="wk-list">';
+  var shown=0;
+  days.forEach(function(x,i){
+    if(wkSel!==null&&wkSel!==i)return;
+    if(!x.items.length&&wkSel===null)return;
+    var lbl=i===0?'Aujourd’hui':i===1?'Demain':x.d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric'});
+    h+='<div class="wk-day">'+lbl+'</div>';
+    if(!x.items.length)h+='<div class="wk-empty">Rien de prévu ce jour-là</div>';
+    var vis=x.items.filter(function(it){return !(wkSel===null&&it.k==='conge'&&it.cont&&i>0);});
+    if(wkSel===null&&!vis.length){h=h.slice(0,h.lastIndexOf('<div class="wk-day">'));return;}
+    vis.forEach(function(it){
+      shown++;
+      h+='<div class="wk-it" data-k="'+it.k+'" data-id="'+eh(String(it.id||''))+'"><span class="ic">'+it.ico+'</span><span class="nm">'+eh(it.name||'')+'</span>'+(it.meta?'<span class="mt">'+eh(it.meta)+'</span>':'')+'</div>';
+    });
+  });
+  if(wkSel===null&&!shown)h+='<div class="wk-empty">Semaine calme : rien de prévu &#127811;</div>';
+  h+='</div>';
+  el.innerHTML=h;
+  el.onclick=function(ev){
+    var t=ev.target;
+    while(t&&t!==el){
+      if(t.getAttribute){
+        var wd=t.getAttribute('data-wd');
+        if(wd!==null){var n=parseInt(wd,10);wkSel=wkSel===n?null:n;renderDashWeek();return;}
+        if(t.getAttribute('data-wk')==='cal'){goView('cal');return;}
+        var k=t.getAttribute('data-k');
+        if(k){var id=t.getAttribute('data-id');
+          if(k==='task')openEdit(id);
+          else if(k==='evt')openEvtEdit(id);
+          else if(k==='charge'){goView('budget');openChargeEdit(id);}
+          else goView('cal');
+          return;}
+      }
+      t=t.parentNode;
+    }
+  };
 }
 
 // ══════════ NAVIGATION ══════════
