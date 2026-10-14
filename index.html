@@ -703,6 +703,17 @@ body.light{--purple:#8a5fb8;}
 
 /* Pellets : palette */
 .pbtn.pal{width:auto;padding:0 12px;font-family:var(--fb);font-size:13px;font-weight:700;}
+
+/* Agenda */
+.agenda-btn{width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.agenda-btn.done{border-color:var(--green);color:var(--green);}
+.ag-sum{font-size:13px;color:var(--dim);margin-bottom:14px;}
+.ag-sum b{color:var(--text);font-weight:600;}
+.ag-opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px;margin-bottom:8px;border-radius:14px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--fb);cursor:pointer;}
+.ag-opt:active{border-color:var(--copper);background:var(--glow);}
+.ag-opt b{display:block;font-size:15px;font-weight:700;}
+.ag-opt small{display:block;font-size:12px;color:var(--dim);margin-top:2px;line-height:1.35;}
+.ag-ic{font-size:24px;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -871,7 +882,11 @@ body.light{--purple:#8a5fb8;}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
         <div><label class="flbl">Rappel</label><select id="evt-reminder"><option value="0">Pas de rappel</option><option value="1">1 jour avant</option><option value="3">3 jours avant</option><option value="7">1 semaine avant</option><option value="14">2 semaines avant</option><option value="30">1 mois avant</option></select></div>
-        <div><label class="flbl">Récurrence</label><select id="evt-recur"><option value="none">Aucune</option><option value="yearly">Chaque annee</option></select></div>
+        <div><label class="flbl">Récurrence</label><select id="evt-recur"><option value="none">Aucune</option><option value="yearly">Chaque ann&#233;e</option></select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div><label class="flbl">Heure (facultatif)</label><input type="time" id="evt-time"></div>
+        <div></div>
       </div>
       <button class="bp" style="width:100%;" onclick="addEvt()">+ Ajouter l'événement</button>
     </div>
@@ -1261,9 +1276,13 @@ body.light{--purple:#8a5fb8;}
         <select id="em-recur"><option value="none">Aucune</option><option value="yearly">Chaque annee</option></select>
       </div>
     </div>
-    <div style="margin-bottom:12px;"><label class="flbl">Rappel</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div><label class="flbl">Heure</label><input type="time" id="em-time"></div>
+      <div><label class="flbl">Rappel</label>
       <select id="em-reminder"><option value="0">Pas de rappel</option><option value="1">1 jour avant</option><option value="3">3 jours avant</option><option value="7">1 semaine avant</option><option value="14">2 semaines avant</option><option value="30">1 mois avant</option></select>
+      </div>
     </div>
+    <button class="bs agenda-btn" id="em-agenda" onclick="agendaFromEvt()">&#128197; Ajouter &#224; mon agenda</button>
     <div style="display:flex;justify-content:space-between;gap:8px;">
       <button class="bi del" style="width:auto;padding:0 12px;font-size:12px;" onclick="deleteEvt()">&#10005; Supprimer</button>
       <div style="display:flex;gap:8px;">
@@ -1449,6 +1468,7 @@ body.light{--purple:#8a5fb8;}
       <div><label class="flbl">Coût estime (EUR/an)</label><input type="number" id="edit-cost-ann" min="0" placeholder="0"></div>
       <div><label class="flbl">Coût derniere intervention (EUR)</label><input type="number" id="edit-cost-last" min="0" placeholder="0"></div>
     </div>
+    <button class="bs agenda-btn" id="edit-agenda" onclick="agendaFromTask()" style="margin-top:12px;">&#128197; Ajouter &#224; mon agenda</button>
     <div class="modal-footer">
       <button class="bi del" style="width:auto;padding:0 12px;font-size:12px;" onclick="deleteFromModal()">&#10005; Supprimer</button>
       <div style="display:flex;gap:8px;">
@@ -1563,6 +1583,15 @@ body.light{--purple:#8a5fb8;}
       <div><label class="flbl">Libell&#233; (facultatif)</label><input type="text" id="qd-name" placeholder="Auto"></div>
       <div><label class="flbl">Date</label><input type="date" id="qd-date"></div>
     </div>
+  </div>
+</div>
+
+<div id="agenda-sheet" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:260;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeAgenda(event)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:560px;animation:fu .25s ease;border-top:3px solid var(--copper);">
+    <div style="font-family:var(--fd);font-size:22px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><span>Ajouter &#224; mon agenda</span><button class="bi" onclick="closeAgenda()">&#10005;</button></div>
+    <div id="ag-sum" class="ag-sum"></div>
+    <button class="ag-opt" onclick="agendaGo('google')"><span class="ag-ic">&#128197;</span><span><b>Google Agenda</b><small>L&#8217;&#233;v&#233;nement s&#8217;ouvre pr&#234;t : touchez Enregistrer. Le rappel suit les r&#233;glages de votre agenda.</small></span></button>
+    <button class="ag-opt" onclick="agendaGo('ics')"><span class="ag-ic">&#128276;</span><span><b>Autre agenda (fichier)</b><small id="ag-ics-sub">Samsung Agenda, etc. Rappel int&#233;gr&#233;.</small></span></button>
   </div>
 </div>
 
@@ -2271,6 +2300,7 @@ function saveEvt(){
   var tp=g('em-type');if(tp)e.type=tp.value;
   var rc=g('em-recur');if(rc)e.recur=rc.value;
   var rm=g('em-reminder');if(rm)e.reminder=parseInt(rm.value)||0;
+  var tm=g('em-time');if(tm)e.time=tm.value||'';
   saveEvts();
   var m=g('evt-modal');if(m){m.classList.add('hidden');m.style.display='none';}
   evtEditId=null;
@@ -3239,6 +3269,7 @@ function openEdit(id){
   if(cl)cl.value=t.costLast||'';
   if(r){for(var i=0;i<r.options.length;i++){if(r.options[i].value===t.room){r.selectedIndex=i;break;}}}
   if(ca){for(var i=0;i<ca.options.length;i++){if(ca.options[i].value===t.cat){ca.selectedIndex=i;break;}}}
+  agendaBtnState('edit-agenda',t);
   var modal=document.getElementById('edit-modal');
   if(modal){modal.classList.remove('hidden');modal.style.display='flex';}
   if(n)n.focus();
@@ -4385,7 +4416,9 @@ function addEvt(){
   var type=(g('evt-type')||{}).value||'evt';
   var reminder=parseInt(((g('evt-reminder')||{}).value)||0);
   var recur=((g('evt-recur')||{}).value)||'none';
-  events.push({id:uid(),title:title.trim(),date:date,type:type,reminder:reminder,recur:recur});
+  var etime=((g('evt-time')||{}).value)||'';
+  events.push({id:uid(),title:title.trim(),date:date,time:etime,type:type,reminder:reminder,recur:recur});
+  if(g('evt-time'))g('evt-time').value='';
   if(g('evt-title'))g('evt-title').value='';
   saveEvts();renderCal();renderTodayEvents();toast('Événement ajouté');
 }
@@ -4399,6 +4432,8 @@ function openEvtEdit(id){
   sv('em-type',function(el){el.value=e.type||'evt';});
   sv('em-recur',function(el){el.value=e.recur||'none';});
   sv('em-reminder',function(el){el.value=e.reminder||0;});
+  sv('em-time',function(el){el.value=evtTime(e);});
+  agendaBtnState('em-agenda',e);
   m.classList.remove('hidden');m.style.display='flex';
 }
 
@@ -4717,7 +4752,7 @@ function dayItems(d){
     if(!e.date)return;
     var ed=new Date(e.date);
     var hit=e.recur==='yearly'?(ed.getMonth()===mo&&ed.getDate()===da):e.date===ds;
-    if(hit)items.push({k:'evt',id:e.id,ico:EI[e.type]||'&#11088;',name:e.title,o:0});
+    if(hit)items.push({k:'evt',id:e.id,ico:EI[e.type]||'&#11088;',name:e.title,meta:e.time?e.time.replace(':','h'):'',o:0,t:e.time||''});
   });
   tasks.forEach(function(t){if(!t.done&&t.date===ds)items.push({k:'task',id:t.id,ico:'&#9989;',name:t.name,meta:t.room&&t.room!=='General'?t.room:'',o:1});});
   conges.forEach(function(c){if(c.start<=ds&&c.end>=ds)items.push({k:'conge',id:c.id,ico:'&#127958;',name:c.name,meta:c.end>ds?'jusqu\u2019au '+new Date(c.end).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'dernier jour',o:2,cont:c.start<ds});});
@@ -4731,7 +4766,7 @@ function dayItems(d){
     else if(ch.freq==='quarterly')hit=(mo-cd.getMonth()+12)%3===0;
     if(hit)items.push({k:'charge',id:ch.id,ico:'&#128178;',name:ch.name,amt:parseFloat(ch.amount)||0,meta:fmtEur(parseFloat(ch.amount)||0),o:3});
   });
-  items.sort(function(a,b){return a.o-b.o;});
+  items.sort(function(a,b){return a.o-b.o||(a.t||'99').localeCompare(b.t||'99');});
   return items;
 }
 function renderDashWeek(){
@@ -4792,6 +4827,109 @@ function renderDashWeek(){
       t=t.parentNode;
     }
   };
+}
+
+// ══════════ AJOUT A L'AGENDA DU TELEPHONE ══════════
+var agCur=null;
+function evtTime(e){
+  if(e&&e.time)return e.time;
+  var m=/(\d{1,2})\s*h\s*(\d{2})?/i.exec((e&&e.title)||'');
+  if(m&&+m[1]<24)return pad2(+m[1])+':'+(m[2]||'00');
+  return '';
+}
+function agendaBtnState(id,obj){
+  sv(id,function(b){
+    var done=obj&&obj.agendaAt;
+    b.className='bs agenda-btn'+(done?' done':'');
+    b.innerHTML=done?'&#10003; Dans mon agenda depuis le '+fd(obj.agendaAt)+' &middot; rajouter':'&#128197; Ajouter &#224; mon agenda';
+  });
+}
+function nextYearly(ds){
+  var d=new Date(ds),t=new Date();t.setHours(0,0,0,0);
+  var n=new Date(t.getFullYear(),d.getMonth(),d.getDate());
+  if(n<t)n.setFullYear(n.getFullYear()+1);
+  return isoD(n);
+}
+function agendaFromEvt(){
+  var e=events.find(function(x){return x.id===evtEditId;});
+  var title=(g('em-title').value||'').trim()||(e&&e.title)||'';
+  var date=g('em-date').value||(e&&e.date);
+  if(!title||!date){toast('Titre et date requis');return;}
+  var recur=g('em-recur').value;
+  var tm=g('em-time').value||evtTime({title:title});
+  openAgenda({kind:'evt',ref:e,uid:(e?e.id:uid()),title:title,date:recur==='yearly'?nextYearly(date):date,time:tm,
+    rrule:recur==='yearly'?'FREQ=YEARLY':'',alarmDays:parseInt(g('em-reminder').value,10)||0,details:''});
+}
+function agendaFromTask(){
+  var t=tasks.find(function(x){return x.id===editId;});
+  var title=(g('edit-name').value||'').trim()||(t&&t.name)||'';
+  var date=g('edit-date').value||(t&&t.date);
+  if(!title||!date){toast('Nom et date requis');return;}
+  var rc=g('edit-recur').value,RR={monthly:'FREQ=MONTHLY',quarterly:'FREQ=MONTHLY;INTERVAL=3',yearly:'FREQ=YEARLY'};
+  var det=[];var no=(g('edit-notes').value||'').trim(),pr=(g('edit-prest').value||'').trim();
+  if(no)det.push(no);if(pr)det.push('Contact : '+pr);
+  openAgenda({kind:'task',ref:t,uid:(t?t.id:uid()),title:title,date:date,time:'',rrule:RR[rc]||'',alarmDays:0,details:det.join('\n')});
+}
+function openAgenda(o){
+  agCur=o;
+  var d=new Date(o.date+'T12:00:00');
+  var when=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})+(o.time?' &#224; '+o.time.replace(':','h'):' (toute la journ&#233;e)');
+  var rr=o.rrule?(o.rrule.indexOf('YEARLY')>=0?' &middot; chaque ann&#233;e':o.rrule.indexOf('INTERVAL=3')>=0?' &middot; tous les 3 mois':' &middot; chaque mois'):'';
+  sv('ag-sum',function(e){e.innerHTML='<b>'+eh(o.title)+'</b><br>'+when+rr;});
+  var al=o.time?'30 min avant':'le jour m&#234;me &#224; 9h';
+  if(o.alarmDays>0)al+=' + '+o.alarmDays+' jour'+(o.alarmDays>1?'s':'')+' avant';
+  sv('ag-ics-sub',function(e){e.innerHTML='Samsung Agenda, etc. Rappel int&#233;gr&#233; : '+al+'.';});
+  mShow('agenda-sheet');
+}
+function closeAgenda(ev){if(ev&&ev.target!==g('agenda-sheet'))return;mHide('agenda-sheet');}
+function agStamp(date,time,addMin){
+  var p=date.split('-'),y=+p[0],m=+p[1]-1,d=+p[2];
+  if(!time){var x=new Date(y,m,d+(addMin||0));return ''+x.getFullYear()+pad2(x.getMonth()+1)+pad2(x.getDate());}
+  var hm=time.split(':'),dt=new Date(y,m,d,+hm[0],+hm[1]+(addMin||0));
+  return ''+dt.getFullYear()+pad2(dt.getMonth()+1)+pad2(dt.getDate())+'T'+pad2(dt.getHours())+pad2(dt.getMinutes())+'00';
+}
+function agendaGoogleUrl(o){
+  var dates=o.time?agStamp(o.date,o.time,0)+'/'+agStamp(o.date,o.time,60):agStamp(o.date,'',0)+'/'+agStamp(o.date,'',1);
+  var u='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(o.title)+'&dates='+dates
+    +'&details='+encodeURIComponent((o.details?o.details+'\n\n':'')+'Ajout\u00e9 depuis Domicile');
+  if(o.time)u+='&ctz=Europe/Paris';
+  if(o.rrule)u+='&recur='+encodeURIComponent('RRULE:'+o.rrule);
+  return u;
+}
+function icsEsc(t){return String(t||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');}
+function agendaIcs(o){
+  var now=new Date(),st=now.getUTCFullYear()+pad2(now.getUTCMonth()+1)+pad2(now.getUTCDate())+'T'+pad2(now.getUTCHours())+pad2(now.getUTCMinutes())+pad2(now.getUTCSeconds())+'Z';
+  var L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Domicile//FR','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+    'UID:'+o.uid+'-'+st+'@domicile','DTSTAMP:'+st];
+  if(o.time){L.push('DTSTART:'+agStamp(o.date,o.time,0));L.push('DTEND:'+agStamp(o.date,o.time,60));}
+  else{L.push('DTSTART;VALUE=DATE:'+agStamp(o.date,'',0));L.push('DTEND;VALUE=DATE:'+agStamp(o.date,'',1));}
+  L.push('SUMMARY:'+icsEsc(o.title));
+  if(o.details)L.push('DESCRIPTION:'+icsEsc(o.details));
+  if(o.rrule)L.push('RRULE:'+o.rrule);
+  function alarm(trig){L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsEsc(o.title),'TRIGGER:'+trig,'END:VALARM');}
+  alarm(o.time?'-PT30M':'PT9H');
+  if(o.alarmDays>0)alarm(o.time?'-P'+o.alarmDays+'D':'-PT'+(o.alarmDays*24-9)+'H');
+  L.push('END:VEVENT','END:VCALENDAR');
+  return L.join('\r\n')+'\r\n';
+}
+function agendaGo(how){
+  var o=agCur;if(!o)return;
+  if(how==='google'){window.open(agendaGoogleUrl(o),'_blank');}
+  else{
+    var blob=new Blob([agendaIcs(o)],{type:'text/calendar;charset=utf-8'});
+    var url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=(o.title||'evenement').replace(/[^\w\u00C0-\u017F -]/g,'').trim().replace(/\s+/g,'-').slice(0,40)+'.ics';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},4000);
+    toast('Fichier agenda t\u00e9l\u00e9charg\u00e9 : ouvrez-le pour l\u2019ajouter');
+  }
+  if(o.ref){
+    o.ref.agendaAt=tod();
+    if(o.kind==='evt'){saveEvts();agendaBtnState('em-agenda',o.ref);}
+    else{saveT();agendaBtnState('edit-agenda',o.ref);}
+    scheduleGhPush();
+  }
+  mHide('agenda-sheet');
 }
 
 // ══════════ NAVIGATION ══════════
