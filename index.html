@@ -714,6 +714,21 @@ body.light{--purple:#8a5fb8;}
 .ag-opt b{display:block;font-size:15px;font-weight:700;}
 .ag-opt small{display:block;font-size:12px;color:var(--dim);margin-top:2px;line-height:1.35;}
 .ag-ic{font-size:24px;flex-shrink:0;}
+
+/* Envoi groupe vers l'agenda */
+.bk-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.bk-chip{padding:7px 12px;border-radius:999px;border:1px solid var(--border);background:var(--bg3);color:var(--dim);font-family:var(--fb);font-size:13px;font-weight:600;cursor:pointer;}
+.bk-chip.on{background:var(--glow);border-color:var(--copper);color:var(--cl);}
+.bk-new{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);margin-bottom:10px;cursor:pointer;}
+.bk-new input{width:18px;height:18px;padding:0;accent-color:var(--copper);}
+.bk-list{max-height:34vh;overflow-y:auto;border:1px solid var(--border);border-radius:12px;padding:2px 12px;background:var(--bg3);}
+.bk-it{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.bk-it:last-child{border-bottom:none;}
+.bk-it .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bk-it .mt{font-size:12px;color:var(--dim);white-space:nowrap;}
+.bk-it .sent{font-size:11px;color:var(--green);}
+.bk-help{font-size:12px;color:var(--dim);line-height:1.5;margin-top:14px;}
+.bk-help b{color:var(--text);}
 </style>
 </head>
 <body>
@@ -869,6 +884,7 @@ body.light{--purple:#8a5fb8;}
     <button class="bs" style="flex:1;padding:10px;font-size:12px;" onclick="calFormToggle('cal-form-evt',this)">&#127881; + Événement</button>
     <button class="bs" style="flex:1;padding:10px;font-size:12px;" onclick="calFormToggle('cal-form-conge',this)">&#127958; + Congés</button>
   </div>
+  <button class="bs agenda-btn" style="margin-top:8px;padding:10px;font-size:12px;" onclick="openBulkAgenda()">&#128228; Envoyer mes &#233;v&#233;nements vers mon agenda</button>
 
   <div id="cal-form-evt" style="display:none;margin-top:10px;">
     <div class="card" style="padding:14px;border-left:3px solid var(--cl);">
@@ -1592,6 +1608,22 @@ body.light{--purple:#8a5fb8;}
     <div id="ag-sum" class="ag-sum"></div>
     <button class="ag-opt" onclick="agendaGo('google')"><span class="ag-ic">&#128197;</span><span><b>Google Agenda</b><small>L&#8217;&#233;v&#233;nement s&#8217;ouvre pr&#234;t : touchez Enregistrer. Le rappel suit les r&#233;glages de votre agenda.</small></span></button>
     <button class="ag-opt" onclick="agendaGo('ics')"><span class="ag-ic">&#128276;</span><span><b>Autre agenda (fichier)</b><small id="ag-ics-sub">Samsung Agenda, etc. Rappel int&#233;gr&#233;.</small></span></button>
+  </div>
+</div>
+
+<div id="bulk-sheet" class="hidden" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:260;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeBulk(event)">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:fu .25s ease;border-top:3px solid var(--copper);">
+    <div style="font-family:var(--fd);font-size:22px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><span>Envoyer vers mon agenda</span><button class="bi" onclick="closeBulk()">&#10005;</button></div>
+    <div class="ag-sum">Un seul fichier avec tous les &#233;v&#233;nements choisis, rappels compris.</div>
+    <div class="bk-chips" id="bk-chips"></div>
+    <label class="bk-new"><input type="checkbox" id="bk-only-new" onchange="renderBulk()"> Seulement ceux pas encore envoy&#233;s</label>
+    <div id="bk-list" class="bk-list"></div>
+    <button class="bp" id="bk-go" style="width:100%;margin-top:12px;" onclick="bulkGo()">T&#233;l&#233;charger le fichier</button>
+    <div class="bk-help">
+      <b>Samsung Agenda :</b> ouvrez le fichier t&#233;l&#233;charg&#233; (notification ou dossier T&#233;l&#233;chargements), choisissez Agenda, puis Ajouter.<br>
+      <b>Google Agenda :</b> l&#8217;appli ne lit pas ces fichiers. Sur un ordinateur : calendar.google.com &#8594; Param&#232;tres &#8594; Importer et exporter &#8594; choisir le fichier.<br>
+      Renvoyer un &#233;v&#233;nement d&#233;j&#224; import&#233; le met &#224; jour au lieu de le dupliquer.
+    </div>
   </div>
 </div>
 
@@ -4897,30 +4929,95 @@ function agendaGoogleUrl(o){
   return u;
 }
 function icsEsc(t){return String(t||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');}
-function agendaIcs(o){
+function agendaIcs(o){return agendaIcsMulti([o]);}
+function agendaIcsMulti(list){
   var now=new Date(),st=now.getUTCFullYear()+pad2(now.getUTCMonth()+1)+pad2(now.getUTCDate())+'T'+pad2(now.getUTCHours())+pad2(now.getUTCMinutes())+pad2(now.getUTCSeconds())+'Z';
-  var L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Domicile//FR','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
-    'UID:'+o.uid+'-'+st+'@domicile','DTSTAMP:'+st];
-  if(o.time){L.push('DTSTART:'+agStamp(o.date,o.time,0));L.push('DTEND:'+agStamp(o.date,o.time,60));}
-  else{L.push('DTSTART;VALUE=DATE:'+agStamp(o.date,'',0));L.push('DTEND;VALUE=DATE:'+agStamp(o.date,'',1));}
-  L.push('SUMMARY:'+icsEsc(o.title));
-  if(o.details)L.push('DESCRIPTION:'+icsEsc(o.details));
-  if(o.rrule)L.push('RRULE:'+o.rrule);
-  function alarm(trig){L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsEsc(o.title),'TRIGGER:'+trig,'END:VALARM');}
-  alarm(o.time?'-PT30M':'PT9H');
-  if(o.alarmDays>0)alarm(o.time?'-P'+o.alarmDays+'D':'-PT'+(o.alarmDays*24-9)+'H');
-  L.push('END:VEVENT','END:VCALENDAR');
+  var L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Domicile//FR','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Domicile'];
+  list.forEach(function(o){
+    L.push('BEGIN:VEVENT','UID:'+o.uid+'@domicile','DTSTAMP:'+st);
+    if(o.time){L.push('DTSTART:'+agStamp(o.date,o.time,0));L.push('DTEND:'+agStamp(o.date,o.time,60));}
+    else{L.push('DTSTART;VALUE=DATE:'+agStamp(o.date,'',0));L.push('DTEND;VALUE=DATE:'+agStamp(o.date,'',1));}
+    L.push('SUMMARY:'+icsEsc(o.title));
+    if(o.details)L.push('DESCRIPTION:'+icsEsc(o.details));
+    if(o.rrule)L.push('RRULE:'+o.rrule);
+    function alarm(trig){L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsEsc(o.title),'TRIGGER:'+trig,'END:VALARM');}
+    alarm(o.time?'-PT30M':'PT9H');
+    if(o.alarmDays>0)alarm(o.time?'-P'+o.alarmDays+'D':'-PT'+(o.alarmDays*24-9)+'H');
+    L.push('END:VEVENT');
+  });
+  L.push('END:VCALENDAR');
   return L.join('\r\n')+'\r\n';
+}
+function downloadIcs(text,name){
+  var blob=new Blob([text],{type:'text/calendar;charset=utf-8'});
+  var url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},4000);
+}
+
+// ══════════ ENVOI GROUPE VERS L'AGENDA ══════════
+var BK_TYPES=[{k:'rdv',l:'&#128197; RDV'},{k:'birthday',l:'&#127881; Anniversaires'},{k:'evt',l:'&#11088; &#201;v&#233;nements'},{k:'fete',l:'&#127878; F&#234;tes'}];
+var bkOn={rdv:1,birthday:1,evt:1,fete:1};
+function evtToAgenda(e){
+  var tm=evtTime(e);
+  return{kind:'evt',ref:e,uid:e.id,title:e.title,date:e.recur==='yearly'?nextYearly(e.date):e.date,time:tm,
+    rrule:e.recur==='yearly'?'FREQ=YEARLY':'',alarmDays:parseInt(e.reminder,10)||0,details:''};
+}
+function bulkCandidates(){
+  var t=tod(),out=[];
+  events.forEach(function(e){
+    if(!e||!e.date||!e.title)return;
+    var ty=bkOn.hasOwnProperty(e.type)?e.type:'evt';
+    if(!bkOn[ty])return;
+    if(e.recur!=='yearly'&&e.date<t)return;
+    var only=g('bk-only-new');
+    if(only&&only.checked&&e.agendaAt)return;
+    out.push(e);
+  });
+  out.sort(function(a,b){var da=a.recur==='yearly'?nextYearly(a.date):a.date,db=b.recur==='yearly'?nextYearly(b.date):b.date;return da.localeCompare(db);});
+  return out;
+}
+function openBulkAgenda(){
+  var any=events.some(function(e){return e.agendaAt;});
+  sv('bk-only-new',function(e){e.checked=any;});
+  renderBulk();
+  mShow('bulk-sheet');
+}
+function closeBulk(ev){if(ev&&ev.target!==g('bulk-sheet'))return;mHide('bulk-sheet');}
+function renderBulk(){
+  sv('bk-chips',function(el){
+    var h='';BK_TYPES.forEach(function(x){h+='<button class="bk-chip'+(bkOn[x.k]?' on':'')+'" data-bk="'+x.k+'">'+x.l+'</button>';});
+    el.innerHTML=h;
+    el.onclick=function(ev){var t=ev.target;while(t&&t!==el){var k=t.getAttribute&&t.getAttribute('data-bk');if(k){bkOn[k]=bkOn[k]?0:1;renderBulk();return;}t=t.parentNode;}};
+  });
+  var list=bulkCandidates();
+  var EI={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'};
+  sv('bk-list',function(el){
+    if(!list.length){el.innerHTML='<div class="wk-empty">Rien &#224; envoyer avec ces choix</div>';return;}
+    var h='';
+    list.forEach(function(e){
+      var o=evtToAgenda(e),d=new Date(o.date+'T12:00:00');
+      var meta=d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+(o.time?' '+o.time.replace(':','h'):'')+(e.recur==='yearly'?' &#8635;':'');
+      h+='<div class="bk-it"><span>'+(EI[e.type]||'&#11088;')+'</span><span class="nm">'+eh(e.title)+'</span>'+(e.agendaAt?'<span class="sent">&#10003; envoy&#233;</span>':'')+'<span class="mt">'+meta+'</span></div>';
+    });
+    el.innerHTML=h;
+  });
+  sv('bk-go',function(b){b.disabled=!list.length;b.style.opacity=list.length?'1':'.5';b.textContent=list.length?'Télécharger le fichier ('+list.length+' événement'+(list.length>1?'s':'')+')':'Rien à envoyer';});
+}
+function bulkGo(){
+  var list=bulkCandidates();if(!list.length)return;
+  downloadIcs(agendaIcsMulti(list.map(evtToAgenda)),'domicile-agenda-'+tod()+'.ics');
+  var t=tod();list.forEach(function(e){e.agendaAt=t;});
+  saveEvts();scheduleGhPush();
+  mHide('bulk-sheet');
+  toast(list.length+' événement'+(list.length>1?'s':'')+' dans le fichier : ouvrez-le pour les ajouter');
 }
 function agendaGo(how){
   var o=agCur;if(!o)return;
   if(how==='google'){window.open(agendaGoogleUrl(o),'_blank');}
   else{
-    var blob=new Blob([agendaIcs(o)],{type:'text/calendar;charset=utf-8'});
-    var url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=(o.title||'evenement').replace(/[^\w\u00C0-\u017F -]/g,'').trim().replace(/\s+/g,'-').slice(0,40)+'.ics';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    setTimeout(function(){URL.revokeObjectURL(url);},4000);
+    downloadIcs(agendaIcs(o),(o.title||'evenement').replace(/[^\w\u00C0-\u017F -]/g,'').trim().replace(/\s+/g,'-').slice(0,40)+'.ics');
     toast('Fichier agenda t\u00e9l\u00e9charg\u00e9 : ouvrez-le pour l\u2019ajouter');
   }
   if(o.ref){
