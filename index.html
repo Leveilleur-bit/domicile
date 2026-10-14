@@ -679,6 +679,11 @@ body.light{--purple:#8a5fb8;}
 .wk-it .ic{width:22px;text-align:center;font-size:15px;flex-shrink:0;}
 .wk-it .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .wk-it .mt{font-size:12px;color:var(--dim);white-space:nowrap;}
+.wk-chg .mt{color:var(--text);font-weight:600;}
+.wk-chev{font-size:12px;color:var(--dim);margin-left:8px;transition:transform .2s;display:inline-block;}
+.wk-chev.open{transform:rotate(90deg);}
+.wk-it.sub{padding:6px 0 6px 22px;font-size:13px;border-bottom:none;}
+.wk-it.sub .ic{font-size:12px;opacity:.6;}
 .wk-empty{font-size:13px;color:var(--dim);padding:12px 0;text-align:center;}
 
 /* Depense express */
@@ -4704,7 +4709,7 @@ function pAutonomy(){
 }
 
 // ══════════ ACCUEIL : CETTE SEMAINE ══════════
-var wkSel=null;
+var wkSel=null,wkChgOpen={};
 function dayItems(d){
   var ds=isoD(d),items=[],mo=d.getMonth(),da=d.getDate();
   var EI={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'};
@@ -4724,7 +4729,7 @@ function dayItems(d){
     if(ch.freq==='monthly')hit=true;
     else if(ch.freq==='yearly')hit=cd.getMonth()===mo;
     else if(ch.freq==='quarterly')hit=(mo-cd.getMonth()+12)%3===0;
-    if(hit)items.push({k:'charge',id:ch.id,ico:'&#128178;',name:ch.name,meta:fmtEur(parseFloat(ch.amount)||0),o:3});
+    if(hit)items.push({k:'charge',id:ch.id,ico:'&#128178;',name:ch.name,amt:parseFloat(ch.amount)||0,meta:fmtEur(parseFloat(ch.amount)||0),o:3});
   });
   items.sort(function(a,b){return a.o-b.o;});
   return items;
@@ -4753,10 +4758,16 @@ function renderDashWeek(){
     if(!x.items.length)h+='<div class="wk-empty">Rien de prévu ce jour-là</div>';
     var vis=x.items.filter(function(it){return !(wkSel===null&&it.k==='conge'&&it.cont&&i>0);});
     if(wkSel===null&&!vis.length){h=h.slice(0,h.lastIndexOf('<div class="wk-day">'));return;}
-    vis.forEach(function(it){
+    function row(it,sub){return '<div class="wk-it'+(sub?' sub':'')+'" data-k="'+it.k+'" data-id="'+eh(String(it.id||''))+'"><span class="ic">'+it.ico+'</span><span class="nm">'+eh(it.name||'')+'</span>'+(it.meta?'<span class="mt">'+eh(it.meta)+'</span>':'')+'</div>';}
+    var chg=vis.filter(function(it){return it.k==='charge';});
+    vis.forEach(function(it){if(it.k==='charge'&&chg.length>1)return;shown++;h+=row(it);});
+    if(chg.length>1){
       shown++;
-      h+='<div class="wk-it" data-k="'+it.k+'" data-id="'+eh(String(it.id||''))+'"><span class="ic">'+it.ico+'</span><span class="nm">'+eh(it.name||'')+'</span>'+(it.meta?'<span class="mt">'+eh(it.meta)+'</span>':'')+'</div>';
-    });
+      var key=isoD(x.d),open=!!wkChgOpen[key],tot=0;
+      chg.forEach(function(it){tot+=it.amt||0;});
+      h+='<div class="wk-it wk-chg" data-chg="'+key+'"><span class="ic">&#128178;</span><span class="nm">'+chg.length+' pr\u00e9l\u00e8vements</span><span class="mt">'+fmtEur(tot)+'</span><span class="wk-chev'+(open?' open':'')+'">&#9656;</span></div>';
+      if(open)chg.forEach(function(it){h+=row(it,true);});
+    }
   });
   if(wkSel===null&&!shown)h+='<div class="wk-empty">Semaine calme : rien de prévu &#127811;</div>';
   h+='</div>';
@@ -4768,6 +4779,8 @@ function renderDashWeek(){
         var wd=t.getAttribute('data-wd');
         if(wd!==null){var n=parseInt(wd,10);wkSel=wkSel===n?null:n;renderDashWeek();return;}
         if(t.getAttribute('data-wk')==='cal'){goView('cal');return;}
+        var cg=t.getAttribute('data-chg');
+        if(cg){wkChgOpen[cg]=!wkChgOpen[cg];renderDashWeek();return;}
         var k=t.getAttribute('data-k');
         if(k){var id=t.getAttribute('data-id');
           if(k==='task')openEdit(id);
