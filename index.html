@@ -737,6 +737,7 @@ body.light{--purple:#8a5fb8;}
 .toast-undo{background:none;border:none;color:var(--cl);font-family:var(--fb);font-size:14px;font-weight:800;padding:4px 2px;cursor:pointer;white-space:nowrap;text-transform:uppercase;letter-spacing:.04em;}
 .ember-order{font-size:12px;color:var(--text);margin-top:3px;}
 .ember-order.soon{color:var(--amber);font-weight:600;}
+.srow.srow2{grid-template-columns:1fr 1fr;}
 </style>
 </head>
 <body>
@@ -784,12 +785,9 @@ body.light{--purple:#8a5fb8;}
   <div id="dash-hello"></div>
   <div id="dash-week"></div>
   <div id="onboard-banner"></div>
-  <div id="today-events"></div>
   <div id="dash-events"></div>
   <div id="urg-banner"></div>
-  <div class="srow">
-    <div class="sc r"><div class="sc-l">En retard</div><div class="sc-v" id="s-urg">0</div><div class="sc-s">urgentes</div></div>
-    <div class="sc a"><div class="sc-l">Ce mois</div><div class="sc-v" id="s-sn">0</div><div class="sc-s">à venir</div></div>
+  <div class="srow srow2">
     <div class="sc g" style="cursor:pointer;" onclick="showView('budget',document.querySelector('[data-view=budget]'))"><div class="sc-l">Budget mois</div><div class="sc-v" id="s-budget" style="font-size:20px;">-</div><div class="sc-s" id="s-budget-sub">EUR</div></div>
     <div class="sc b" style="cursor:pointer;" onclick="showView('tasks',document.querySelector('[data-view=tasks]'))"><div class="sc-l">Prochain entretien</div><div class="sc-v" id="s-next" style="font-size:20px;">-</div><div class="sc-s" id="s-next-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</div></div>
   </div>
@@ -815,7 +813,6 @@ body.light{--purple:#8a5fb8;}
       <div id="d-trv-todo"></div>
     </div>
   </div>
-  <div id="d-birthdays"></div>
   <div id="d-cpt-releve"></div>
 </div>
 
@@ -1893,29 +1890,7 @@ function renderStats(){
   
   sv('urg-banner',function(e){
     var alerts=[];
-    // Taches en retard
-    if(urg.length>0)alerts.push({txt:'&#9888; '+urg.length+' tâche'+(urg.length>1?'s':'')+' en retard',col:'var(--red)',act:'goTasks()'});
-    // Stock pellets bas (saison active)
-    var nm3=new Date().getMonth();
-    var pelletActive=(nm3>=9||nm3<=4);
-    if(pelletActive&&PD&&typeof PD.stk!=='undefined'){
-      var th3=PD.thr||10;
-      if(PD.stk<=th3)alerts.push({txt:'&#128293; Stock pellets bas ('+PD.stk+' sac'+(PD.stk>1?'s':'')+')',col:'var(--red)',act:"goView('pellet')"});
-    }
-    // Anniversaires dans les 7 jours
     var today4=new Date();today4.setHours(0,0,0,0);
-    var bdaySoon=[];
-    events.forEach(function(ev){
-      if(ev.type!=='birthday')return;
-      var d=new Date(ev.date);
-      var ty=new Date(today4.getFullYear(),d.getMonth(),d.getDate());ty.setHours(0,0,0,0);
-      if(ty<today4)ty.setFullYear(today4.getFullYear()+1);
-      var dd=Math.floor((ty-today4)/86400000);
-      if(dd>=0&&dd<=7)bdaySoon.push({name:ev.title,days:dd});
-    });
-    bdaySoon.forEach(function(b){
-      alerts.push({txt:'&#127881; '+b.name+(b.days===0?" aujourd'hui !":' dans '+b.days+'j'),col:'var(--cl)',act:"goView('cal')"});
-    });
     // Relevé compteurs : des le 1er, tant que rien n'est saisi ce mois-ci
     var cr=cptNeedsReleve();
     if(cr.any)alerts.push({txt:'&#128202; Relev&#233; des compteurs '+(cr.elec?'&#9889;':'')+(cr.eau?'&#128167;':'')+' &#224; faire ce mois-ci',col:'var(--blue)',act:"goView('cpt')"});
@@ -2223,18 +2198,6 @@ function renderDashCpt(){
   var h='<div class="cpt-dash">';
   h+='<div class="cpt-dash-header"><span class="cpt-dash-title">Compteurs</span>';
   h+='<button class="bs" style="font-size:11px;padding:4px 9px;" onclick="goToCpt()">Voir tout</button></div>';
-  if(isFirst){
-    var lastElec=elecData.length?elecData[elecData.length-1]:null;
-    var lastEau=eauData.length?eauData[eauData.length-1]:null;
-    var needsElec=crq.elec;
-    var needsEau=crq.eau;
-    if(needsElec||needsEau){
-      h+='<div class="releve-banner">'
-        +'<span>&#128197; Pensez &#224; relever vos compteurs ce mois-ci'+(needsElec?' &#9889;':'')+(needsEau?' &#128167;':'')+'</span>'
-        +'<button onclick="goToCpt()">Saisir</button>'
-        +'</div>';
-    }
-  }
   h+='<div class="cpt-dash-cards">';
   var lastE=elecData.length?elecData[elecData.length-1]:null;
   var prevE=elecData.length>=2?elecData[elecData.length-2]:null;
