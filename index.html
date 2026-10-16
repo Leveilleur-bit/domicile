@@ -738,6 +738,11 @@ body.light{--purple:#8a5fb8;}
 .ember-order{font-size:12px;color:var(--text);margin-top:3px;}
 .ember-order.soon{color:var(--amber);font-weight:600;}
 .srow.srow2{grid-template-columns:1fr 1fr;}
+.sn-head{cursor:pointer;user-select:none;}
+.sn-head::after{order:2;}
+.sn-count{order:3;font-family:var(--fb);font-size:13px;font-weight:600;color:var(--dim);letter-spacing:0;}
+.sn-chev{order:4;font-size:13px;color:var(--dim);transition:transform .2s;display:inline-block;}
+.sn-chev.open{transform:rotate(90deg);}
 </style>
 </head>
 <body>
@@ -799,8 +804,8 @@ body.light{--purple:#8a5fb8;}
       <div class="tl" id="d-urg"></div>
     </div>
     <div>
-      <div class="stit">Ce mois-ci</div>
-      <div class="tl" id="d-sn"></div>
+      <div class="stit sn-head" onclick="toggleSn()"><span>Ce mois-ci</span><span class="sn-count" id="sn-count"></span><span class="sn-chev" id="sn-chev">&#9656;</span></div>
+      <div class="tl" id="d-sn" style="display:none;"></div>
     </div>
   </div>
   <div class="dgrid">
@@ -1922,6 +1927,8 @@ function renderDash(){
   var sn=tasks.filter(function(t){return!t.done&&tstat(t)==='soon';}).sort(function(a,b){return a.date.localeCompare(b.date);});
   sv('d-urg',function(e){e.innerHTML=urg.length?urg.map(thtml).join(''):'<div class="empty"><div class="eico">&#10003;</div>Aucune tache urgente</div>';});
   sv('d-sn',function(e){e.innerHTML=sn.length?sn.map(thtml).join(''):'<div class="empty"><div class="eico">&#9671;</div>Rien ce mois-ci</div>';});
+  sv('sn-count',function(e){e.textContent=sn.length?sn.length+' t\u00e2che'+(sn.length>1?'s':''):'rien';});
+  applySn();
   renderDashTravaux();
 }
 
@@ -5073,6 +5080,18 @@ function undoRemove(kind,obj,idx){
   else if(kind==='qz'){back(qzActions);saveQZ();renderQZ();}
   renderAll();scheduleGhPush();
   toast('Restauré');
+}
+
+// ══════════ ACCUEIL : CE MOIS-CI DEPLIABLE ══════════
+function snOpen(){try{return localStorage.getItem('dash_sn_open')==='1';}catch(e){return false;}}
+function applySn(){
+  var o=snOpen();
+  sv('d-sn',function(e){e.style.display=o?'':'none';});
+  sv('sn-chev',function(e){e.className='sn-chev'+(o?' open':'');});
+}
+function toggleSn(){
+  try{localStorage.setItem('dash_sn_open',snOpen()?'0':'1');}catch(e){}
+  applySn();
 }
 
 // ══════════ NAVIGATION ══════════
