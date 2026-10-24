@@ -457,7 +457,12 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 .bdg-cat-bg{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;}
 .bdg-cat-fill{height:100%;border-radius:3px;transition:width .4s;}
 /* Graphe mensuel */
-.bdg-month-chart{display:flex;align-items:flex-end;gap:4px;height:90px;margin-bottom:6px;}
+.bdg-month-chart{display:flex;align-items:flex-end;gap:4px;height:160px;margin-bottom:6px;}
+.bdg-month-bar:first-child{border-radius:3px 3px 0 0;}
+.bdg-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.bdg-leg{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--dim);font-family:var(--fb);font-size:11px;cursor:pointer;opacity:.5;}
+.bdg-leg.on{opacity:1;color:var(--text);background:var(--bg3);}
+.bdg-leg i{display:inline-block;width:8px;height:8px;border-radius:2px;}
 .bdg-month-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
 .bdg-month-bar{width:100%;}
 .bdg-month-lbl{font-size:10px;color:var(--dim);}
@@ -1205,12 +1210,7 @@ body.light{--purple:#8a5fb8;}
   <div class="card" style="padding:14px;margin-bottom:14px;">
     <div class="bdg-month-chart" id="bdg-month-chart"></div>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);" id="bdg-month-lbls"></div>
-    <div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--dim);">
-      <span><span style="display:inline-block;width:8px;height:8px;background:#7aadcc;border-radius:2px;margin-right:4px;"></span>Fixes</span>
-      <span><span style="display:inline-block;width:8px;height:8px;background:#f0c060;border-radius:2px;margin-right:4px;"></span>Travaux</span>
-      <span><span style="display:inline-block;width:8px;height:8px;background:#6bbf8e;border-radius:2px;margin-right:4px;"></span>Entretien</span>
-      <span><span style="display:inline-block;width:8px;height:8px;background:#c97eb8;border-radius:2px;margin-right:4px;"></span>Dépenses</span>
-    </div>
+    <div id="bdg-legend" class="bdg-legend"></div>
   </div>
 
   <!-- Répartition par catégorie -->
@@ -3804,14 +3804,19 @@ function getBudgetData(yr){
   var travauxAnn=trvProjs.reduce(function(s,p){return s+(p.budget_lines||[]).filter(function(b){return b.date?new Date(b.date).getFullYear()===yr:yr===new Date().getFullYear();}).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);},0);
   travauxAnn+=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getFullYear()===yr;}).reduce(function(s,d){return s+(d.amount||0);},0);
   
-  var entretienAnn=tasks.filter(function(t){return t.costLast&&new Date(t.doneDate||t.date).getFullYear()===yr;
-  entretienAnn+=depenses.filter(function(d){return d.cat==='entretien'&&new Date(d.date).getFullYear()===yr;}).reduce(function(s,d){return s+(d.amount||0);},0);}).reduce(function(s,t){return s+(t.costLast||0);},0);
+  var entretienAnn=tasks.filter(function(t){return t.costLast&&new Date(t.doneDate||t.date).getFullYear()===yr;}).reduce(function(s,t){return s+(t.costLast||0);},0);
+  entretienAnn+=depenses.filter(function(d){return d.cat==='entretien'&&new Date(d.date).getFullYear()===yr;}).reduce(function(s,d){return s+(d.amount||0);},0);
   entretienAnn+=PD&&PD.maint?PD.maint.filter(function(m){return m.cout&&m.done&&new Date(m.doneDate||m.date).getFullYear()===yr;}).reduce(function(s,m){return s+(m.cout||0);},0):0;
   
   var depsAnn=depenses.filter(function(d){return new Date(d.date).getFullYear()===yr&&d.cat!=='travaux'&&d.cat!=='entretien';}).reduce(function(s,d){return s+(d.amount||0);},0);
   var total=fixesAnn+travauxAnn+entretienAnn+depsAnn;
   return {total:total,fixes:fixesAnn,travaux:travauxAnn,entretien:entretienAnn,deps:depsAnn};
 }
+
+var BDG_SER_KEY='bdg_series_v1';
+function bdgSeries(){var d={fixes:false,travaux:true,entretien:true,deps:true};try{var v=JSON.parse(localStorage.getItem(BDG_SER_KEY)||'null');if(v&&typeof v==='object'){Object.keys(d).forEach(function(k){if(typeof v[k]==='boolean')d[k]=v[k];});}}catch(e){}return d;}
+function bdgToggle(k){var d=bdgSeries();d[k]=!d[k];try{localStorage.setItem(BDG_SER_KEY,JSON.stringify(d));}catch(e){}renderBudget();}
+document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.bdg-leg'):null;if(b&&b.getAttribute('data-ser'))bdgToggle(b.getAttribute('data-ser'));});
 
 function setBudgetYear(v){
   budgetYear=parseInt(v)||new Date().getFullYear();
@@ -3845,24 +3850,32 @@ function renderBudget(){
   
   var monthly=[];
   for(var mi=0;mi<12;mi++){var bm=budgetMonth(curYear,mi);bm.m=MN[mi];monthly.push(bm);}
-  var maxM=1;monthly.forEach(function(m){if(m.total>maxM)maxM=m.total;});
-  var chartH='',lblH='';
+  var SER=bdgSeries();
+  function shown(m){return (SER.fixes?m.fixes:0)+(SER.travaux?m.travaux:0)+(SER.entretien?m.entretien:0)+(SER.deps?m.deps:0);}
+  var maxM=1;monthly.forEach(function(m){var t=shown(m);if(t>maxM)maxM=t;});
+  var chartH='',BH=130;
   monthly.forEach(function(m,i){
-    // Couleurs distinctes: Fixes=bleu, Travaux=ambre, Entretien=vert, Depenses=rose
     var COL_FIX='#7aadcc',COL_TRV='#f0c060',COL_ENT='#6bbf8e',COL_DEP='#c97eb8';
-    var hf=Math.round(m.fixes/maxM*70),ht=Math.round(m.travaux/maxM*70),he=Math.round(m.entretien/maxM*70),hd=Math.round(m.deps/maxM*70);
-    var isCur=i===now.getMonth();
-    var lbl=m.total>0?(m.total>=1000?(m.total/1000).toFixed(1)+'k':Math.round(m.total)+''):'';
+    function h(v,on){return on?Math.round(v/maxM*BH):0;}
+    var hf=h(m.fixes,SER.fixes),ht=h(m.travaux,SER.travaux),he=h(m.entretien,SER.entretien),hd=h(m.deps,SER.deps);
+    var isCur=i===now.getMonth()&&curYear===now.getFullYear();
+    var tot=shown(m);
+    var lbl=tot>0?(tot>=1000?(tot/1000).toFixed(1)+'k':Math.round(tot)+''):'';
     chartH+='<div class="bdg-month-wrap">'
       +'<div style="font-size:9px;color:'+(isCur?'var(--cl)':'var(--dim)')+';text-align:center;height:11px;line-height:11px;">'+lbl+'</div>'
-      +'<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:70px;">'
-      +(hd?'<div class="bdg-month-bar" style="height:'+hd+'px;background:'+COL_DEP+';" title="Depenses: '+Math.round(m.deps)+' EUR"></div>':'')
+      +'<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:'+BH+'px;">'
+      +(hf?'<div class="bdg-month-bar" style="height:'+hf+'px;background:'+COL_FIX+';opacity:.55;" title="Fixes: '+Math.round(m.fixes)+' EUR"></div>':'')
       +(he?'<div class="bdg-month-bar" style="height:'+he+'px;background:'+COL_ENT+';" title="Entretien: '+Math.round(m.entretien)+' EUR"></div>':'')
+      +(hd?'<div class="bdg-month-bar" style="height:'+hd+'px;background:'+COL_DEP+';" title="Depenses: '+Math.round(m.deps)+' EUR"></div>':'')
       +(ht?'<div class="bdg-month-bar" style="height:'+ht+'px;background:'+COL_TRV+';" title="Travaux: '+Math.round(m.travaux)+' EUR"></div>':'')
-      +(hf?'<div class="bdg-month-bar" style="height:'+hf+'px;background:'+COL_FIX+';" title="Fixes: '+Math.round(m.fixes)+' EUR"></div>':'')
       +'</div>'
       +'<div class="bdg-month-lbl" style="color:'+(isCur?'var(--cl)':'var(--dim)')+';">'+m.m+'</div>'
       +'</div>';
+  });
+  sv('bdg-legend',function(e){
+    var L=[['travaux','#f0c060','Travaux'],['deps','#c97eb8','D\u00e9penses'],['entretien','#6bbf8e','Entretien'],['fixes','#7aadcc','Fixes']],h2='';
+    L.forEach(function(x){h2+='<button class="bdg-leg'+(SER[x[0]]?' on':'')+'" data-ser="'+x[0]+'"><i style="background:'+x[1]+';"></i>'+x[2]+'</button>';});
+    e.innerHTML=h2;
   });
   sv('bdg-month-chart',function(e){e.innerHTML=chartH;});
   
@@ -3876,7 +3889,7 @@ function renderBudget(){
   });
   if(bd.travaux)cats['Travaux']=(cats['Travaux']||0)+bd.travaux;
   if(bd.entretien)cats['Entretien']=(cats['Entretien']||0)+bd.entretien;
-  depenses.forEach(function(d){if(new Date(d.date).getFullYear()!==curYear)return;var k=DEP_LBL[d.cat]||'Autre';if(!cats[k])cats[k]=0;cats[k]+=d.amount||0;});
+  depenses.forEach(function(d){if(new Date(d.date).getFullYear()!==curYear||d.cat==='travaux'||d.cat==='entretien')return;var k=DEP_LBL[d.cat]||'Autre';if(!cats[k])cats[k]=0;cats[k]+=d.amount||0;});
   var catKeys=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];});
   var maxC=1;catKeys.forEach(function(k){if(cats[k]>maxC)maxC=cats[k];});
   var catsH='';
