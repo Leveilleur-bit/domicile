@@ -691,7 +691,7 @@ body.light{--purple:#8a5fb8;}
 .qd-amt input{font-family:var(--fd)!important;font-size:44px!important;font-weight:600;text-align:center;background:transparent!important;border:none!important;border-bottom:2px solid var(--border)!important;border-radius:0!important;width:200px;padding:4px!important;color:var(--text);box-shadow:none!important;}
 .qd-amt input:focus{border-bottom-color:var(--copper)!important;}
 .qd-amt span{font-family:var(--fd);font-size:30px;color:var(--dim);}
-.qd-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.qd-cats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .qd-cat{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:14px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--fb);font-size:12px;font-weight:600;cursor:pointer;}
 .qd-cat span{font-size:22px;}
 .qd-cat:active{transform:scale(.95);border-color:var(--copper);background:var(--glow);}
@@ -1269,6 +1269,7 @@ body.light{--purple:#8a5fb8;}
           <option value="travaux">Travaux</option>
           <option value="entretien">Entretien</option>
           <option value="equipement">&#201;quipement</option>
+          <option value="sorties">Sorties / loisirs</option>
           <option value="autre">Autre</option>
         </select>
       </div>
@@ -1437,6 +1438,7 @@ body.light{--purple:#8a5fb8;}
           <option value="travaux">Travaux</option>
           <option value="entretien">Entretien</option>
           <option value="equipement">&#201;quipement</option>
+          <option value="sorties">Sorties / loisirs</option>
           <option value="autre">Autre</option>
         </select>
       </div>
@@ -4723,10 +4725,10 @@ function cptNeedsReleve(){
 }
 
 // ══════════ CATEGORIES DE DEPENSES ══════════
-var DEP_ORDER=['courses','enfants','voiture','chauffage','travaux','entretien','equipement','autre'];
-var DEP_LBL={courses:'Courses',enfants:'Enfants',voiture:'Voiture',chauffage:'Chauffage',travaux:'Travaux',entretien:'Entretien',equipement:'Équipement',autre:'Autre'};
-var DEP_ICO={courses:'&#128722;',enfants:'&#127890;',voiture:'&#9981;',chauffage:'&#128293;',travaux:'&#127959;',entretien:'&#128295;',equipement:'&#128187;',autre:'&#128203;'};
-var DEP_COL={courses:'var(--green)',enfants:'var(--purple)',voiture:'var(--blue)',chauffage:'var(--red)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',autre:'var(--dim)'};
+var DEP_ORDER=['courses','enfants','voiture','chauffage','travaux','entretien','equipement','sorties','autre'];
+var DEP_LBL={courses:'Courses',enfants:'Enfants',voiture:'Voiture',chauffage:'Chauffage',travaux:'Travaux',entretien:'Entretien',equipement:'Équipement',sorties:'Sorties',autre:'Autre'};
+var DEP_ICO={courses:'&#128722;',enfants:'&#127890;',voiture:'&#9981;',chauffage:'&#128293;',travaux:'&#127959;',entretien:'&#128295;',equipement:'&#128187;',sorties:'&#127869;',autre:'&#128203;'};
+var DEP_COL={courses:'var(--green)',enfants:'var(--purple)',voiture:'var(--blue)',chauffage:'var(--red)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',sorties:'var(--copper)',autre:'var(--dim)'};
 var DEP_COL_BY_LBL={};DEP_ORDER.forEach(function(k){DEP_COL_BY_LBL[DEP_LBL[k]]=DEP_COL[k];});
 
 // ══════════ DEPENSE EXPRESS ══════════
