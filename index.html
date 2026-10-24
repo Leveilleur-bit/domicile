@@ -3768,6 +3768,17 @@ var FREQ_LBL={monthly:'Mensuelle',quarterly:'Trimestrielle',yearly:'Annuelle'};
 
 function chargeAnnual(ch){return Math.round(((parseFloat(ch.amount)||0)*(FREQ_MULT[ch.freq]||1))*100)/100;}
 
+function chargeInMonth(ch,yr,mi){
+  if(ch.cat==='investissement')return 0;
+  var n=new Date();if(yr>n.getFullYear()||(yr===n.getFullYear()&&mi>n.getMonth()))return 0;
+  var amt=parseFloat(ch.amount)||0;
+  if(ch.freq==='monthly')return amt;
+  if(ch.freq==='quarterly'){var base=ch.date?new Date(ch.date).getMonth():0;return (mi-base+12)%3===0?amt:0;}
+  if(ch.freq==='yearly'){var chM=ch.date?new Date(ch.date).getMonth():0;return mi===chM?amt:0;}
+  return 0;
+}
+function chargeInYear(ch,yr){var t=0;for(var mi=0;mi<12;mi++)t+=chargeInMonth(ch,yr,mi);return t;}
+
 function addCharge(){
   var n=g('charge-name'),a=g('charge-amount'),f=g('charge-freq'),cat=g('charge-cat');
   if(!n||!n.value.trim()){toast('Libelle requis');return;}
@@ -3799,7 +3810,7 @@ function delDep(id){
 function getBudgetData(yr){
   if(!yr)yr=(typeof budgetYear!=='undefined'?budgetYear:new Date().getFullYear());
   
-  var fixesAnn=charges.reduce(function(s,c){return s+chargeAnnual(c);},0);
+  var fixesAnn=charges.reduce(function(s,c){return s+chargeInYear(c,yr);},0);
   
   var travauxAnn=depenses.filter(function(d){return d.cat==='travaux'&&new Date(d.date).getFullYear()===yr;}).reduce(function(s,d){return s+(d.amount||0);},0);
   
@@ -3884,7 +3895,8 @@ function renderBudget(){
     if(cat==='energie'||cat==='impots')cat='autre';
     if(cat==='internet')cat='abonnement';
     var k=CHARGE_CATS[cat]||'Autre';
-    if(!cats[k])cats[k]=0;cats[k]+=chargeAnnual(ch);
+    var v=chargeInYear(ch,curYear);if(!v)return;
+    if(!cats[k])cats[k]=0;cats[k]+=v;
   });
   if(bd.travaux)cats['Travaux']=(cats['Travaux']||0)+bd.travaux;
   if(bd.entretien)cats['Entretien']=(cats['Entretien']||0)+bd.entretien;
@@ -5120,13 +5132,7 @@ function isoD(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getD
 
 // ══════════ BUDGET : UN MOIS DONNE ══════════
 function budgetMonth(yr,mi){
-  var mFixes=charges.reduce(function(s,ch){
-    var amt=parseFloat(ch.amount)||0;
-    if(ch.freq==='monthly')return s+amt;
-    if(ch.freq==='quarterly'){var base=ch.date?new Date(ch.date).getMonth():0;if((mi-base+12)%3===0)return s+amt;}
-    if(ch.freq==='yearly'){var chM=ch.date?new Date(ch.date).getMonth():0;if(mi===chM)return s+amt;}
-    return s;
-  },0);
+  var mFixes=charges.reduce(function(s,ch){return s+chargeInMonth(ch,yr,mi);},0);
   function inM(ds2){if(!ds2)return false;var d=new Date(ds2);return d.getMonth()===mi&&d.getFullYear()===yr;}
   // Les montants des projets Travaux ne sont plus additionnes : seules les depenses comptent (evite les doublons)
   var mTravaux=depenses.filter(function(d){return d.cat==='travaux'&&inM(d.date);}).reduce(function(s,d){return s+(d.amount||0);},0);
