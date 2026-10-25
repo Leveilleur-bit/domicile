@@ -1408,6 +1408,7 @@ body.light{--purple:#8a5fb8;}
         </select>
       </div>
     </div>
+    <div style="margin-bottom:12px;"><label class="flbl">Arr&#234;t&#233;e apr&#232;s le mois de (laisser vide si toujours en cours)</label><input type="month" id="cm-end"></div>
     <div style="display:flex;justify-content:space-between;gap:8px;">
       <button class="bi del" style="width:auto;padding:0 12px;font-size:12px;" onclick="deleteCharge()">&#10005; Supprimer</button>
       <div style="display:flex;gap:8px;">
@@ -1869,13 +1870,7 @@ function renderStats(){
   sv('s-sn',function(e){e.textContent=sn.length;});
   
   var now2=new Date();
-  var mFixes2=charges.reduce(function(s,ch){
-    var amt=parseFloat(ch.amount)||0;
-    if(ch.freq==='monthly')return s+amt;
-    if(ch.freq==='quarterly'){var base2=ch.date?new Date(ch.date).getMonth():0;if((now2.getMonth()-base2+12)%3===0)return s+amt;}
-    if(ch.freq==='yearly'){var chM2=ch.date?new Date(ch.date).getMonth():0;if(now2.getMonth()===chM2)return s+amt;}
-    return s;
-  },0);
+  var mFixes2=charges.reduce(function(s,ch){return s+chargeInMonth(ch,now2.getFullYear(),now2.getMonth());},0);
   var mDeps2=depenses.filter(function(d){return new Date(d.date).getMonth()===now2.getMonth()&&new Date(d.date).getFullYear()===now2.getFullYear();}).reduce(function(s,d){return s+(d.amount||0);},0);
   var mTotal2=Math.round(mFixes2+mDeps2);
   sv('s-budget',function(e){e.textContent=mTotal2>999?(mTotal2/1000).toFixed(1)+'k':mTotal2;});
@@ -2073,6 +2068,7 @@ function renderCalMonth(){
     // Echéances de charges (jour du mois basé sur leur date)
     if(calViewTab==='all'){
       charges.forEach(function(ch){
+        if(!chargeActive(ch,year,month))return;
         var cd=new Date(ch.date);
         var dueDay=cd.getDate();
         if(dueDay>daysInMonth)dueDay=daysInMonth;
@@ -3007,6 +3003,7 @@ function openChargeEdit(id){
   sv('cm-amount',function(e){e.value=c.amount||0;});
   sv('cm-freq',function(e){e.value=c.freq||'monthly';});
   sv('cm-cat',function(e){e.value=c.cat||'autre';});
+  sv('cm-end',function(e){e.value=c.end?String(c.end).slice(0,7):'';});
   m.classList.remove('hidden');m.style.display='flex';
 }
 function closeChargeModal(ev){
@@ -3021,6 +3018,7 @@ function saveCharge(){
   var a=g('cm-amount');if(a)c.amount=parseFloat(a.value)||0;
   var f=g('cm-freq');if(f)c.freq=f.value;
   var cat=g('cm-cat');if(cat)c.cat=cat.value;
+  var en=g('cm-end');if(en){if(en.value)c.end=en.value;else delete c.end;}
   saveBudget();
   var m=g('charge-modal');if(m){m.classList.add('hidden');m.style.display='none';}
   chargeEditId=null;
@@ -3768,8 +3766,14 @@ var FREQ_LBL={monthly:'Mensuelle',quarterly:'Trimestrielle',yearly:'Annuelle'};
 
 function chargeAnnual(ch){return Math.round(((parseFloat(ch.amount)||0)*(FREQ_MULT[ch.freq]||1))*100)/100;}
 
+function chargeActive(ch,yr,mi){
+  if(!ch.end)return true;
+  var p=String(ch.end).split('-'),ey=parseInt(p[0],10),em=parseInt(p[1],10)-1;
+  if(isNaN(ey)||isNaN(em))return true;
+  return yr<ey||(yr===ey&&mi<=em);
+}
 function chargeInMonth(ch,yr,mi){
-  if(ch.cat==='investissement')return 0;
+  if(ch.cat==='investissement'||!chargeActive(ch,yr,mi))return 0;
   var n=new Date();if(yr>n.getFullYear()||(yr===n.getFullYear()&&mi>n.getMonth()))return 0;
   var amt=parseFloat(ch.amount)||0;
   if(ch.freq==='monthly')return amt;
@@ -3955,8 +3959,10 @@ function renderBudget(){
     catOrder2.forEach(function(cat){
       var items=cgroups[cat];
       if(!items||!items.length)return;
-      var totalAnn=items.reduce(function(s,ch){return s+chargeAnnual(ch);},0);
+      var nowC=new Date();function liveC(ch){return chargeActive(ch,nowC.getFullYear(),nowC.getMonth());}
+      var totalAnn=items.reduce(function(s,ch){return s+(liveC(ch)?chargeAnnual(ch):0);},0);
       var totalMon=items.reduce(function(s,ch){
+        if(!liveC(ch))return s;
         if(ch.freq==='monthly')return s+(parseFloat(ch.amount)||0);
         if(ch.freq==='quarterly')return s+(parseFloat(ch.amount)||0)/3;
         if(ch.freq==='yearly')return s+(parseFloat(ch.amount)||0)/12;
@@ -3976,9 +3982,9 @@ function renderBudget(){
         +'</div>'
         +'<div id="'+groupId+'" style="display:none;padding:4px 0 4px 12px;border-left:2px solid '+col+';margin-left:8px;">';
       items.forEach(function(ch){
-        var ann=chargeAnnual(ch);
-        clH+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;cursor:pointer;" data-action="edit-charge" data-id="'+ch.id+'">'
-          +'<span style="flex:1;font-size:12px;color:var(--text);">'+eh(ch.name)+'</span>'
+        var ann=chargeAnnual(ch),off=!liveC(ch);
+        clH+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:3px;cursor:pointer;'+(off?'opacity:.45;':'')+'" data-action="edit-charge" data-id="'+ch.id+'">'
+          +'<span style="flex:1;font-size:12px;color:var(--text);">'+eh(ch.name)+(off?' <span style="color:var(--dim);font-size:11px;">(arr&#234;t&#233;e)</span>':'')+'</span>'
           +'<span class="charge-freq '+ch.freq+'">'+FREQ_LBL[ch.freq]+'</span>'
           +'<span style="font-family:var(--fd);font-size:14px;color:var(--text);">'+ch.amount+' EUR</span>'
           +'<span style="font-size:12px;color:var(--dim);">'+Math.round(ann)+'/an</span>'
@@ -4836,7 +4842,7 @@ function dayItems(d){
   conges.forEach(function(c){if(c.start<=ds&&c.end>=ds)items.push({k:'conge',id:c.id,ico:'&#127958;',name:c.name,meta:c.end>ds?'jusqu\u2019au '+new Date(c.end).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'dernier jour',o:2,cont:c.start<ds});});
   var dim=new Date(d.getFullYear(),mo+1,0).getDate();
   charges.forEach(function(ch){
-    if(!ch.date)return;
+    if(!ch.date||!chargeActive(ch,d.getFullYear(),mo))return;
     var cd=new Date(ch.date),due=Math.min(cd.getDate(),dim),hit=false;
     if(due!==da)return;
     if(ch.freq==='monthly')hit=true;
