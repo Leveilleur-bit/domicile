@@ -795,6 +795,7 @@ body.light{--purple:#8a5fb8;}
   <div id="dash-hello"></div>
   <div id="dash-week"></div>
   <div id="dash-quickzone" style="margin-bottom:14px;"></div>
+  <div id="dash-bilan"></div>
   <div id="onboard-banner"></div>
   <div id="dash-events"></div>
   <div id="urg-banner"></div>
@@ -1357,7 +1358,15 @@ body.light{--purple:#8a5fb8;}
       <div><label class="flbl">Dernier entretien</label><input type="date" id="eq-service"></div>
       <div></div>
     </div>
-    <div style="margin-bottom:14px;"><label class="flbl">Notes</label><textarea id="eq-notes" rows="3" placeholder="Reference, numero de serie, installateur..."></textarea></div>
+    <div style="margin-bottom:10px;"><label class="flbl">Notes</label><textarea id="eq-notes" rows="3" placeholder="Reference, numero de serie, installateur..."></textarea></div>
+    <div style="margin-bottom:14px;"><label class="flbl">Facture</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="bs" type="button" onclick="g('eq-file').click()">&#128206; Ajouter une photo ou un PDF</button>
+        <button class="bs" type="button" id="eq-inv-view" style="display:none;" onclick="viewInvoice()">&#128065; Voir la facture</button>
+        <span id="eq-inv-state" style="font-size:12px;color:var(--dim);"></span>
+      </div>
+      <input type="file" id="eq-file" accept="image/*,application/pdf" style="display:none;" onchange="pickInvoice(this)">
+    </div>
     <div style="display:flex;gap:8px;">
       <button class="bp" style="flex:1;" onclick="saveEq()">Enregistrer</button>
       <button class="bs" id="eq-del-btn" style="color:var(--red);border-color:var(--red);" onclick="delEq()">Supprimer</button>
@@ -1928,6 +1937,44 @@ function goTasks(){
   for(var i=0;i<tabs.length;i++){
     if(tabs[i].textContent.indexOf('Taches')>=0){showView('tasks',tabs[i]);return;}
   }
+}
+
+// ══════════ BILAN DU MOIS (du 1er au 10) ══════════
+var BILAN_KEY='dash_bilan_hidden';
+function monthDeps(y,m){var t={},tot=0;depenses.forEach(function(d){if(!d.date)return;var dd=new Date(d.date);if(dd.getFullYear()!==y||dd.getMonth()!==m)return;var a=d.amount||0;t[d.cat||'autre']=(t[d.cat||'autre']||0)+a;tot+=a;});return{cats:t,tot:tot};}
+function bilanData(ref){
+  var y=ref.getFullYear(),m=ref.getMonth()-1;if(m<0){m=11;y--;}
+  var cur=monthDeps(y,m);if(!cur.tot)return null;
+  var sum={},n=0,stot=0;
+  for(var i=1;i<=12;i++){var yy=y,mm=m-i;while(mm<0){mm+=12;yy--;}var md=monthDeps(yy,mm);if(!md.tot)continue;n++;stot+=md.tot;Object.keys(md.cats).forEach(function(k){sum[k]=(sum[k]||0)+md.cats[k];});}
+  var avg=n?stot/n:0,diffs=[];
+  var keys={};Object.keys(sum).forEach(function(k){keys[k]=1;});Object.keys(cur.cats).forEach(function(k){keys[k]=1;});
+  Object.keys(keys).forEach(function(k){var a=n?(sum[k]||0)/n:0;diffs.push({k:k,d:(cur.cats[k]||0)-a});});
+  diffs.sort(function(a,b){return b.d-a.d;});
+  return{y:y,m:m,tot:cur.tot,avg:avg,n:n,up:diffs.filter(function(x){return x.d>=30;}).slice(0,2),down:diffs.filter(function(x){return x.d<=-30;}).reverse().slice(0,2).reverse()};
+}
+function renderDashBilan(){
+  sv('dash-bilan',function(e){
+    var now=new Date();
+    if(now.getDate()>10){e.innerHTML='';return;}
+    var b=bilanData(now);if(!b){e.innerHTML='';return;}
+    var key=b.y+'-'+b.m;var hid='';try{hid=localStorage.getItem(BILAN_KEY)||'';}catch(x){}
+    if(hid===key){e.innerHTML='';return;}
+    var MN=['janvier','f\u00e9vrier','mars','avril','mai','juin','juillet','ao\u00fbt','septembre','octobre','novembre','d\u00e9cembre'];
+    var verdict='';
+    if(b.n){var pc=Math.round((b.tot-b.avg)/b.avg*100);verdict=Math.abs(pc)<=10?'dans la moyenne ('+fmtEur(Math.round(b.avg))+')':(pc>0?'+'+pc+' % par rapport \u00e0 la moyenne':pc+' % par rapport \u00e0 la moyenne');}
+    function li(x,sign){return '<span style="white-space:nowrap;">'+(DEP_ICO[x.k]||'')+' '+(DEP_LBL[x.k]||x.k)+' '+sign+fmtEur(Math.round(Math.abs(x.d)))+'</span>';}
+    var h='<div class="card" style="padding:14px 16px;margin-bottom:14px;position:relative;">'
+      +'<button class="bi" data-bilan-close="'+key+'" style="position:absolute;top:10px;right:10px;width:26px;height:26px;font-size:12px;" aria-label="Masquer">&#10005;</button>'
+      +'<div style="font-size:12px;color:var(--dim);margin-bottom:2px;">Bilan de '+MN[b.m]+'</div>'
+      +'<div style="font-family:var(--fd);font-size:24px;color:var(--copper);">'+fmtEur(Math.round(b.tot))+'</div>'
+      +(verdict?'<div style="font-size:12px;color:var(--dim);margin-bottom:6px;">'+verdict+'</div>':'')
+      +(b.up.length?'<div style="font-size:12px;color:var(--text);margin-top:4px;">En hausse : '+b.up.map(function(x){return li(x,'+');}).join(' &middot; ')+'</div>':'')
+      +(b.down.length?'<div style="font-size:12px;color:var(--text);margin-top:4px;">En baisse : '+b.down.map(function(x){return li(x,'\u2212');}).join(' &middot; ')+'</div>':'')
+      +'<div style="font-size:11px;color:var(--dim);margin-top:8px;">D\u00e9penses hors charges fixes</div></div>';
+    e.innerHTML=h;
+    e.onclick=function(ev){var t=ev.target;if(t&&t.getAttribute&&t.getAttribute('data-bilan-close')){try{localStorage.setItem(BILAN_KEY,t.getAttribute('data-bilan-close'));}catch(x){}e.innerHTML='';}};
+  });
 }
 
 function renderDash(){
@@ -3078,7 +3125,7 @@ function deleteCharge(){
   renderBudget();toast('Charge supprim\u00e9e',function(){undoRemove('charge',c,ci);});
 }
 
-function renderAll(){saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();renderDashPellet();renderDashHello();renderDashWeek();}
+function renderAll(){renderDashBilan();saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();renderDashPellet();renderDashHello();renderDashWeek();}
 
 function defP(){
   var n=new Date(),m=n.getMonth(),y=n.getFullYear();
@@ -5307,7 +5354,7 @@ function renderMaison(){
         var meta=[];if(q.buyDate)meta.push('Achat '+fd(q.buyDate));if(q.lastService)meta.push('Entretien '+fd(q.lastService));if(q.price)meta.push(eh(String(q.price))+' EUR');
         h+='<div data-act="eq" data-id="'+eh(q.id)+'" style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:6px;cursor:pointer;">'
           +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-          +'<div style="font-size:12px;color:var(--text);font-weight:500;">'+eh(q.name||'Sans nom')+'</div>'+eqWarranty(q)+'</div>'
+          +'<div style="font-size:12px;color:var(--text);font-weight:500;">'+eh(q.name||'Sans nom')+(q.invoice?' <span title="Facture">&#128206;</span>':'')+'</div>'+eqWarranty(q)+'</div>'
           +(sub.length?'<div style="font-size:12px;color:var(--dim);margin-top:2px;">'+sub.join(' &middot; ')+'</div>':'')
           +(meta.length?'<div style="font-size:12px;color:var(--dim);margin-top:4px;">'+meta.join(' &middot; ')+'</div>':'')
           +'</div>';
@@ -5345,6 +5392,53 @@ function renderMaison(){
     }
   };
 }
+// ══════════ FACTURES (stockees dans le depot de donnees, dossier factures/) ══════════
+var _eqPendingInv=null;
+function eqInvUi(path,pending){
+  sv('eq-inv-view',function(e){e.style.display=path&&!pending?'inline-flex':'none';});
+  sv('eq-inv-state',function(e){e.textContent=pending?'Facture pr\u00eate, envoy\u00e9e \u00e0 l\u2019enregistrement':(path?'Facture enregistr\u00e9e':'');});
+}
+function pickInvoice(inp){
+  var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(f.type==='application/pdf'){
+    if(f.size>8000000){toast('PDF trop lourd (8 Mo max)');return;}
+    var r=new FileReader();r.onload=function(){_eqPendingInv={ext:'pdf',b64:String(r.result).split(',')[1]};eqInvUi('',true);};r.readAsDataURL(f);return;
+  }
+  var img=new Image(),url=URL.createObjectURL(f);
+  img.onload=function(){
+    var mx=1800,w=img.width,h=img.height,k=Math.min(1,mx/Math.max(w,h));
+    var c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    _eqPendingInv={ext:'jpg',b64:c.toDataURL('image/jpeg',0.72).split(',')[1]};eqInvUi('',true);
+  };
+  img.onerror=function(){toast('Image illisible');};
+  img.src=url;
+}
+function invoiceUrl(path){return 'https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path;}
+function uploadInvoice(q,inv){
+  if(!ghToken()){toast('Synchro GitHub non configur\u00e9e : facture non envoy\u00e9e');return;}
+  var path='factures/'+q.id+'-'+Date.now()+'.'+inv.ext;
+  toast('Envoi de la facture\u2026');
+  fetch(invoiceUrl(path),{method:'PUT',headers:ghHeaders(),body:JSON.stringify({message:'facture '+(q.name||''),content:inv.b64,branch:GH_BRANCH})})
+  .then(function(r){
+    if(r.status!==200&&r.status!==201)throw new Error(r.status);
+    q.invoice=path;saveCarnet();renderMaison();toast('Facture enregistr\u00e9e');
+  }).catch(function(){toast('Envoi de la facture impossible (hors ligne ?)');});
+}
+function viewInvoice(){
+  var q=eqEditId?carnet.equip.find(function(x){return x.id===eqEditId;}):null;
+  if(!q||!q.invoice)return;
+  if(!ghToken()){toast('Synchro GitHub non configur\u00e9e');return;}
+  var w=window.open('','_blank');
+  var hd=ghHeaders();hd.Accept='application/vnd.github.v3.raw';
+  fetch(invoiceUrl(q.invoice)+'?ref='+GH_BRANCH,{headers:hd}).then(function(r){if(!r.ok)throw 0;return r.blob();})
+  .then(function(b){
+    var t=/\.pdf$/i.test(q.invoice)?'application/pdf':'image/jpeg';
+    var u=URL.createObjectURL(new Blob([b],{type:t}));
+    if(w)w.location.href=u;else window.location.href=u;
+  }).catch(function(){if(w)w.close();toast('Facture introuvable (hors ligne ?)');});
+}
+
 function openEq(id){
   eqEditId=id;
   var q=id?carnet.equip.find(function(x){return x.id===id;}):null;
@@ -5352,6 +5446,7 @@ function openEq(id){
   var f={name:'eq-name',room:'eq-room',brand:'eq-brand',buyDate:'eq-buy',warrantyEnd:'eq-warranty',price:'eq-price',lastService:'eq-service',notes:'eq-notes'};
   Object.keys(f).forEach(function(k){sv(f[k],function(e){e.value=q&&q[k]!==undefined?q[k]:'';});});
   sv('eq-modal-title',function(e){e.textContent=q?'Modifier l\x27equipement':'Nouvel equipement';});
+  _eqPendingInv=null;eqInvUi(q?q.invoice:'');
   sv('eq-del-btn',function(e){e.style.display=q?'block':'none';});
   mShow('eq-modal');
 }
@@ -5368,6 +5463,7 @@ function saveEq(){
   q.price=g('eq-price').value||'';
   q.lastService=g('eq-service').value||'';
   q.notes=(g('eq-notes').value||'').trim();
+  if(_eqPendingInv){uploadInvoice(q,_eqPendingInv);_eqPendingInv=null;}
   saveCarnet();mHide('eq-modal');eqEditId=null;renderMaison();renderStats();toast('Equipement enregistre');
 }
 function delEq(){
