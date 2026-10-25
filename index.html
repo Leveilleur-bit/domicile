@@ -1253,6 +1253,10 @@ body.light{--purple:#8a5fb8;}
   </div>
   <div id="charges-list"></div>
 
+  <!-- Abonnements -->
+  <div class="stit" style="margin-top:18px;">Abonnements</div>
+  <div class="card" style="padding:12px 14px;margin-bottom:14px;" id="subs-list"></div>
+
   <!-- Depenses ponctuelles manuelles -->
   <div class="stit" style="margin-top:14px;">Dépenses ponctuelles</div>
   <div class="card" style="padding:12px;margin-bottom:10px;">
@@ -1270,6 +1274,8 @@ body.light{--purple:#8a5fb8;}
           <option value="entretien">Entretien</option>
           <option value="equipement">&#201;quipement</option>
           <option value="sorties">Sorties / loisirs</option>
+          <option value="vetements">V&#234;tements</option>
+          <option value="sante">Sant&#233;</option>
           <option value="autre">Autre</option>
         </select>
       </div>
@@ -1440,6 +1446,8 @@ body.light{--purple:#8a5fb8;}
           <option value="entretien">Entretien</option>
           <option value="equipement">&#201;quipement</option>
           <option value="sorties">Sorties / loisirs</option>
+          <option value="vetements">V&#234;tements</option>
+          <option value="sante">Sant&#233;</option>
           <option value="autre">Autre</option>
         </select>
       </div>
@@ -1900,6 +1908,10 @@ function renderStats(){
       if(!q.warrantyEnd)return;
       var wd=Math.floor((new Date(q.warrantyEnd)-today4)/86400000);
       if(wd>=0&&wd<=30)alerts.push({txt:'&#128737; Garantie '+eh(q.name)+' : fin dans '+wd+'j',col:'var(--amber)',act:"goView('maison')"});
+    });
+    subsList().forEach(function(sb){
+      if(sb.ch.freq!=='yearly'||sb.days>14)return;
+      alerts.push({txt:'&#128260; Renouvellement '+eh(sb.ch.name)+' ('+fmtEur(sb.amt)+') '+(sb.days===0?"aujourd'hui":'dans '+sb.days+'j'),col:'var(--copper)',act:"goView('budget')"});
     });
     if(!alerts.length){e.innerHTML='';return;}
     var h='';
@@ -2599,7 +2611,8 @@ function ghMerge(local,remote){
     if(!Array.isArray(loc))return rem;
     var map={};
     rem.forEach(function(x){if(x[key]&&!isDeleted(x[key]))map[x[key]]=x;});
-    loc.forEach(function(x){if(x[key]&&!isDeleted(x[key]))map[x[key]]=x;});
+    // A identifiant egal, la version modifiee le plus recemment (champ u) gagne ; sinon la locale
+    loc.forEach(function(x){if(!x[key]||isDeleted(x[key]))return;var r=map[x[key]];if(r&&(r.u||0)>(x.u||0))return;map[x[key]]=x;});
     return Object.keys(map).map(function(k){return map[k];});
   }
   
@@ -2670,7 +2683,34 @@ function ghMerge(local,remote){
   };
 }
 
+// ══════════ SYNCHRO : horodatage des modifications ══════════
+var SNAP_KEY='domicile_snap_v1',_snap=null;
+function snapHash(o){var t=JSON.stringify(o,function(k,v){return k==='u'?undefined:v;}),h=5381;for(var i=0;i<t.length;i++){h=((h<<5)+h+t.charCodeAt(i))|0;}return String(h);}
+function syncArrays(){
+  var a=[tasks,renos,trvProjs,notes,events,charges,depenses,conges,qzActions];
+  if(cptData){a.push(cptData.elec);a.push(cptData.eau);}
+  if(carnet){a.push(carnet.equip);a.push(carnet.contacts);}
+  if(PD&&PD.maint)a.push(PD.maint);
+  return a.filter(function(x){return Array.isArray(x);});
+}
+function resnap(){
+  _snap={};
+  syncArrays().forEach(function(arr){arr.forEach(function(x){if(x&&x.id)_snap[x.id]=snapHash(x);});});
+  try{localStorage.setItem(SNAP_KEY,JSON.stringify(_snap));}catch(e){}
+}
+function stampLocal(){
+  if(_snap===null){try{_snap=JSON.parse(localStorage.getItem(SNAP_KEY)||'null');}catch(e){_snap=null;}}
+  if(!_snap){resnap();return;}
+  var now=Date.now(),ch=false;
+  syncArrays().forEach(function(arr){arr.forEach(function(x){
+    if(!x||!x.id)return;var h=snapHash(x);
+    if(_snap[x.id]!==h){x.u=now;_snap[x.id]=h;ch=true;}
+  });});
+  if(ch){try{localStorage.setItem(SNAP_KEY,JSON.stringify(_snap));}catch(e){}}
+}
+
 function ghLocalData(){
+  stampLocal();
   return{
     v:3,ts:Date.now(),
     tasks:tasks,pellet:PD,renos:renos,travaux:trvProjs,
@@ -2715,6 +2755,7 @@ function ghApplyRemote(data,sha){
     qzActions=(data.quickzone.actions||[]).filter(function(a){return !isDeleted(a.id)&&!a.done;});
     localStorage.setItem(QZ_KEY,JSON.stringify({note:qzNote,actions:qzActions,noteTs:window._qzNoteTs||0}));
   }
+  resnap();
 }
 
 function ghPush(){
@@ -3767,10 +3808,11 @@ var FREQ_LBL={monthly:'Mensuelle',quarterly:'Trimestrielle',yearly:'Annuelle'};
 function chargeAnnual(ch){return Math.round(((parseFloat(ch.amount)||0)*(FREQ_MULT[ch.freq]||1))*100)/100;}
 
 function chargeActive(ch,yr,mi){
-  if(!ch.end)return true;
-  var p=String(ch.end).split('-'),ey=parseInt(p[0],10),em=parseInt(p[1],10)-1;
-  if(isNaN(ey)||isNaN(em))return true;
-  return yr<ey||(yr===ey&&mi<=em);
+  function ym(v){var p=String(v).split('-'),y=parseInt(p[0],10),m=parseInt(p[1],10)-1;return(isNaN(y)||isNaN(m))?null:y*12+m;}
+  var k=yr*12+mi;
+  if(ch.start){var s0=ym(ch.start);if(s0!==null&&k<s0)return false;}
+  if(ch.end){var e0=ym(ch.end);if(e0!==null&&k>e0)return false;}
+  return true;
 }
 function chargeInMonth(ch,yr,mi){
   if(ch.cat==='investissement'||!chargeActive(ch,yr,mi))return 0;
@@ -3831,6 +3873,50 @@ var BDG_SER_KEY='bdg_series_v1';
 function bdgSeries(){var d={fixes:false,travaux:true,entretien:true,deps:true};try{var v=JSON.parse(localStorage.getItem(BDG_SER_KEY)||'null');if(v&&typeof v==='object'){Object.keys(d).forEach(function(k){if(typeof v[k]==='boolean')d[k]=v[k];});}}catch(e){}return d;}
 function bdgToggle(k){var d=bdgSeries();d[k]=!d[k];try{localStorage.setItem(BDG_SER_KEY,JSON.stringify(d));}catch(e){}renderBudget();}
 document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.bdg-leg'):null;if(b&&b.getAttribute('data-ser'))bdgToggle(b.getAttribute('data-ser'));});
+
+// ══════════ ABONNEMENTS ══════════
+function isSub(ch){return ch.cat==='abonnement'||ch.cat==='internet';}
+function nextDue(ch,from){
+  var cd=ch.date?new Date(ch.date):from,day=cd.getDate();
+  for(var i=0;i<400;i++){
+    var d=new Date(from.getFullYear(),from.getMonth(),from.getDate()+i);
+    var dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+    if(d.getDate()!==Math.min(day,dim))continue;
+    if(!chargeActive(ch,d.getFullYear(),d.getMonth()))continue;
+    if(ch.freq==='monthly')return d;
+    if(ch.freq==='yearly'&&d.getMonth()===cd.getMonth())return d;
+    if(ch.freq==='quarterly'&&(d.getMonth()-cd.getMonth()+12)%3===0)return d;
+  }
+  return null;
+}
+function subsList(){
+  var t=new Date();t.setHours(0,0,0,0);var out=[];
+  charges.forEach(function(ch){
+    if(!isSub(ch)||!chargeActive(ch,t.getFullYear(),t.getMonth()))return;
+    var nd=nextDue(ch,t);
+    out.push({ch:ch,amt:parseFloat(ch.amount)||0,ann:chargeAnnual(ch),next:nd,days:nd?Math.round((nd-t)/86400000):999});
+  });
+  return out.sort(function(a,b){return b.ann-a.ann;});
+}
+function renderSubs(){
+  sv('subs-list',function(e){
+    var L=subsList();
+    if(!L.length){e.innerHTML='<div style="color:var(--dim);font-size:12px;">Aucun abonnement. Classez une charge fixe en cat&#233;gorie Abonnement.</div>';return;}
+    var tot=L.reduce(function(s2,x){return s2+x.ann;},0),FQ={monthly:'/mois',quarterly:'/trim.',yearly:'/an'};
+    var h='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><span style="font-size:12px;color:var(--dim);">'+L.length+' abonnements</span><span style="font-family:var(--fd);font-size:20px;color:var(--copper);">'+Math.round(tot)+' &#8364;/an</span></div>';
+    L.forEach(function(x){
+      var nx=x.next?(pad2(x.next.getDate())+'/'+pad2(x.next.getMonth()+1)):'';
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border);cursor:pointer;" data-action="edit-charge" data-id="'+x.ch.id+'">'
+        +'<span style="flex:1;font-size:13px;color:var(--text);">'+eh(x.ch.name)+'</span>'
+        +'<span style="font-size:11px;color:var(--dim);">'+(nx?'prochain '+nx:'')+'</span>'
+        +'<span style="font-size:12px;color:var(--text);min-width:70px;text-align:right;">'+fmtEur(x.amt)+(FQ[x.ch.freq]||'')+'</span>'
+        +'<span style="font-size:12px;color:var(--dim);min-width:52px;text-align:right;">'+Math.round(x.ann)+'/an</span>'
+        +'</div>';
+    });
+    e.innerHTML=h;
+    e.onclick=function(ev){var el=ev.target;while(el&&el!==e){if(el.getAttribute&&el.getAttribute('data-action')==='edit-charge'){openChargeEdit(el.getAttribute('data-id'));return;}el=el.parentElement;}};
+  });
+}
 
 function setBudgetYear(v){
   budgetYear=parseInt(v)||new Date().getFullYear();
@@ -3994,6 +4080,7 @@ function renderBudget(){
       clH+='</div></div>';
     });
   }
+  renderSubs();
   sv('charges-list',function(e){
     e.innerHTML=clH;
     e.onclick=function(ev){
@@ -4755,10 +4842,10 @@ function cptNeedsReleve(){
 }
 
 // ══════════ CATEGORIES DE DEPENSES ══════════
-var DEP_ORDER=['courses','enfants','voiture','chauffage','travaux','entretien','equipement','sorties','autre'];
-var DEP_LBL={courses:'Courses',enfants:'Enfants',voiture:'Voiture',chauffage:'Chauffage',travaux:'Travaux',entretien:'Entretien',equipement:'Équipement',sorties:'Sorties',autre:'Autre'};
-var DEP_ICO={courses:'&#128722;',enfants:'&#127890;',voiture:'&#9981;',chauffage:'&#128293;',travaux:'&#127959;',entretien:'&#128295;',equipement:'&#128187;',sorties:'&#127869;',autre:'&#128203;'};
-var DEP_COL={courses:'var(--green)',enfants:'var(--purple)',voiture:'var(--blue)',chauffage:'var(--red)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',sorties:'var(--copper)',autre:'var(--dim)'};
+var DEP_ORDER=['courses','enfants','voiture','chauffage','travaux','entretien','equipement','sorties','vetements','sante','autre'];
+var DEP_LBL={courses:'Courses',enfants:'Enfants',voiture:'Voiture',chauffage:'Chauffage',travaux:'Travaux',entretien:'Entretien',equipement:'Équipement',sorties:'Sorties',vetements:'V\u00eatements',sante:'Sant\u00e9',autre:'Autre'};
+var DEP_ICO={courses:'&#128722;',enfants:'&#127890;',voiture:'&#9981;',chauffage:'&#128293;',travaux:'&#127959;',entretien:'&#128295;',equipement:'&#128187;',sorties:'&#127869;',vetements:'&#128085;',sante:'&#128138;',autre:'&#128203;'};
+var DEP_COL={courses:'var(--green)',enfants:'var(--purple)',voiture:'var(--blue)',chauffage:'var(--red)',travaux:'var(--amber)',entretien:'var(--blue)',equipement:'var(--purple)',sorties:'var(--copper)',vetements:'var(--purple)',sante:'var(--red)',autre:'var(--dim)'};
 var DEP_COL_BY_LBL={};DEP_ORDER.forEach(function(k){DEP_COL_BY_LBL[DEP_LBL[k]]=DEP_COL[k];});
 
 // ══════════ DEPENSE EXPRESS ══════════
