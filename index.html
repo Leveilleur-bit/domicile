@@ -606,6 +606,14 @@ body.light header{background:linear-gradient(180deg,rgba(246,239,229,.97),rgba(2
 /* Bouton + flottant */
 #fab{position:fixed;right:20px;bottom:24px;width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;z-index:130;font-size:30px;line-height:1;color:#1d140e;background:linear-gradient(145deg,var(--cl),var(--copper));box-shadow:0 12px 28px -8px rgba(208,138,92,.75),0 0 0 6px var(--glow);transition:transform .15s;}
 #fab:active{transform:scale(.93);}
+.crs-row{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer;user-select:none;}
+.crs-row .ck{width:22px;height:22px;border-radius:7px;border:2px solid var(--border);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--bg);}
+.crs-row.done{opacity:.5;}.crs-row.done .ck{background:var(--green);border-color:var(--green);}
+.crs-row.done .nm{text-decoration:line-through;}
+.crs-row .nm{flex:1;font-size:15px;color:var(--text);}
+.crs-row .x{background:none;border:none;color:var(--dim);font-size:16px;padding:2px 6px;cursor:pointer;}
+.crs-ray{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:12px 2px 6px;}
+.crs-chip{padding:6px 11px;border-radius:99px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--fb);font-size:12px;cursor:pointer;}
 .fab-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .fab-tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:14px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--fb);font-size:13px;font-weight:600;cursor:pointer;}
 .fab-tile span{font-size:24px;}
@@ -777,6 +785,7 @@ body.light{--purple:#8a5fb8;}
   <button class="tab" data-view="budget" onclick="showView('budget',this)"><span style="font-size:14px;display:block;">&#128176;</span>Budget</button>
   <button id="more-btn" onclick="toggleMore()" style="flex:0 0 44px;background:transparent;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:8px 4px;"><span class="mb-ico">&#8943;</span><span class="mb-lbl">Plus</span></button>
   <div id="more-menu" style="display:none;position:fixed;top:96px;right:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:165px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.7);">
+    <div class="mm-item" onclick="goView('courses')" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128722; Courses</div>
     <div class="mm-item mm-m" onclick="goView('pellet')" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128293; Poêle</div>
     <div class="mm-item mm-m" onclick="goView('travaux')" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#127959; Travaux</div>
     <div class="mm-item" onclick="goView('maison')" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#127968; Maison</div>
@@ -796,6 +805,7 @@ body.light{--purple:#8a5fb8;}
   <div id="dash-hello"></div>
   <div id="dash-week"></div>
   <div id="dash-quickzone" style="margin-bottom:14px;"></div>
+  <div id="dash-crs"></div>
   <div id="dash-bilan"></div>
   <div id="onboard-banner"></div>
   <div id="dash-events"></div>
@@ -1005,6 +1015,18 @@ body.light{--purple:#8a5fb8;}
 </div>
 
 <!-- NOTES -->
+<!-- COURSES -->
+<div class="view" id="view-courses" style="padding-bottom:110px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div class="stit" style="margin:0;">Liste de courses</div><span id="crs-count" style="font-size:12px;color:var(--dim);"></span></div>
+  <form id="crs-form" style="display:flex;gap:8px;margin-bottom:10px;" onsubmit="crsSubmit(event)">
+    <input type="text" id="crs-inp" placeholder="Ajouter un article&#8230;" autocomplete="off" style="flex:1;" enterkeyhint="done">
+    <button class="bp" type="submit" style="padding:0 16px;">+</button>
+  </form>
+  <div id="crs-habits" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
+  <div id="crs-list"></div>
+  <div id="crs-done"></div>
+</div>
+
 <div class="view" id="view-notes">
   <div class="fltrs" id="notes-fltrs" style="margin-bottom:10px;">
     <button class="fb on" onclick="fNotes('all',this)">Toutes</button>
@@ -1666,6 +1688,7 @@ body.light{--purple:#8a5fb8;}
     <div style="font-family:var(--fd);font-size:22px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;"><span>Ajouter</span><button class="bi" onclick="closeFab()">&#10005;</button></div>
     <div class="fab-grid">
       <button class="fab-tile" onclick="fabGo('task')"><span>&#9989;</span>T&#226;che</button>
+      <button class="fab-tile" onclick="fabGo('crs')"><span>&#128722;</span>Courses</button>
       <button class="fab-tile" onclick="fabGo('dep')" style="border-color:var(--copper);background:linear-gradient(160deg,var(--glow),var(--bg3));"><span>&#128182;</span>D&#233;pense</button>
       <button class="fab-tile" onclick="fabGo('evt')"><span>&#127881;</span>&#201;v&#233;nement</button>
       <button class="fab-tile" onclick="fabGo('note')"><span>&#128221;</span>Note</button>
@@ -1725,6 +1748,7 @@ function showView(v,tab){
   if(v==='cpt')renderCpt();
   if(v==='budget'){loadBudget();renderBudget();}
   if(v==='maison')renderMaison();
+  if(v==='courses'){renderCourses();crsLivePull(true);}else crsLivePull(false);
 }
 
 function loadT(){try{tasks=JSON.parse(localStorage.getItem(TK))||[];}catch(e){tasks=[];}if(!tasks.length)tasks=defT();}
@@ -1957,6 +1981,95 @@ function bilanData(ref){
   diffs.sort(function(a,b){return b.d-a.d;});
   return{y:y,m:m,tot:cur.tot,avg:avg,n:n,up:diffs.filter(function(x){return x.d>=30;}).slice(0,2),down:diffs.filter(function(x){return x.d<=-30;}).reverse().slice(0,2).reverse()};
 }
+// ══════════ LISTE DE COURSES (partagee) ══════════
+var CRS_KEY='domicile_courses_v1',CRS_HAB='domicile_courses_hab',courses=[],_crsTimer=null,_crsLastPull=0;
+var CRS_RAY=['Fruits & l\u00e9gumes','Boulangerie','Frais','\u00c9picerie','Boissons','Surgel\u00e9s','Hygi\u00e8ne','Maison','Animaux','Divers'];
+var CRS_KW={
+  'Fruits & l\u00e9gumes':'pomme,banane,poire,orange,citron,clementine,tomate,salade,carotte,oignon,echalote,ail,patate,pomme de terre,courgette,poivron,avocat,fruit,legume,champignon,concombre,fraise,raisin,kiwi,persil,basilic,herbe,brocoli,chou,epinard,haricot vert,poireau,melon,peche,abricot,mangue,ananas,radis',
+  'Boulangerie':'pain,baguette,brioche,croissant,pain de mie,viennoiserie',
+  'Frais':'lait,beurre,yaourt,yogourt,fromage,creme,oeuf,jambon,poulet,viande,steak,saucisse,lardon,poisson,saumon,emmental,comte,mozzarella,dessert,compote,charcuterie,dinde,boeuf,porc,thon frais,cordon bleu,quiche',
+  '\u00c9picerie':'pate,riz,farine,sucre,sel,poivre,huile,vinaigre,cafe,the,chocolat,cereale,biscuit,conserve,sauce,moutarde,ketchup,mayonnaise,confiture,miel,gateau,levure,semoule,lentille,thon,mais,soupe,epice,chips,bonbon,compote',
+  'Boissons':'eau,jus,biere,vin,soda,sirop,coca,limonade,lait vegetal',
+  'Surgel\u00e9s':'surgele,glace,frite,pizza,poisson pane',
+  'Hygi\u00e8ne':'dentifrice,brosse a dent,shampoing,shampooing,gel douche,savon,deodorant,papier toilette,pq,coton,couche,mouchoir,rasoir,lingette,serviette hygienique,tampon,creme solaire',
+  'Maison':'lessive,liquide vaisselle,pastille,eponge,sac poubelle,essuie-tout,sopalin,nettoyant,javel,ampoule,pile,adoucissant,film,aluminium,papier cuisson,allumette',
+  'Animaux':'croquette,litiere,chien,chat,patee,friandise'
+};
+function crsNorm(t){t=String(t||'').toLowerCase();try{t=t.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}return t;}
+function crsRayon(name){
+  var n=' '+crsNorm(name).replace(/[^a-z0-9 ]/g,' ')+' ';
+  for(var i=0;i<CRS_RAY.length;i++){var r=CRS_RAY[i],kw=CRS_KW[r];if(!kw)continue;var L=kw.split(',');
+    for(var j=0;j<L.length;j++){if(n.indexOf(' '+L[j]+' ')>=0||n.indexOf(' '+L[j]+'s ')>=0||n.indexOf(' '+L[j]+'x ')>=0)return r;}}
+  return 'Divers';
+}
+function loadCourses(){try{var r=JSON.parse(localStorage.getItem(CRS_KEY));courses=Array.isArray(r)?r:[];}catch(e){courses=[];}}
+function saveCourses(){try{localStorage.setItem(CRS_KEY,JSON.stringify(courses));}catch(e){}scheduleGhPush();renderCourses();renderDashCrs();}
+function crsHabits(){try{return JSON.parse(localStorage.getItem(CRS_HAB))||{};}catch(e){return{};}}
+function crsAdd(name){
+  name=String(name||'').trim();if(!name)return;
+  var k=crsNorm(name),ex=courses.find(function(c){return crsNorm(c.name)===k;});
+  if(ex){if(ex.done){ex.done=false;saveCourses();}else toast('D\u00e9j\u00e0 dans la liste');return;}
+  courses.push({id:uid(),name:name.charAt(0).toUpperCase()+name.slice(1),rayon:crsRayon(name),done:false,at:Date.now()});
+  saveCourses();
+}
+function crsSubmit(ev){if(ev)ev.preventDefault();var i=g('crs-inp');if(!i)return;var v=i.value;i.value='';
+  v.split(/[,;\n]/).forEach(function(x){crsAdd(x);});i.focus();}
+function crsToggle(id){var c=courses.find(function(x){return x.id===id;});if(!c)return;c.done=!c.done;saveCourses();}
+function crsDel(id){markDeleted(id);courses=courses.filter(function(x){return x.id!==id;});saveCourses();}
+function crsClear(){
+  var dn=courses.filter(function(c){return c.done;});if(!dn.length)return;
+  var hb=crsHabits();dn.forEach(function(c){hb[c.name]=(hb[c.name]||0)+1;markDeleted(c.id);});
+  try{localStorage.setItem(CRS_HAB,JSON.stringify(hb));}catch(e){}
+  courses=courses.filter(function(c){return!c.done;});saveCourses();
+  toast(dn.length+' article'+(dn.length>1?'s':'')+' retir\u00e9'+(dn.length>1?'s':''));
+}
+function renderCourses(){
+  if(!g('crs-list'))return;
+  var todo=courses.filter(function(c){return!c.done;}),done=courses.filter(function(c){return c.done;});
+  sv('crs-count',function(e){e.textContent=todo.length?todo.length+' \u00e0 acheter':'';});
+  function row(c){return '<div class="crs-row'+(c.done?' done':'')+'" data-crs="'+eh(c.id)+'"><span class="ck">'+(c.done?'&#10003;':'')+'</span><span class="nm">'+eh(c.name)+'</span><button class="x" data-crs-del="'+eh(c.id)+'" aria-label="Supprimer">&#10005;</button></div>';}
+  var h='';
+  if(!todo.length)h='<div class="empty"><div class="eico">&#128722;</div>Liste vide</div>';
+  CRS_RAY.forEach(function(r){var L=todo.filter(function(c){return (c.rayon||'Divers')===r;}).sort(function(a,b){return a.name.localeCompare(b.name);});
+    if(!L.length)return;h+='<div class="crs-ray">'+r+'</div>'+L.map(row).join('');});
+  sv('crs-list',function(e){e.innerHTML=h;});
+  sv('crs-done',function(e){
+    e.innerHTML=done.length?'<div style="display:flex;align-items:center;justify-content:space-between;margin:16px 2px 6px;"><button class="bs" style="padding:5px 10px;font-size:12px;" onclick="crsClear()">Vider le panier</button><span class="crs-ray" style="margin:0;">Dans le panier ('+done.length+')</span></div>'+done.map(row).join(''):'';
+  });
+  var hb=crsHabits(),inL={};courses.forEach(function(c){inL[crsNorm(c.name)]=1;});
+  var top=Object.keys(hb).filter(function(n){return!inL[crsNorm(n)];}).sort(function(a,b){return hb[b]-hb[a];}).slice(0,14);
+  sv('crs-habits',function(e){e.innerHTML=top.map(function(n){return '<button class="crs-chip" data-crs-hab="'+eh(n)+'">+ '+eh(n)+'</button>';}).join('');});
+  var v=g('view-courses');
+  if(v&&!v._crsBound){v._crsBound=true;v.addEventListener('click',function(ev){
+    var t=ev.target;
+    while(t&&t!==v){
+      if(t.getAttribute){
+        var dl=t.getAttribute('data-crs-del');if(dl){crsDel(dl);return;}
+        var hb2=t.getAttribute('data-crs-hab');if(hb2){crsAdd(hb2);return;}
+        var id=t.getAttribute('data-crs');if(id){crsToggle(id);return;}
+      }
+      t=t.parentNode;
+    }
+  });}
+}
+function renderDashCrs(){
+  sv('dash-crs',function(e){
+    var n=courses.filter(function(c){return!c.done;}).length;
+    e.innerHTML=n?'<div class="urgbanner" style="border-left:3px solid var(--green);margin-bottom:12px;cursor:pointer;" onclick="goView(\'courses\')"><span>&#128722; Liste de courses : '+n+' article'+(n>1?'s':'')+'</span><button onclick="goView(\'courses\')">Ouvrir</button></div>':'';
+  });
+}
+// Synchro plus frequente quand la liste est ouverte (en magasin a deux)
+function crsLivePull(on){
+  clearInterval(_crsTimer);_crsTimer=null;
+  if(!on||!ghToken())return;
+  if(Date.now()-_crsLastPull>20000){_crsLastPull=Date.now();ghSilentPull();}
+  _crsTimer=setInterval(function(){if(!document.hidden){_crsLastPull=Date.now();ghSilentPull();}},30000);
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden||!ghToken())return;
+  if(Date.now()-_crsLastPull>30000){_crsLastPull=Date.now();ghSilentPull();}
+});
+
 function renderDashBilan(){
   sv('dash-bilan',function(e){
     var now=new Date();
@@ -2730,7 +2843,8 @@ function ghMerge(local,remote){
     carnet:{
       equip:mergeArr(local.carnet&&local.carnet.equip,remote.carnet&&remote.carnet.equip,'id').filter(function(x){return!isDeleted(x.id);}),
       contacts:mergeArr(local.carnet&&local.carnet.contacts,remote.carnet&&remote.carnet.contacts,'id').filter(function(x){return!isDeleted(x.id);})
-    }
+    },
+    courses:mergeArr(local.courses,remote.courses,'id').filter(function(x){return!isDeleted(x.id);})
   };
 }
 
@@ -2738,7 +2852,7 @@ function ghMerge(local,remote){
 var SNAP_KEY='domicile_snap_v1',_snap=null;
 function snapHash(o){var t=JSON.stringify(o,function(k,v){return k==='u'?undefined:v;}),h=5381;for(var i=0;i<t.length;i++){h=((h<<5)+h+t.charCodeAt(i))|0;}return String(h);}
 function syncArrays(){
-  var a=[tasks,renos,trvProjs,notes,events,charges,depenses,conges,qzActions];
+  var a=[tasks,renos,trvProjs,notes,events,charges,depenses,conges,qzActions,courses];
   if(cptData){a.push(cptData.elec);a.push(cptData.eau);}
   if(carnet){a.push(carnet.equip);a.push(carnet.contacts);}
   if(PD&&PD.maint)a.push(PD.maint);
@@ -2769,7 +2883,8 @@ function ghLocalData(){
     budget:{charges:charges,depenses:depenses},
     conges:conges,
     quickzone:{note:qzNote,actions:qzActions,noteTs:window._qzNoteTs||0},
-    carnet:carnet
+    carnet:carnet,
+    courses:courses
   };
 }
 
@@ -2791,6 +2906,7 @@ function ghApplyRemote(data,sha){
     localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));
   }
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+  if(Array.isArray(data.courses)){courses=data.courses.filter(function(x){return!isDeleted(x.id);});try{localStorage.setItem(CRS_KEY,JSON.stringify(courses));}catch(e){}if(typeof renderCourses==='function')renderCourses();}
   if(data.carnet&&typeof data.carnet==='object'){
     carnet={equip:(data.carnet.equip||[]).filter(function(x){return!isDeleted(x.id);}),contacts:(data.carnet.contacts||[]).filter(function(x){return!isDeleted(x.id);})};
     try{localStorage.setItem(CARNET_KEY,JSON.stringify(carnet));}catch(e){}
@@ -3129,7 +3245,7 @@ function deleteCharge(){
   renderBudget();toast('Charge supprim\u00e9e',function(){undoRemove('charge',c,ci);});
 }
 
-function renderAll(){renderDashBilan();saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();renderDashPellet();renderDashHello();renderDashWeek();}
+function renderAll(){renderDashBilan();renderDashCrs();saveT();renderStats();renderDash();renderTasks();renderDashTravaux();renderDashBirthdays();renderDashCpt();renderBudget();renderOnboard();renderDashEvents();renderQZ();renderDashPellet();renderDashHello();renderDashWeek();}
 
 function defP(){
   var n=new Date(),m=n.getMonth(),y=n.getFullYear();
@@ -3693,7 +3809,7 @@ function init(){
   sv('cpt-date',function(e){e.value=tod();});
   sv('dep-date',function(e){e.value=tod();});
   sv('evt-date',function(e){e.value=tod();});
-  loadSettings();loadGhConfig();loadDeletedIds();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();loadQZ();loadCarnet();
+  loadSettings();loadGhConfig();loadDeletedIds();loadT();loadP();loadR();loadTrv();loadNotes();loadEvts();loadCpt();loadBudget();loadConges();loadQZ();loadCarnet();loadCourses();
   renderAll();renderTodayEvents();
   scheduleNotifCheck();
   renderOnboard();
@@ -4873,6 +4989,7 @@ function fabGo(k){
   else if(k==='releve'){goView('cpt');focusEl('cpt-index');}
   else if(k==='eq'){goView('maison');openEq(null);}
   else if(k==='ct'){goView('maison');openCt(null);}
+  else if(k==='crs'){goView('courses');focusEl('crs-inp');}
 }
 
 // ══════════ RELEVE DES COMPTEURS ══════════
