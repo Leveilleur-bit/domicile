@@ -874,6 +874,7 @@ body.light{--purple:#8a5fb8;}
           </select>
         </div>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin:2px 0 10px;cursor:pointer;"><input type="checkbox" id="inp-fromdone" style="width:auto;"> Prochaine fois : repartir du jour o&#249; c&#39;est fait</label>
       <div class="fgrid fg2" style="margin-bottom:8px;">
         <div><label class="flbl">Échéance</label><input type="date" id="inp-date"></div>
         <div><label class="flbl">Notes</label><input type="text" id="inp-notes" placeholder="Ref, details..."></div>
@@ -1531,6 +1532,7 @@ body.light{--purple:#8a5fb8;}
         </select>
       </div>
     </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin:2px 0 10px;cursor:pointer;"><input type="checkbox" id="edit-fromdone" style="width:auto;"> Prochaine fois : repartir du jour o&#249; c&#39;est fait</label>
     <div class="fgrid fg2" style="margin-bottom:8px;">
       <div><label class="flbl">Notes</label><input type="text" id="edit-notes" placeholder="Ref, details..."></div>
       <div><label class="flbl">Prestataire / Contact</label><input type="text" id="edit-prest" placeholder="Nom, tel, email..."></div>
@@ -1836,6 +1838,7 @@ function quickAdd(){
     date:date,
     notes:isOpen&&g('inp-notes')?g('inp-notes').value.trim():'',
     recur:isOpen&&g('inp-recur')?g('inp-recur').value:'none',
+    fromDone:!!(isOpen&&g('inp-fromdone')&&g('inp-fromdone').checked),
     done:false,doneDate:null
   });
   n.value='';
@@ -1860,7 +1863,8 @@ function mDone(id){
   var prevDone=t.done,prevDate=t.doneDate;
   t.done=true;t.doneDate=tod();
   if(t.recur&&t.recur!=='none'){
-    var nx=new Date(t.date);
+    // Date fixe par defaut ; option fromDone : l'intervalle repart du jour de validation
+    var nx=new Date(t.fromDone?tod():t.date);
     if(t.recur==='daily')nx.setDate(nx.getDate()+1);
     if(t.recur==='weekly')nx.setDate(nx.getDate()+7);
     if(t.recur==='monthly')nx.setMonth(nx.getMonth()+1);
@@ -1868,7 +1872,7 @@ function mDone(id){
     if(t.recur==='semiannual')nx.setMonth(nx.getMonth()+6);
     if(t.recur==='yearly')nx.setFullYear(nx.getFullYear()+1);
     var gid=uid();
-    tasks.push({id:gid,name:t.name,room:t.room,cat:t.cat,date:nx.toISOString().split('T')[0],notes:t.notes,recur:t.recur,prest:t.prest,costAnn:t.costAnn,done:false,doneDate:null});
+    tasks.push({id:gid,name:t.name,room:t.room,cat:t.cat,date:nx.toISOString().split('T')[0],notes:t.notes,recur:t.recur,fromDone:t.fromDone||undefined,prest:t.prest,costAnn:t.costAnn,done:false,doneDate:null});
     saveT();renderAll();toast('Faite \u00b7 prochaine le '+fd(nx.toISOString().split('T')[0]),function(){undoDone(id,prevDone,prevDate,gid);});return;
   }
   saveT();renderAll();toast('Marqu\u00e9e comme faite',function(){undoDone(id,prevDone,prevDate,null);});
@@ -3510,6 +3514,7 @@ function openEdit(id){
   if(d)d.value=t.date||'';
   if(no)no.value=t.notes||'';
   if(rc)rc.value=t.recur||'none';
+  var fdn=document.getElementById('edit-fromdone');if(fdn)fdn.checked=!!t.fromDone;
   var pr=document.getElementById('edit-prest');
   var ca2=document.getElementById('edit-cost-ann');
   var cl=document.getElementById('edit-cost-last');
@@ -3549,6 +3554,7 @@ function saveEdit(){
   if(ca)t.cat=ca.value;
   if(d&&d.value)t.date=d.value;
   if(rc)t.recur=rc.value;
+  var fdn=document.getElementById('edit-fromdone');if(fdn){if(fdn.checked)t.fromDone=true;else delete t.fromDone;}
   if(no)t.notes=no.value.trim();
   var ep2=g('edit-priority');if(ep2)t.priority=ep2.value;
   var pr=document.getElementById('edit-prest');
