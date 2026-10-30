@@ -1663,6 +1663,7 @@ body.light{--purple:#8a5fb8;}
       </div>
     </div>
     <div style="text-align:center;font-size:12px;color:var(--dim);margin-top:14px;">DOMICILE v2.0 - 06/05/2026</div>
+    <div id="last-err" style="text-align:center;font-size:11px;color:var(--red);margin-top:6px;word-break:break-word;"></div>
     <button class="bp" style="width:100%;margin-top:10px;" onclick="closeSettings()">Fermer</button>
   </div>
 </div>
@@ -2986,7 +2987,7 @@ function ghPush(){
     var merged=ghMerge(local,remoteData);
     
     ghApplyRemote(merged,remoteSha||_ghSha);
-    renderAll();
+    safeRenderAll();
     
     var content;
     try{content=btoa(unescape(encodeURIComponent(JSON.stringify(merged))));}
@@ -2999,6 +3000,7 @@ function ghPush(){
       _ghPushInProgress=false;
       if(res.s===200||res.s===201){
         if(res.d.content&&res.d.content.sha)_ghSha=res.d.content.sha;
+        try{localStorage.removeItem('domicile_dirty');}catch(e){}
         saveGhConfig();
       } else if(res.s===409||res.s===422){
         
@@ -3023,14 +3025,16 @@ function ghSilentPull(){
   if(!ghToken())return;
   ghFetch(function(remoteData,sha,err){
     if(err||!remoteData)return;
-    if(sha===_ghSha)return; 
+    if(sha===_ghSha&&!window._forceFullPull){try{if(localStorage.getItem('domicile_dirty'))scheduleGhPush();}catch(e){}return;}
+    window._forceFullPull=false;
     
     var local=ghLocalData();
     var merged=ghMerge(local,remoteData);
     ghApplyRemote(merged,sha);
     saveGhConfig();
-    renderAll();
+    safeRenderAll();
     toast('↻ Synchronise');
+    try{if(localStorage.getItem('domicile_dirty'))scheduleGhPush();}catch(e){}
   });
 }
 
@@ -3072,6 +3076,7 @@ function ghPull(){
 }
 
 function scheduleGhPush(){
+  try{localStorage.setItem('domicile_dirty','1');}catch(e){}
   if(!ghToken())return;
   clearTimeout(_ghSaveTimer);
   _ghSaveTimer=setTimeout(ghPush,3000);
@@ -3928,7 +3933,18 @@ function applySettings(){
   document.documentElement.style.setProperty('--cl',appSettings.accentLight);
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
+// ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
+var APP_V='v30';
+function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
+function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
+window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
+window.addEventListener('unhandledrejection',function(e){logErr('promesse : '+(e.reason&&e.reason.message||e.reason));});
+function showLastErr(){sv('last-err',function(el){var x=null;try{x=JSON.parse(localStorage.getItem('domicile_last_err')||'null');}catch(e){}el.textContent=x?'Derni\u00e8re erreur ('+x.at+') : '+x.m:'';});}
+// Nouvelle version de l'appli : on relit tout le depot une fois, meme sans changement distant
+(function(){try{if(localStorage.getItem('domicile_app_v')!==APP_V){localStorage.setItem('domicile_app_v',APP_V);localStorage.setItem('domicile_dirty','1');window._forceFullPull=true;}}catch(e){}})();
+
 function openSettings(){
+  showLastErr();
   var o=g('settings-overlay');if(!o)return;
   sv('set-house-name',function(e){e.value=appSettings.houseName||'';});
   var sw=document.querySelectorAll('.swatch');
