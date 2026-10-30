@@ -590,6 +590,11 @@ body.light header{background:linear-gradient(180deg,rgba(246,239,229,.97),rgba(2
 #dash-hello .hi-t{font-family:var(--fd);font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
 #dash-hello .hi-t em{font-style:italic;color:var(--cl);}
 #dash-hello .hi-s{font-size:13px;color:var(--dim);margin-top:4px;}
+#dash-hello.has-photo{margin:-16px -18px 6px;padding:200px 18px 8px;background-size:cover;background-position:center 32%;border-radius:0 0 22px 22px;}
+@media(max-width:768px){#dash-hello.has-photo{margin:-14px -14px 6px;padding:190px 14px 8px;}}
+#dash-hello.has-photo .hi-t{text-shadow:0 2px 16px color-mix(in srgb,var(--bg) 70%,transparent);}
+#dash-hello.has-photo .hi-s{color:var(--text);opacity:.85;}
+#dash-hello.has-photo .hi-w{background:color-mix(in srgb,var(--bg2) 82%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 #dash-hello .hi-w{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:var(--bg2);border:1px solid var(--border);}
 #dash-hello .hi-w .wi{font-size:26px;line-height:1;}
 #dash-hello .hi-w .wt{font-family:var(--fd);font-size:20px;color:var(--text);white-space:nowrap;}
@@ -1613,6 +1618,11 @@ body.light{--purple:#8a5fb8;}
       </div>
       <button class="bs" style="width:100%;margin-top:6px;font-size:12px;padding:7px;" onclick="ghRestoreBackup()">&#8630; Annuler la derniere restauration</button>
       <div style="font-size:11px;color:var(--dim);margin-top:5px;" id="sync-last"></div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:8px;font-weight:600;">Photo d'accueil</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;"><button class="bs" type="button" onclick="g('hp-file').click()">&#128247; Changer la photo</button><button class="bs" type="button" onclick="removeHomePhoto()">Retirer</button></div>
+      <input type="file" id="hp-file" accept="image/*" style="display:none;" onchange="pickHomePhoto(this)">
     </div>
     <div style="margin-bottom:16px;">
       <div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:8px;font-weight:600;">Nom de la maison</div>
@@ -2860,7 +2870,8 @@ function ghMerge(local,remote){
       equip:mergeArr(local.carnet&&local.carnet.equip,remote.carnet&&remote.carnet.equip,'id').filter(function(x){return!isDeleted(x.id);}),
       contacts:mergeArr(local.carnet&&local.carnet.contacts,remote.carnet&&remote.carnet.contacts,'id').filter(function(x){return!isDeleted(x.id);})
     },
-    courses:mergeArr(local.courses,remote.courses,'id').filter(function(x){return!isDeleted(x.id);})
+    courses:mergeArr(local.courses,remote.courses,'id').filter(function(x){return!isDeleted(x.id);}),
+    homePhoto:((remote.homePhoto&&remote.homePhoto.ts)||0)>((local.homePhoto&&local.homePhoto.ts)||0)?remote.homePhoto:(local.homePhoto||remote.homePhoto||null)
   };
 }
 
@@ -2900,7 +2911,8 @@ function ghLocalData(){
     conges:conges,
     quickzone:{note:qzNote,actions:qzActions,noteTs:window._qzNoteTs||0},
     carnet:carnet,
-    courses:courses
+    courses:courses,
+    homePhoto:homePhoto
   };
 }
 
@@ -2922,6 +2934,7 @@ function ghApplyRemote(data,sha){
     localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));
   }
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+  if(data.homePhoto&&typeof data.homePhoto==='object'&&(data.homePhoto.ts||0)!==((homePhoto&&homePhoto.ts)||0)){homePhoto=data.homePhoto;try{localStorage.setItem(HP_KEY,JSON.stringify(homePhoto));}catch(e){}loadHomePhoto();}
   if(Array.isArray(data.courses)){courses=data.courses.filter(function(x){return!isDeleted(x.id);});try{localStorage.setItem(CRS_KEY,JSON.stringify(courses));}catch(e){}if(typeof renderCourses==='function')renderCourses();}
   if(data.carnet&&typeof data.carnet==='object'){
     carnet={equip:(data.carnet.equip||[]).filter(function(x){return!isDeleted(x.id);}),contacts:(data.carnet.contacts||[]).filter(function(x){return!isDeleted(x.id);})};
@@ -5037,6 +5050,47 @@ function paintWx(el,w){
   }catch(e){el.innerHTML='';}
 }
 
+// ══════════ PHOTO D'ACCUEIL (rangee dans le depot prive de donnees) ══════════
+var HP_KEY='domicile_homephoto',HP_IMG='domicile_homephoto_img',homePhoto=null,_hpUrl='';
+try{homePhoto=JSON.parse(localStorage.getItem(HP_KEY)||'null');}catch(e){homePhoto=null;}
+function applyHomePhoto(){
+  var el=g('dash-hello');if(!el)return;
+  if(_hpUrl){el.classList.add('has-photo');el.style.backgroundImage='linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 38%,color-mix(in srgb,var(--bg) 55%,transparent) 58%,color-mix(in srgb,var(--bg) 88%,transparent) 74%,var(--bg) 90%),url('+_hpUrl+')';}
+  else{el.classList.remove('has-photo');el.style.backgroundImage='';}
+}
+function loadHomePhoto(){
+  if(!homePhoto||!homePhoto.path){_hpUrl='';try{localStorage.removeItem(HP_IMG);}catch(e){}applyHomePhoto();return;}
+  var c=null;try{c=JSON.parse(localStorage.getItem(HP_IMG)||'null');}catch(e){}
+  if(c&&c.path===homePhoto.path&&c.url){_hpUrl=c.url;applyHomePhoto();return;}
+  if(!ghToken()||typeof fetch!=='function')return;
+  if(window._hpLoading===homePhoto.path)return;window._hpLoading=homePhoto.path;
+  var hd=ghHeaders();hd.Accept='application/vnd.github.v3.raw';
+  var path=homePhoto.path;
+  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path+'?ref='+GH_BRANCH,{headers:hd}).then(function(r){if(!r.ok)throw 0;return r.blob();})
+  .then(function(b){var fr=new FileReader();fr.onload=function(){
+    var u=String(fr.result).replace(/^data:[^;]*;/,'data:image/jpeg;');_hpUrl=u;
+    try{localStorage.setItem(HP_IMG,JSON.stringify({path:path,url:u}));}catch(e){}
+    applyHomePhoto();};fr.readAsDataURL(b);}).catch(function(){});
+}
+function pickHomePhoto(inp){
+  var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(!ghToken()){toast('Synchro GitHub non configur\u00e9e');return;}
+  var img=new Image(),url=URL.createObjectURL(f);
+  img.onload=function(){
+    var k=Math.min(1,1200/img.width),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    var data=c.toDataURL('image/jpeg',0.72),path='photos/accueil-'+Date.now()+'.jpg';
+    toast('Envoi de la photo\u2026');
+    fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path,{method:'PUT',headers:ghHeaders(),body:JSON.stringify({message:'photo accueil',content:data.split(',')[1],branch:GH_BRANCH})})
+    .then(function(r){if(r.status!==200&&r.status!==201)throw 0;
+      homePhoto={path:path,ts:Date.now()};try{localStorage.setItem(HP_KEY,JSON.stringify(homePhoto));localStorage.setItem(HP_IMG,JSON.stringify({path:path,url:data}));}catch(e){}
+      _hpUrl=data;applyHomePhoto();scheduleGhPush();toast('Photo d\u2019accueil mise \u00e0 jour');
+    }).catch(function(){toast('Envoi impossible (hors ligne ?)');});
+  };
+  img.src=url;
+}
+function removeHomePhoto(){homePhoto={path:'',ts:Date.now()};try{localStorage.setItem(HP_KEY,JSON.stringify(homePhoto));}catch(e){}_hpUrl='';try{localStorage.removeItem(HP_IMG);}catch(e){}applyHomePhoto();scheduleGhPush();toast('Photo retir\u00e9e');}
+
 function renderDashHello(){
   var el=g('dash-hello');if(!el)return;
   var now=new Date(),h=now.getHours();
@@ -5060,6 +5114,7 @@ function renderDashHello(){
   if(dw===5&&h>=18)gr='Bon week-end';
   el.innerHTML='<div class="hi-t">'+gr+'</div><div class="hi-s">'+sub+'</div><div id="dash-wx"></div>';
   renderWeather();
+  if(!_hpUrl&&homePhoto&&homePhoto.path)loadHomePhoto();else applyHomePhoto();
 }
 function renderDashPellet(){
   var el=g('dash-pellet');if(!el)return;
