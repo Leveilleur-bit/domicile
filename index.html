@@ -1972,6 +1972,13 @@ function renderStats(){
       var wd=Math.floor((new Date(q.warrantyEnd)-today4)/86400000);
       if(wd>=0&&wd<=30)alerts.push({txt:'&#128737; Garantie '+eh(q.name)+' : fin dans '+wd+'j',col:'var(--amber)',act:"goView('maison')"});
     });
+    // Synchronisation en panne : bien visible, sinon les deux telephones divergent sans qu'on le sache
+    (function(){
+      var cfg={},er='';try{cfg=JSON.parse(localStorage.getItem('domicile_gh_cfg')||'{}');er=localStorage.getItem('domicile_gh_err')||'';}catch(x){}
+      if(!ghToken()){alerts.push({txt:'&#9888;&#65039; Synchronisation d\u00e9sactiv\u00e9e : ajoute le token GitHub dans R\u00e9glages',col:'var(--red)',act:'openSettings()'});return;}
+      if(er){alerts.push({txt:'&#9888;&#65039; Synchronisation bloqu\u00e9e : token GitHub invalide ou expir\u00e9 (R\u00e9glages)',col:'var(--red)',act:'openSettings()'});return;}
+      if(cfg.syncTs&&Date.now()-cfg.syncTs>86400000){var dd=Math.floor((Date.now()-cfg.syncTs)/86400000);alerts.push({txt:'&#9888;&#65039; Pas de synchronisation depuis '+dd+' jour'+(dd>1?'s':''),col:'var(--amber)',act:'openSettings()'});}
+    })();
     subsList().forEach(function(sb){
       if(sb.ch.freq!=='yearly'||sb.days>14)return;
       alerts.push({txt:'&#128260; Renouvellement '+eh(sb.ch.name)+' ('+fmtEur(sb.amt)+') '+(sb.days===0?"aujourd'hui":'dans '+sb.days+'j'),col:'var(--copper)',act:"goView('budget')"});
@@ -2683,7 +2690,8 @@ function renderDashEvents(){
     var ico=ICO[ev.type]||'&#11088;';
     var col=ev.diff===0?'var(--red)':ev.diff<=3?'var(--amber)':ev.diff<=7?'var(--copper)':'var(--dim)';
     var bg=ev.diff===0?'rgba(224,112,96,.12)':ev.diff<=3?'rgba(240,192,96,.1)':'rgba(255,255,255,.04)';
-    var tm=ev.time&&ev.type!=='birthday'?' \u00b7 '+ev.time.replace(':','h'):'';
+    var inTitle=/\d{1,2}\s*h\s*\d{0,2}/i.test(ev.title||'');
+    var tm=ev.time&&ev.type!=='birthday'&&!inTitle?' \u00b7 '+ev.time.replace(/^0/,'').replace(':','h').replace(/h00$/,'h'):'';
     var wd=ev.date.toLocaleDateString('fr-FR',{weekday:'long'});
     var when=(ev.diff===0?'Aujourd\'hui':ev.diff===1?'Demain':ev.diff<=6?wd.charAt(0).toUpperCase()+wd.slice(1):'dans '+ev.diff+'j')+tm;
     h+='<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:'+bg+';border:1px solid '+col+';border-radius:6px;font-size:12px;cursor:pointer;" data-action="dash-evt" data-id="'+ev.id+'">'
@@ -2752,7 +2760,7 @@ function loadGhConfig(){
 
 function saveGhConfig(time){
   var now=time||new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:ghToken(),sha:_ghSha,lastSync:now}));}catch(e){}
+  try{localStorage.setItem('domicile_gh_cfg',JSON.stringify({token:ghToken(),sha:_ghSha,lastSync:now,syncTs:Date.now()}));localStorage.removeItem('domicile_gh_err');}catch(e){}
   ghStatus('\u2713 '+now,'var(--green)');
 }
 
@@ -2783,7 +2791,7 @@ function ghFetch(cb){
   if(!ghToken()){cb(null,null,'no token');return;}
   fetch(ghApiUrl()+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders()})
   .then(function(r){
-    if(r.status===401){ghStatus('Token invalide','var(--red)');cb(null,null,'401');return;}
+    if(r.status===401||r.status===403||r.status===404){ghStatus('Token invalide ou expir\u00e9','var(--red)');try{localStorage.setItem('domicile_gh_err',String(r.status));}catch(e){}cb(null,null,'401');return;}
     return r.json().then(function(d){
       if(!d.content){cb(null,null,'no content');return;}
       var json=decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
