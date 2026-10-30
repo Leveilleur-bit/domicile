@@ -273,6 +273,8 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 /* EDIT MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);}
 .modal-overlay.hidden{display:none;}
+.ov-box{max-height:92vh;max-height:92dvh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+html.ov-open,html.ov-open body{overflow:hidden;}
 .modal{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;width:100%;max-width:480px;position:relative;border-top:3px solid var(--copper);}
 .modal-title{font-family:var(--fd);font-size:18px;letter-spacing:-.01em;color:var(--cl);margin-bottom:18px;}
 .modal-close{position:absolute;top:14px;right:14px;background:transparent;border:1px solid var(--border);color:var(--dim);width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
@@ -1562,7 +1564,7 @@ body.light{--purple:#8a5fb8;}
 </div>
 
 <!-- NOTE MODAL -->
-<div id="note-modal" class="hidden" style="display:none;" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeNoteModal(event)">
+<div id="note-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);" onclick="closeNoteModal(event)">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px 14px 0 0;padding:18px 16px 26px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:fu .3s ease;border-top:3px solid var(--copper);">
     <div style="font-family:var(--fd);font-size:16px;letter-spacing:-.01em;color:var(--cl);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
       <span id="note-modal-title">Nouvelle note</span>
@@ -1744,6 +1746,7 @@ function g(id){return document.getElementById(id);}
 function sv(id,fn){var e=g(id);if(e)fn(e);}
 
 function showView(v,tab){
+  navOnView(v);
   var vs=document.querySelectorAll('.view');
   for(var i=0;i<vs.length;i++)vs[i].classList.remove('on');
   var tabs=document.querySelectorAll('.tab');
@@ -3816,6 +3819,50 @@ function renderStats2(){
 
 
 
+// ══════════ BOUTON RETOUR ANDROID : fenetres et onglets dans l'historique ══════════
+var _curView='dash',_navFromPop=false,_ovEls=[],_pendBack=0,_qPush=null;
+function navOnView(v){
+  if(!_navFromPop&&v!==_curView&&window.history&&history.pushState){try{history.pushState({view:v},'');}catch(e){}}
+  _curView=v;
+}
+function ovVisible(el){return el&&getComputedStyle(el).display!=='none'&&!el.classList.contains('hidden');}
+function ovSync(){
+  var any=false;
+  // d'abord les fermetures, puis les ouvertures (ex. : bouton + puis Depense)
+  _ovEls.slice().sort(function(a,b2){return (ovVisible(a)?1:0)-(ovVisible(b2)?1:0);}).forEach(function(el){
+    var vis=ovVisible(el);any=any||vis;
+    if(vis&&!el._ovOpen){el._ovOpen=true;if(!_navFromPop){var stt={view:_curView,ov:el.id};if(_pendBack)_qPush=stt;else{try{history.pushState(stt,'');}catch(e){}}}}
+    else if(!vis&&el._ovOpen){el._ovOpen=false;
+      // fermee par l'interface : on retire son etape de l'historique
+      if(!_navFromPop&&history.state&&history.state.ov===el.id){_pendBack++;try{history.back();}catch(e){_pendBack--;}}}
+  });
+  document.documentElement.classList.toggle('ov-open',any);
+}
+function ovClose(el){
+  try{el.dispatchEvent(new MouseEvent('click',{bubbles:true}));}catch(e){}
+  if(ovVisible(el)){el.classList.add('hidden');el.style.display='none';}
+}
+function initNav(){
+  var L=document.querySelectorAll('.modal-overlay,[id$="-modal"],[id$="-sheet"],#settings-overlay');
+  for(var i=0;i<L.length;i++){
+    var el=L[i];if(getComputedStyle(el).position!=='fixed'&&!el.classList.contains('modal-overlay'))continue;
+    _ovEls.push(el);
+    if(el.firstElementChild)el.firstElementChild.classList.add('ov-box');
+    try{new MutationObserver(ovSync).observe(el,{attributes:true,attributeFilter:['style','class']});}catch(e){}
+  }
+  try{history.replaceState({view:'dash'},'');}catch(e){}
+  window.addEventListener('popstate',function(ev){
+    if(_pendBack>0){_pendBack--;if(!_pendBack&&_qPush){try{history.pushState(_qPush,'');}catch(e){}_qPush=null;}return;}
+    var open=_ovEls.filter(ovVisible);
+    _navFromPop=true;
+    try{
+      if(open.length){open.sort(function(a,b){return (parseInt(getComputedStyle(b).zIndex,10)||0)-(parseInt(getComputedStyle(a).zIndex,10)||0);});ovClose(open[0]);ovSync();return;}
+      var st=ev.state||{},v=st.view||'dash';
+      if(v!==_curView){var t=document.querySelector('.tab[data-view="'+v+'"]');showView(v,t);var mm=g('more-menu');if(mm)mm.style.display='none';}
+    }finally{_navFromPop=false;}
+  });
+}
+
 function init(){
   var now=new Date();
   sv('hdate',function(e){e.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});});
@@ -5814,6 +5861,7 @@ function seedDefaults(){
 }
 
 init();
+initNav();
 
 if('serviceWorker' in navigator && location.protocol!=='file:'){
   window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
