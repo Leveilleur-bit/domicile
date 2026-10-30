@@ -1,4 +1,4 @@
-const CACHE_NAME = 'domicile-v22';
+const CACHE_NAME = 'domicile-v23';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -37,7 +37,7 @@ self.addEventListener('fetch', function(event) {
   var url = event.request.url;
 
   // Synchronisation GitHub et ecritures : jamais de cache, toujours le reseau
-  if (event.request.method !== 'GET' || url.indexOf('api.github.com') !== -1) return;
+  if (event.request.method !== 'GET' || url.indexOf('api.github.com') !== -1 || url.indexOf('open-meteo.com') !== -1) return;
 
   // Polices (Bunny Fonts) — stale-while-revalidate
   // Cache d abord, mise a jour en arriere-plan

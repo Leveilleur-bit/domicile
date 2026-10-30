@@ -588,6 +588,11 @@ body.light header{background:linear-gradient(180deg,rgba(246,239,229,.97),rgba(2
 #dash-hello .hi-t{font-family:var(--fd);font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
 #dash-hello .hi-t em{font-style:italic;color:var(--cl);}
 #dash-hello .hi-s{font-size:13px;color:var(--dim);margin-top:4px;}
+#dash-hello .hi-w{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:var(--bg2);border:1px solid var(--border);}
+#dash-hello .hi-w .wi{font-size:26px;line-height:1;}
+#dash-hello .hi-w .wt{font-family:var(--fd);font-size:20px;color:var(--text);white-space:nowrap;}
+#dash-hello .hi-w .wa{font-size:13px;color:var(--text);line-height:1.35;}
+#dash-hello .hi-w .wa small{display:block;color:var(--dim);font-size:11px;}
 .ember{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:14px;border-radius:var(--r);border:1px solid rgba(208,138,92,.35);background:radial-gradient(120% 140% at 0% 0%,rgba(232,119,95,.22),transparent 55%),linear-gradient(160deg,rgba(208,138,92,.14),var(--bg2));box-shadow:var(--shadow);}
 .ember-ico{font-size:28px;filter:drop-shadow(0 0 10px rgba(242,140,60,.55));}
 .ember-txt{flex:1;min-width:0;}
@@ -691,6 +696,10 @@ body.light{--purple:#8a5fb8;}
 .wk-it{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer;}
 .wk-it:last-child{border-bottom:none;}
 .wk-it .ic{width:22px;text-align:center;font-size:15px;flex-shrink:0;}
+.wk-it .ck{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:transparent;flex-shrink:0;padding:0;cursor:pointer;}
+.wk-it .ck:active{background:var(--green);border-color:var(--green);}
+.wk-it.chg .nm,.wk-it.chg .mt{color:var(--dim);}
+.wk-it.chg .ic{opacity:.7;font-size:13px;}
 .wk-it .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .wk-it .mt{font-size:12px;color:var(--dim);white-space:nowrap;}
 .wk-chg .mt{color:var(--text);font-weight:600;}
@@ -4941,6 +4950,46 @@ function trvDelStep_idx(pidx,si){
 }
 
 // ══════════ ACCUEIL : SALUTATION + POELE ══════════
+// ══════════ METEO DU JOUR (Open-Meteo, sans compte) ══════════
+var WX_KEY='domicile_wx_v1';
+function wxCoords(){var la=parseFloat(appSettings&&appSettings.lat),lo=parseFloat(appSettings&&appSettings.lon);return(isNaN(la)||isNaN(lo))?{la:47.996,lo:-4.102}:{la:la,lo:lo};}
+function wxIcon(c){if(c===0)return'&#9728;&#65039;';if(c<=2)return'&#127780;&#65039;';if(c===3)return'&#9729;&#65039;';if(c<=48)return'&#127787;&#65039;';if(c<=57)return'&#127782;&#65039;';if(c<=67)return'&#127783;&#65039;';if(c<=77)return'&#10052;&#65039;';if(c<=82)return'&#127782;&#65039;';if(c<=86)return'&#127784;&#65039;';return'&#9928;&#65039;';}
+function wxLabel(c){if(c===0)return'grand soleil';if(c<=2)return'\u00e9claircies';if(c===3)return'couvert';if(c<=48)return'brouillard';if(c<=57)return'bruine';if(c<=67)return'pluie';if(c<=77)return'neige';if(c<=82)return'averses';if(c<=86)return'averses de neige';return'orages';}
+function wxAdvice(w){
+  var d=w.daily,tmin0=d.temperature_2m_min[0],tmin1=d.temperature_2m_min[1],tmax=d.temperature_2m_max[0],rain=d.precipitation_sum[0],pp=d.precipitation_probability_max[0],gust=d.wind_gusts_10m_max[0];
+  var nightMin=Math.min(tmin1,tmin0);
+  if(nightMin<=0)return'Gel annonc\u00e9 ('+Math.round(nightMin)+'\u00b0) : robinets ext\u00e9rieurs et pare-brise';
+  if(gust>=70)return'Rafales \u00e0 '+Math.round(gust)+' km/h : rentrer ce qui tra\u00eene dehors';
+  if(nightMin<=3)return'Risque de gel\u00e9e blanche cette nuit ('+Math.round(nightMin)+'\u00b0)';
+  if(tmax>=28)return'Chaleur : volets ferm\u00e9s c\u00f4t\u00e9 soleil, pensez \u00e0 boire';
+  if(rain>=5)return'Pluie ('+Math.round(rain)+' mm) : pas de tonte, linge \u00e0 l\u2019int\u00e9rieur';
+  if(rain<0.5&&pp<30&&tmax>=12)return'Temps sec : bonne journ\u00e9e pour le linge dehors';
+  if(tmax<=10)return'Journ\u00e9e fra\u00eeche : bonne journ\u00e9e pour le po\u00eale';
+  return'';
+}
+function renderWeather(){
+  var el=g('dash-wx');if(!el)return;
+  var c=null;try{c=JSON.parse(localStorage.getItem(WX_KEY)||'null');}catch(e){}
+  if(c&&c.w)paintWx(el,c.w);
+  if(c&&Date.now()-c.at<3600000)return;
+  if(typeof fetch!=='function')return;
+  var p=wxCoords();
+  var url='https://api.open-meteo.com/v1/forecast?latitude='+p.la+'&longitude='+p.lo+'&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max&timezone=Europe%2FParis&forecast_days=2';
+  fetch(url).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(w){
+    if(!w||!w.daily||!w.current)return;
+    try{localStorage.setItem(WX_KEY,JSON.stringify({at:Date.now(),w:w}));}catch(e){}
+    var e2=g('dash-wx');if(e2)paintWx(e2,w);
+  }).catch(function(){});
+}
+function paintWx(el,w){
+  try{
+    var cur=w.current,d=w.daily,adv=wxAdvice(w);
+    el.innerHTML='<div class="hi-w"><span class="wi">'+wxIcon(cur.weather_code)+'</span><span class="wt">'+Math.round(cur.temperature_2m)+'\u00b0</span>'
+      +'<span class="wa">'+(adv?eh(adv):wxLabel(d.weather_code[0]).charAt(0).toUpperCase()+wxLabel(d.weather_code[0]).slice(1))
+      +'<small>'+wxLabel(d.weather_code[0])+' \u00b7 '+Math.round(d.temperature_2m_min[0])+'\u00b0 / '+Math.round(d.temperature_2m_max[0])+'\u00b0'+(d.precipitation_sum[0]>=0.5?' \u00b7 '+String(Math.round(d.precipitation_sum[0]*10)/10).replace('.',',')+' mm':'')+'</small></span></div>';
+  }catch(e){el.innerHTML='';}
+}
+
 function renderDashHello(){
   var el=g('dash-hello');if(!el)return;
   var now=new Date(),h=now.getHours();
@@ -4959,7 +5008,11 @@ function renderDashHello(){
   if(urg)bits.push(urg+' en retard');
   if(wk)bits.push(wk+' cette semaine');
   var sub=dt.charAt(0).toUpperCase()+dt.slice(1)+' &middot; '+(bits.length?bits.join(', '):'tout est &#224; jour');
-  el.innerHTML='<div class="hi-t">'+gr+(nm?', <em>'+eh(nm)+'</em>':'')+'</div><div class="hi-s">'+sub+'</div>';
+  var dw=now.getDay();
+  if(h>=5&&h<18){if(dw===6||dw===0)gr='Bon week-end';else if(dw===5&&h>=12)gr='Bon vendredi';}
+  if(dw===5&&h>=18)gr='Bon week-end';
+  el.innerHTML='<div class="hi-t">'+gr+'</div><div class="hi-s">'+sub+'</div><div id="dash-wx"></div>';
+  renderWeather();
 }
 function renderDashPellet(){
   var el=g('dash-pellet');if(!el)return;
@@ -5090,6 +5143,16 @@ function pOrderLabel(au){
 
 // ══════════ ACCUEIL : CETTE SEMAINE ══════════
 var wkSel=null,wkChgOpen={};
+function taskIco(t){
+  var n=crsNorm(t.name||'');
+  if(/merlin|vermifuge|antipuce|chien|chat/.test(n))return'&#128021;';
+  if(/poele|ramonage|cendre/.test(n))return'&#128293;';
+  if(/clim|bi-split/.test(n))return'&#10052;&#65039;';
+  if(/pelouse|tondre|haie|jardin|tailler/.test(n))return'&#127807;';
+  if(/gouttiere|toit|toiture/.test(n))return'&#127968;';
+  var C={Entretien:'&#128295;',Nettoyage:'&#129529;',Filtre:'&#127744;',Inspection:'&#128269;',Securite:'&#128737;&#65039;',Jardin:'&#127807;',Remplacement:'&#128260;',Renovation:'&#127959;'};
+  return C[t.cat]||'&#128295;';
+}
 function dayItems(d){
   var ds=isoD(d),items=[],mo=d.getMonth(),da=d.getDate();
   var EI={birthday:'&#127881;',rdv:'&#128197;',evt:'&#11088;',fete:'&#127878;'};
@@ -5099,7 +5162,7 @@ function dayItems(d){
     var hit=e.recur==='yearly'?(ed.getMonth()===mo&&ed.getDate()===da):e.date===ds;
     if(hit)items.push({k:'evt',id:e.id,ico:EI[e.type]||'&#11088;',name:e.title,meta:e.time?e.time.replace(':','h'):'',o:0,t:e.time||''});
   });
-  tasks.forEach(function(t){if(!t.done&&t.date===ds)items.push({k:'task',id:t.id,ico:'&#9989;',name:t.name,meta:t.room&&t.room!=='General'?t.room:'',o:1});});
+  tasks.forEach(function(t){if(!t.done&&t.date===ds)items.push({k:'task',id:t.id,ico:taskIco(t),name:t.name,meta:t.room&&t.room!=='General'?t.room:'',o:1});});
   conges.forEach(function(c){if(c.start<=ds&&c.end>=ds)items.push({k:'conge',id:c.id,ico:'&#127958;',name:c.name,meta:c.end>ds?'jusqu\u2019au '+new Date(c.end).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'dernier jour',o:2,cont:c.start<ds});});
   var dim=new Date(d.getFullYear(),mo+1,0).getDate();
   charges.forEach(function(ch){
@@ -5109,7 +5172,7 @@ function dayItems(d){
     if(ch.freq==='monthly')hit=true;
     else if(ch.freq==='yearly')hit=cd.getMonth()===mo;
     else if(ch.freq==='quarterly')hit=(mo-cd.getMonth()+12)%3===0;
-    if(hit)items.push({k:'charge',id:ch.id,ico:'&#128178;',name:ch.name,amt:parseFloat(ch.amount)||0,meta:fmtEur(parseFloat(ch.amount)||0),o:3});
+    if(hit)items.push({k:'charge',id:ch.id,ico:'&#128182;',name:ch.name,amt:parseFloat(ch.amount)||0,meta:fmtEur(parseFloat(ch.amount)||0),o:3});
   });
   var au=pAutonomy();
   if(au){
@@ -5143,14 +5206,14 @@ function renderDashWeek(){
     if(!x.items.length)h+='<div class="wk-empty">Rien de prévu ce jour-là</div>';
     var vis=x.items.filter(function(it){return !(wkSel===null&&it.k==='conge'&&it.cont&&i>0);});
     if(wkSel===null&&!vis.length){h=h.slice(0,h.lastIndexOf('<div class="wk-day">'));return;}
-    function row(it,sub){return '<div class="wk-it'+(sub?' sub':'')+'" data-k="'+it.k+'" data-id="'+eh(String(it.id||''))+'"><span class="ic">'+it.ico+'</span><span class="nm">'+eh(it.name||'')+'</span>'+(it.meta?'<span class="mt">'+eh(it.meta)+'</span>':'')+'</div>';}
+    function row(it,sub){return '<div class="wk-it'+(sub?' sub':'')+(it.k==='charge'?' chg':'')+'" data-k="'+it.k+'" data-id="'+eh(String(it.id||''))+'">'+(it.k==='task'?'<button class="ck" data-done="'+eh(String(it.id))+'" aria-label="Marquer comme faite"></button>':'')+'<span class="ic">'+it.ico+'</span><span class="nm">'+eh(it.name||'')+'</span>'+(it.meta?'<span class="mt">'+eh(it.meta)+'</span>':'')+'</div>';}
     var chg=vis.filter(function(it){return it.k==='charge';});
     vis.forEach(function(it){if(it.k==='charge'&&chg.length>1)return;shown++;h+=row(it);});
     if(chg.length>1){
       shown++;
       var key=isoD(x.d),open=!!wkChgOpen[key],tot=0;
       chg.forEach(function(it){tot+=it.amt||0;});
-      h+='<div class="wk-it wk-chg" data-chg="'+key+'"><span class="ic">&#128178;</span><span class="nm">'+chg.length+' pr\u00e9l\u00e8vements</span><span class="mt">'+fmtEur(tot)+'</span><span class="wk-chev'+(open?' open':'')+'">&#9656;</span></div>';
+      h+='<div class="wk-it wk-chg chg" data-chg="'+key+'"><span class="ic">&#128182;</span><span class="nm">'+chg.length+' pr\u00e9l\u00e8vements</span><span class="mt">'+fmtEur(tot)+'</span><span class="wk-chev'+(open?' open':'')+'">&#9656;</span></div>';
       if(open)chg.forEach(function(it){h+=row(it,true);});
     }
   });
@@ -5164,6 +5227,8 @@ function renderDashWeek(){
         var wd=t.getAttribute('data-wd');
         if(wd!==null){var n=parseInt(wd,10);wkSel=wkSel===n?null:n;renderDashWeek();return;}
         if(t.getAttribute('data-wk')==='cal'){goView('cal');return;}
+        var dn=t.getAttribute('data-done');
+        if(dn){mDone(dn);return;}
         var cg=t.getAttribute('data-chg');
         if(cg){wkChgOpen[cg]=!wkChgOpen[cg];renderDashWeek();return;}
         var k=t.getAttribute('data-k');
