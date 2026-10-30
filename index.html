@@ -5051,11 +5051,14 @@ function paintWx(el,w){
 }
 
 // ══════════ PHOTO D'ACCUEIL (rangee dans le depot prive de donnees) ══════════
-var HP_KEY='domicile_homephoto',HP_IMG='domicile_homephoto_img',homePhoto=null,_hpUrl='';
+var HP_KEY='domicile_homephoto',HP_IMG='domicile_homephoto_img2',homePhoto=null,_hpUrl='';
 try{homePhoto=JSON.parse(localStorage.getItem(HP_KEY)||'null');}catch(e){homePhoto=null;}
 function applyHomePhoto(){
   var el=g('dash-hello');if(!el)return;
-  if(_hpUrl){el.classList.add('has-photo');el.style.backgroundImage='linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 38%,color-mix(in srgb,var(--bg) 55%,transparent) 58%,color-mix(in srgb,var(--bg) 88%,transparent) 74%,var(--bg) 90%),url('+_hpUrl+')';}
+  if(_hpUrl){el.classList.add('has-photo');
+    var u='url("'+_hpUrl+'")';
+    el.style.backgroundImage='linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 40%,rgba(0,0,0,.45) 66%,var(--bg) 92%),'+u;
+    el.style.backgroundImage='linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 38%,color-mix(in srgb,var(--bg) 55%,transparent) 58%,color-mix(in srgb,var(--bg) 88%,transparent) 74%,var(--bg) 90%),'+u;}
   else{el.classList.remove('has-photo');el.style.backgroundImage='';}
 }
 function loadHomePhoto(){
@@ -5064,13 +5067,14 @@ function loadHomePhoto(){
   if(c&&c.path===homePhoto.path&&c.url){_hpUrl=c.url;applyHomePhoto();return;}
   if(!ghToken()||typeof fetch!=='function')return;
   if(window._hpLoading===homePhoto.path)return;window._hpLoading=homePhoto.path;
-  var hd=ghHeaders();hd.Accept='application/vnd.github.v3.raw';
   var path=homePhoto.path;
-  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path+'?ref='+GH_BRANCH,{headers:hd}).then(function(r){if(!r.ok)throw 0;return r.blob();})
-  .then(function(b){var fr=new FileReader();fr.onload=function(){
-    var u=String(fr.result).replace(/^data:[^;]*;/,'data:image/jpeg;');_hpUrl=u;
+  // Reponse JSON de l'API : le contenu arrive en base64, on construit directement l'image
+  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path+'?ref='+GH_BRANCH,{headers:ghHeaders()}).then(function(r){if(!r.ok)throw 0;return r.json();})
+  .then(function(j){
+    if(!j||!j.content)throw 0;
+    var u='data:image/jpeg;base64,'+String(j.content).replace(/\s/g,'');_hpUrl=u;
     try{localStorage.setItem(HP_IMG,JSON.stringify({path:path,url:u}));}catch(e){}
-    applyHomePhoto();};fr.readAsDataURL(b);}).catch(function(){});
+    applyHomePhoto();}).catch(function(){window._hpLoading='';});
 }
 function pickHomePhoto(inp){
   var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
@@ -5724,11 +5728,12 @@ function viewInvoice(){
   if(!q||!q.invoice)return;
   if(!ghToken()){toast('Synchro GitHub non configur\u00e9e');return;}
   var w=window.open('','_blank');
-  var hd=ghHeaders();hd.Accept='application/vnd.github.v3.raw';
-  fetch(invoiceUrl(q.invoice)+'?ref='+GH_BRANCH,{headers:hd}).then(function(r){if(!r.ok)throw 0;return r.blob();})
-  .then(function(b){
+  fetch(invoiceUrl(q.invoice)+'?ref='+GH_BRANCH,{headers:ghHeaders()}).then(function(r){if(!r.ok)throw 0;return r.json();})
+  .then(function(j){
+    if(!j||!j.content)throw 0;
     var t=/\.pdf$/i.test(q.invoice)?'application/pdf':'image/jpeg';
-    var u=URL.createObjectURL(new Blob([b],{type:t}));
+    var bin=atob(String(j.content).replace(/\s/g,'')),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+    var u=URL.createObjectURL(new Blob([arr],{type:t}));
     if(w)w.location.href=u;else window.location.href=u;
   }).catch(function(){if(w)w.close();toast('Facture introuvable (hors ligne ?)');});
 }
