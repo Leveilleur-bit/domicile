@@ -592,6 +592,13 @@ body.light header{background:linear-gradient(180deg,rgba(246,239,229,.97),rgba(2
 #dash-hello .hi-s{font-size:13px;color:var(--dim);margin-top:4px;}
 #home-bg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center 35%;pointer-events:none;opacity:0;transition:opacity .5s ease;}
 #home-bg.on{opacity:1;}
+.mc-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.mc-row:last-child{border-bottom:none;}.mc-row .v{font-family:var(--fd);font-size:16px;white-space:nowrap;}
+.mc-row.tot{font-weight:700;border-top:2px solid var(--border);}.mc-row.tot .v{font-size:22px;color:var(--copper);}
+.mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.mc-loan{border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px;background:var(--bg3);}
+.mc-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:10px 0 6px;}
+.mc-note{font-size:11px;color:var(--dim);line-height:1.5;}
 body.has-hbg #dash-events [data-action="dash-evt"],body.has-hbg #view-dash .urgbanner{background:var(--bg2)!important;background:color-mix(in srgb,var(--bg2) 90%,transparent)!important;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
 body.has-hbg #dash-events [data-action="dash-evt"]{box-shadow:0 2px 10px rgba(0,0,0,.25);}
 #dash-hello.has-photo .hi-t,#dash-hello.has-photo .hi-s{text-shadow:0 1px 12px rgba(0,0,0,.55);}
@@ -991,6 +998,12 @@ body.light{--purple:#8a5fb8;}
 
 <!-- TRAVAUX -->
 <div class="view" id="view-travaux">
+  <div class="fltrs" style="margin-bottom:12px;">
+    <button class="fb on" id="trv-seg-proj" onclick="trvPane('proj')">Projets</button>
+    <button class="fb" id="trv-seg-cout" onclick="trvPane('cout')">Co&#251;t de la maison</button>
+  </div>
+  <div id="trv-pane-cout" style="display:none;"></div>
+  <div id="trv-pane-proj">
   <div class="srow" style="margin-bottom:12px;">
     <div class="sc b"><div class="slbl">Projets</div><div class="sval" id="trv-tot">0</div></div>
     <div class="sc a"><div class="slbl">En cours</div><div class="sval" id="trv-wip">0</div></div>
@@ -1032,6 +1045,7 @@ body.light{--purple:#8a5fb8;}
     <button class="fb" onclick="fTrv('done-s',this)">Terminés</button>
   </div>
   <div id="trv-list"></div>
+  </div>
 </div>
 
 <!-- NOTES -->
@@ -2904,7 +2918,8 @@ function ghMerge(local,remote){
       contacts:mergeArr(local.carnet&&local.carnet.contacts,remote.carnet&&remote.carnet.contacts,'id').filter(function(x){return!isDeleted(x.id);})
     },
     courses:mergeArr(local.courses,remote.courses,'id').filter(function(x){return!isDeleted(x.id);}),
-    homePhoto:((remote.homePhoto&&remote.homePhoto.ts)||0)>((local.homePhoto&&local.homePhoto.ts)||0)?remote.homePhoto:(local.homePhoto||remote.homePhoto||null)
+    homePhoto:((remote.homePhoto&&remote.homePhoto.ts)||0)>((local.homePhoto&&local.homePhoto.ts)||0)?remote.homePhoto:(local.homePhoto||remote.homePhoto||null),
+    maison:((remote.maison&&remote.maison.ts)||0)>((local.maison&&local.maison.ts)||0)?remote.maison:(local.maison||remote.maison||null)
   };
 }
 
@@ -2945,7 +2960,8 @@ function ghLocalData(){
     quickzone:{note:qzNote,actions:qzActions,noteTs:window._qzNoteTs||0},
     carnet:carnet,
     courses:courses,
-    homePhoto:homePhoto
+    homePhoto:homePhoto,
+    maison:maisonCout
   };
 }
 
@@ -2968,6 +2984,7 @@ function ghApplyRemote(data,sha){
   }
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
   if(data.homePhoto&&typeof data.homePhoto==='object'&&(data.homePhoto.ts||0)!==((homePhoto&&homePhoto.ts)||0)){homePhoto=data.homePhoto;try{localStorage.setItem(HP_KEY,JSON.stringify(homePhoto));}catch(e){}loadHomePhoto();}
+  if(data.maison&&typeof data.maison==='object'&&(data.maison.ts||0)>((maisonCout&&maisonCout.ts)||0)){maisonCout=data.maison;try{localStorage.setItem(MC_KEY,JSON.stringify(maisonCout));}catch(e){}if(typeof renderCout==='function'&&g('trv-pane-cout')&&g('trv-pane-cout').style.display!=='none')renderCout();}
   if(Array.isArray(data.courses)){courses=data.courses.filter(function(x){return!isDeleted(x.id);});try{localStorage.setItem(CRS_KEY,JSON.stringify(courses));}catch(e){}if(typeof renderCourses==='function')renderCourses();}
   if(data.carnet&&typeof data.carnet==='object'){
     carnet={equip:(data.carnet.equip||[]).filter(function(x){return!isDeleted(x.id);}),contacts:(data.carnet.contacts||[]).filter(function(x){return!isDeleted(x.id);})};
@@ -3957,7 +3974,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v35';
+var APP_V='v36';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4501,6 +4518,107 @@ function loadTrv(){try{trvProjs=JSON.parse(localStorage.getItem(TRV_KEY))||[];}c
 function saveTrv(){localStorage.setItem(TRV_KEY,JSON.stringify(trvProjs));}
 function trvPct(p){if(!p.steps||!p.steps.length)return p.status==='done-s'?100:0;return Math.round(p.steps.filter(function(s){return s.done;}).length/p.steps.length*100);}
 function trvSpent(p){return(p.budget_lines||[]).filter(function(b){return b.type==='facture'||b.type==='achat';}).reduce(function(s,b){return s+(parseFloat(b.amount)||0);},0);}
+
+// ══════════ TRAVAUX > COUT DE LA MAISON ══════════
+var MC_KEY='domicile_maison_cout',maisonCout=null;
+try{maisonCout=JSON.parse(localStorage.getItem(MC_KEY)||'null');}catch(e){maisonCout=null;}
+function mcData(){
+  if(!maisonCout)maisonCout={ts:0,prix:'',notaire:'',agence:'',dateAchat:'',assuMois:'60.65',travauxAvant:'',inclEquip:true,
+    prets:[{nom:'Prêt principal',capital:'',taux:'',duree:'',mens:'818.47',debut:''},{nom:'Prêt 2',capital:'',taux:'',duree:'',mens:'101.18',debut:''}]};
+  return maisonCout;
+}
+function mcNum(v){var n=parseFloat(String(v==null?'':v).replace(/\s/g,'').replace(',','.'));return isNaN(n)?0:n;}
+function mcSave(){var m=mcData();m.ts=Date.now();try{localStorage.setItem(MC_KEY,JSON.stringify(m));}catch(e){}scheduleGhPush();}
+function trvPane(k){
+  sv('trv-pane-proj',function(e){e.style.display=k==='proj'?'':'none';});
+  sv('trv-pane-cout',function(e){e.style.display=k==='cout'?'':'none';});
+  sv('trv-seg-proj',function(e){e.classList.toggle('on',k==='proj');});
+  sv('trv-seg-cout',function(e){e.classList.toggle('on',k==='cout');});
+  if(k==='cout')renderCout();
+}
+function mcMonthsSince(ym){if(!ym)return 0;var p=String(ym).split('-'),y=+p[0],m=(+p[1]||1)-1;if(!y)return 0;var n=new Date();return Math.max(0,(n.getFullYear()-y)*12+(n.getMonth()-m));}
+function mcLoan(l){
+  var C=mcNum(l.capital),r=mcNum(l.taux)/100/12,n=Math.round(mcNum(l.duree)*12),M=mcNum(l.mens);
+  if(!M&&C&&n)M=r?C*r/(1-Math.pow(1+r,-n)):C/n;
+  var out={M:M,C:C,n:n,interets:0,paye:0,restantCap:0,ok:!!(C&&n&&M)};
+  if(out.ok){out.interets=Math.max(0,M*n-C);}
+  var k=Math.min(n||0,mcMonthsSince(l.debut));out.k=k;out.paye=M*k;
+  if(out.ok){out.restantCap=r?C*Math.pow(1+r,k)-M*(Math.pow(1+r,k)-1)/r:C-M*k;if(out.restantCap<0)out.restantCap=0;out.restant=M*(n-k);}
+  return out;
+}
+function mcTravaux(){
+  var m=mcData(),byY={},tot=0;
+  depenses.forEach(function(d){if(d.cat!=='travaux'&&!(m.inclEquip&&d.cat==='equipement'))return;var y=(d.date||'').slice(0,4);byY[y]=(byY[y]||0)+(d.amount||0);tot+=d.amount||0;});
+  return{byY:byY,tot:tot};
+}
+function renderCout(){
+  var el=g('trv-pane-cout');if(!el)return;
+  var m=mcData(),f=function(v){return Math.round(v).toLocaleString('fr-FR')+'\u00a0\u20ac';};
+  function inp(key,label,ph,type){return '<div><label class="flbl">'+label+'</label><input data-mc="'+key+'" type="'+(type||'text')+'" inputmode="'+(type?'':'decimal')+'" value="'+eh(String(m[key]==null?'':m[key]))+'" placeholder="'+(ph||'')+'"></div>';}
+  var achat=mcNum(m.prix)+mcNum(m.notaire)+mcNum(m.agence);
+  var loans=m.prets.map(mcLoan),capTot=0,intTot=0,payeCredit=0,restCap=0,restDu=0,allOk=true,mensTot=0;
+  loans.forEach(function(L,i){capTot+=L.C;intTot+=L.interets;payeCredit+=L.paye;restCap+=L.restantCap||0;restDu+=L.restant||0;mensTot+=L.M;if(!L.ok)allOk=false;});
+  var dureeMax=0;m.prets.forEach(function(l){dureeMax=Math.max(dureeMax,mcNum(l.duree));});
+  var assuTot=mcNum(m.assuMois)*dureeMax*12;
+  var tv=mcTravaux(),travaux=tv.tot+mcNum(m.travauxAvant);
+  var total=achat+intTot+assuTot+travaux;
+  var apport=Math.max(0,achat-capTot);
+  var h='';
+  // Synthese
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Coût total estimé</div>';
+  h+='<div class="mc-row"><span>Achat (prix + frais)</span><span class="v">'+(achat?f(achat):'—')+'</span></div>';
+  h+='<div class="mc-row"><span>Intérêts du crédit</span><span class="v">'+(allOk?f(intTot):'à compléter')+'</span></div>';
+  h+='<div class="mc-row"><span>Assurance emprunteur</span><span class="v">'+(dureeMax?f(assuTot):'à compléter')+'</span></div>';
+  h+='<div class="mc-row"><span>Travaux'+(m.inclEquip?' et équipement':'')+'</span><span class="v">'+f(travaux)+'</span></div>';
+  h+='<div class="mc-row tot"><span>Total</span><span class="v">'+f(total)+'</span></div>';
+  if(total>0){var C=[['var(--blue)',achat],['var(--red)',intTot+assuTot],['var(--amber)',travaux]];h+='<div class="mc-bar">'+C.map(function(c){return c[1]>0?'<i style="flex:'+c[1]+';background:'+c[0]+';"></i>':'';}).join('')+'</div><div class="mc-note">&#128998; achat &middot; &#128997; crédit &middot; &#129000; travaux</div>';}
+  if(allOk&&m.prets.some(function(l){return l.debut;})){
+    var payeTot=apport+payeCredit+mcNum(m.assuMois)*Math.min(dureeMax*12,mcMonthsSince(m.prets[0].debut))+travaux;
+    h+='<div class="mc-row" style="margin-top:8px;"><span>Déjà payé (apport, mensualités, travaux)</span><span class="v">'+f(payeTot)+'</span></div>';
+    h+='<div class="mc-row"><span>Reste à rembourser</span><span class="v">'+f(restDu)+'</span></div>';
+    h+='<div class="mc-row"><span>dont capital restant dû</span><span class="v">'+f(restCap)+'</span></div>';
+  }
+  h+='<div class="mc-note" style="margin-top:8px;">Estimation : les intérêts sont calculés avec un taux fixe ; votre tableau d’amortissement donne les chiffres exacts.</div></div>';
+  // Achat
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Achat</div><div class="mc-grid">'+inp('prix','Prix d’achat (€)','ex. 180000')+inp('notaire','Frais de notaire (€)','~7-8 % dans l’ancien')+inp('agence','Frais d’agence (€)','si à part')+inp('dateAchat','Date d’achat','','month')+'</div></div>';
+  // Credits
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Crédits</div>';
+  m.prets.forEach(function(l,i){var L=loans[i];
+    h+='<div class="mc-loan"><div class="mc-grid">'
+      +'<div><label class="flbl">Nom</label><input data-mcl="'+i+'" data-k="nom" value="'+eh(l.nom||'')+'"></div>'
+      +'<div><label class="flbl">Capital emprunté (€)</label><input data-mcl="'+i+'" data-k="capital" inputmode="decimal" value="'+eh(String(l.capital||''))+'"></div>'
+      +'<div><label class="flbl">Taux (%)</label><input data-mcl="'+i+'" data-k="taux" inputmode="decimal" value="'+eh(String(l.taux||''))+'" placeholder="ex. 3,45"></div>'
+      +'<div><label class="flbl">Durée (années)</label><input data-mcl="'+i+'" data-k="duree" inputmode="decimal" value="'+eh(String(l.duree||''))+'" placeholder="ex. 25"></div>'
+      +'<div><label class="flbl">Mensualité (€)</label><input data-mcl="'+i+'" data-k="mens" inputmode="decimal" value="'+eh(String(l.mens||''))+'"></div>'
+      +'<div><label class="flbl">1re échéance</label><input data-mcl="'+i+'" data-k="debut" type="month" value="'+eh(String(l.debut||''))+'"></div>'
+      +'</div><div class="mc-note">'+(L.ok?'Intérêts totaux ≈ '+f(L.interets)+' · coût total '+f(L.M*L.n):'Renseigne capital, taux et durée pour calculer les intérêts.')+'</div>'
+      +'<button class="bs" style="margin-top:6px;font-size:12px;padding:5px 10px;" data-mcdel="'+i+'">Retirer ce prêt</button></div>';
+  });
+  h+='<button class="bs" data-mcadd="1" style="font-size:12px;">+ Ajouter un prêt</button>';
+  h+='<div class="mc-grid" style="margin-top:10px;">'+inp('assuMois','Assurance emprunteur (€/mois)','')+'</div></div>';
+  // Travaux
+  var ys=Object.keys(tv.byY).sort();
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Travaux</div>';
+  ys.forEach(function(y){h+='<div class="mc-row"><span>'+y+' (dépenses de l’appli)</span><span class="v">'+f(tv.byY[y])+'</span></div>';});
+  h+='<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin:8px 0;"><input type="checkbox" data-mc="inclEquip" style="width:auto;"'+(m.inclEquip?' checked':'')+'> Compter aussi l’équipement (meubles, électroménager…)</label>';
+  h+='<div class="mc-grid">'+inp('travauxAvant','Travaux avant 2025 (€, estimation)','')+'</div></div>';
+  el.innerHTML=h;
+  if(!el._mcBound){el._mcBound=true;
+    var tmr=null;
+    el.addEventListener('input',function(ev){var t=ev.target,m2=mcData();
+      if(t.getAttribute('data-mc')){var k=t.getAttribute('data-mc');m2[k]=t.type==='checkbox'?t.checked:t.value;}
+      else if(t.getAttribute('data-mcl')!==null){m2.prets[+t.getAttribute('data-mcl')][t.getAttribute('data-k')]=t.value;}
+      else return;
+      clearTimeout(tmr);tmr=setTimeout(function(){mcSave();var a=document.activeElement,key=a&&(a.getAttribute('data-mc')||(a.getAttribute('data-mcl')+'/'+a.getAttribute('data-k'))),pos=a&&a.selectionStart;renderCout();
+        if(key){var sel=key.indexOf('/')>0?'[data-mcl="'+key.split('/')[0]+'"][data-k="'+key.split('/')[1]+'"]':'[data-mc="'+key+'"]';var n=el.querySelector(sel);if(n){n.focus();try{if(pos!=null)n.setSelectionRange(pos,pos);}catch(x){}}}},700);
+    });
+    el.addEventListener('change',function(ev){if(ev.target.type==='checkbox'||ev.target.type==='month'){clearTimeout(tmr);var t=ev.target,m2=mcData();if(t.getAttribute('data-mc'))m2[t.getAttribute('data-mc')]=t.type==='checkbox'?t.checked:t.value;else if(t.getAttribute('data-mcl')!==null)m2.prets[+t.getAttribute('data-mcl')][t.getAttribute('data-k')]=t.value;mcSave();renderCout();}});
+    el.addEventListener('click',function(ev){var t=ev.target,m2=mcData();
+      if(t.getAttribute('data-mcadd')){m2.prets.push({nom:'Prêt '+(m2.prets.length+1),capital:'',taux:'',duree:'',mens:'',debut:''});mcSave();renderCout();}
+      var d=t.getAttribute('data-mcdel');if(d!==null&&confirm('Retirer ce prêt ?')){m2.prets.splice(+d,1);mcSave();renderCout();}
+    });
+  }
+}
 
 function renderTrv(){
   var now=new Date();
