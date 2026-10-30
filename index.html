@@ -3974,7 +3974,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v36';
+var APP_V='v37';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4536,8 +4536,18 @@ function trvPane(k){
   sv('trv-seg-cout',function(e){e.classList.toggle('on',k==='cout');});
   if(k==='cout')renderCout();
 }
+function mcYM(ym){var p=String(ym).split('-');return p[1]+'/'+p[0];}
 function mcMonthsSince(ym){if(!ym)return 0;var p=String(ym).split('-'),y=+p[0],m=(+p[1]||1)-1;if(!y)return 0;var n=new Date();return Math.max(0,(n.getFullYear()-y)*12+(n.getMonth()-m));}
 function mcLoan(l){
+  if(l.ech&&l.ech.length){
+    var nw=new Date(),cur=nw.getFullYear()+'-'+('0'+(nw.getMonth()+1)).slice(-2),dd=nw.getDate();
+    var o={C:mcNum(l.capital),n:l.ech.length,interets:0,paye:0,restant:0,restantCap:mcNum(l.capital),k:0,ok:true,sched:true,M:0,total:0,fin:l.ech[l.ech.length-1][0]};
+    l.ech.forEach(function(r){o.interets+=r[2];o.total+=r[1];var paid=r[0]<cur||(r[0]===cur&&dd>=2);
+      if(paid){o.paye+=r[1];o.k++;o.restantCap=r[3];}else{o.restant+=r[1];if(!o.M)o.M=r[1];}});
+    if(!o.M)o.M=l.ech[l.ech.length-1][1];
+    o.paliers=[];var pv=null;l.ech.forEach(function(r,i){if(i>1&&Math.abs(r[1]-(pv||0))>5)o.paliers.push(r);pv=r[1];});
+    return o;
+  }
   var C=mcNum(l.capital),r=mcNum(l.taux)/100/12,n=Math.round(mcNum(l.duree)*12),M=mcNum(l.mens);
   if(!M&&C&&n)M=r?C*r/(1-Math.pow(1+r,-n)):C/n;
   var out={M:M,C:C,n:n,interets:0,paye:0,restantCap:0,ok:!!(C&&n&&M)};
@@ -4558,7 +4568,7 @@ function renderCout(){
   var achat=mcNum(m.prix)+mcNum(m.notaire)+mcNum(m.agence);
   var loans=m.prets.map(mcLoan),capTot=0,intTot=0,payeCredit=0,restCap=0,restDu=0,allOk=true,mensTot=0;
   loans.forEach(function(L,i){capTot+=L.C;intTot+=L.interets;payeCredit+=L.paye;restCap+=L.restantCap||0;restDu+=L.restant||0;mensTot+=L.M;if(!L.ok)allOk=false;});
-  var dureeMax=0;m.prets.forEach(function(l){dureeMax=Math.max(dureeMax,mcNum(l.duree));});
+  var dureeMax=0;m.prets.forEach(function(l,i){dureeMax=Math.max(dureeMax,loans[i].sched?loans[i].n/12:mcNum(l.duree));});
   var assuTot=mcNum(m.assuMois)*dureeMax*12;
   var tv=mcTravaux(),travaux=tv.tot+mcNum(m.travauxAvant);
   var total=achat+intTot+assuTot+travaux;
@@ -4578,7 +4588,8 @@ function renderCout(){
     h+='<div class="mc-row"><span>Reste à rembourser</span><span class="v">'+f(restDu)+'</span></div>';
     h+='<div class="mc-row"><span>dont capital restant dû</span><span class="v">'+f(restCap)+'</span></div>';
   }
-  h+='<div class="mc-note" style="margin-top:8px;">Estimation : les intérêts sont calculés avec un taux fixe ; votre tableau d’amortissement donne les chiffres exacts.</div></div>';
+  var allSched=loans.length&&loans.every(function(L){return L.sched;});
+  h+='<div class="mc-note" style="margin-top:8px;">'+(allSched?'Intérêts exacts d’après vos tableaux d’amortissement. Assurance estimée au montant mensuel actuel.':'Estimation : les intérêts sont calculés avec un taux fixe ; votre tableau d’amortissement donne les chiffres exacts.')+'</div></div>';
   // Achat
   h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Achat</div><div class="mc-grid">'+inp('prix','Prix d’achat (€)','ex. 180000')+inp('notaire','Frais de notaire (€)','~7-8 % dans l’ancien')+inp('agence','Frais d’agence (€)','si à part')+inp('dateAchat','Date d’achat','','month')+'</div></div>';
   // Credits
@@ -4591,7 +4602,7 @@ function renderCout(){
       +'<div><label class="flbl">Durée (années)</label><input data-mcl="'+i+'" data-k="duree" inputmode="decimal" value="'+eh(String(l.duree||''))+'" placeholder="ex. 25"></div>'
       +'<div><label class="flbl">Mensualité (€)</label><input data-mcl="'+i+'" data-k="mens" inputmode="decimal" value="'+eh(String(l.mens||''))+'"></div>'
       +'<div><label class="flbl">1re échéance</label><input data-mcl="'+i+'" data-k="debut" type="month" value="'+eh(String(l.debut||''))+'"></div>'
-      +'</div><div class="mc-note">'+(L.ok?'Intérêts totaux ≈ '+f(L.interets)+' · coût total '+f(L.M*L.n):'Renseigne capital, taux et durée pour calculer les intérêts.')+'</div>'
+      +'</div><div class="mc-note">'+(L.sched?('&#128203; Tableau d’amortissement réel : '+L.n+' échéances, dernière en '+mcYM(L.fin)+' · intérêts '+f(L.interets)+' · coût total '+f(L.total)+(L.paliers.length?'<br>Palier : la mensualité passe à '+f(L.paliers[0][1])+' en '+mcYM(L.paliers[0][0])+'.':'')+'<br>Payé : '+L.k+' échéances ('+f(L.paye)+') · reste '+f(L.restant)+' dont '+f(L.restantCap)+' de capital.'):L.ok?'Intérêts totaux ≈ '+f(L.interets)+' · coût total '+f(L.M*L.n):'Renseigne capital, taux et durée pour calculer les intérêts.')+'</div>'
       +'<button class="bs" style="margin-top:6px;font-size:12px;padding:5px 10px;" data-mcdel="'+i+'">Retirer ce prêt</button></div>';
   });
   h+='<button class="bs" data-mcadd="1" style="font-size:12px;">+ Ajouter un prêt</button>';
