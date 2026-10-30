@@ -601,6 +601,7 @@ body.has-hbg #dash-events [data-action="dash-evt"]{box-shadow:0 2px 10px rgba(0,
 #dash-hello .hi-w .wt{font-family:var(--fd);font-size:20px;color:var(--text);white-space:nowrap;}
 #dash-hello .hi-w .wa{font-size:13px;color:var(--text);line-height:1.35;}
 #dash-hello .hi-w .wa small{display:block;color:var(--dim);font-size:11px;}
+#view-dash .ember,#dash-bilan .card,#d-cpt-releve .cpt-dash,#dash-hello .hi-s{cursor:pointer;}
 .ember{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:14px;border-radius:var(--r);border:1px solid rgba(208,138,92,.35);background:radial-gradient(120% 140% at 0% 0%,rgba(232,119,95,.22),transparent 55%),linear-gradient(160deg,rgba(208,138,92,.14),var(--bg2));box-shadow:var(--shadow);}
 .ember-ico{font-size:28px;filter:drop-shadow(0 0 10px rgba(242,140,60,.55));}
 .ember-txt{flex:1;min-width:0;}
@@ -830,12 +831,12 @@ body.light{--purple:#8a5fb8;}
   <div id="urg-banner"></div>
   <div class="srow srow2">
     <div class="sc g" style="cursor:pointer;" onclick="showView('budget',document.querySelector('[data-view=budget]'))"><div class="sc-l">Budget mois</div><div class="sc-v" id="s-budget" style="font-size:20px;">-</div><div class="sc-s" id="s-budget-sub">EUR</div></div>
-    <div class="sc b" style="cursor:pointer;" onclick="showView('tasks',document.querySelector('[data-view=tasks]'))"><div class="sc-l">Prochain entretien</div><div class="sc-v" id="s-next" style="font-size:20px;">-</div><div class="sc-s" id="s-next-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</div></div>
+    <div class="sc b" style="cursor:pointer;" onclick="if(window._nextTaskId){openEdit(window._nextTaskId);}else{goView('tasks');}"><div class="sc-l">Prochain entretien</div><div class="sc-v" id="s-next" style="font-size:20px;">-</div><div class="sc-s" id="s-next-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</div></div>
   </div>
   <div id="dash-pellet"></div>
   <div class="dgrid">
     <div>
-      <div class="stit">À faire maintenant</div>
+      <div class="stit" style="cursor:pointer;" onclick="goView('tasks')">À faire maintenant <span style="font-size:13px;color:var(--dim);">&#8250;</span></div>
       <div class="tl" id="d-urg"></div>
     </div>
     <div>
@@ -845,11 +846,11 @@ body.light{--purple:#8a5fb8;}
   </div>
   <div class="dgrid">
     <div>
-      <div class="stit">Travaux en cours</div>
+      <div class="stit" style="cursor:pointer;" onclick="goView('travaux')">Travaux en cours <span style="font-size:13px;color:var(--dim);">&#8250;</span></div>
       <div id="d-trv-wip"></div>
     </div>
     <div>
-      <div class="stit">Travaux à prévoir</div>
+      <div class="stit" style="cursor:pointer;" onclick="goView('travaux')">Travaux à prévoir <span style="font-size:13px;color:var(--dim);">&#8250;</span></div>
       <div id="d-trv-todo"></div>
     </div>
   </div>
@@ -1957,6 +1958,7 @@ function renderStats(){
     var daysLeft=Math.ceil((new Date(nx.date)-new Date())/(86400000));
     sv('s-next',function(e){e.textContent=daysLeft<=0?'Auj':daysLeft+'j';e.style.color=daysLeft<=0?'var(--red)':daysLeft<=7?'var(--amber)':'var(--green)';});
     sv('s-next-name',function(e){e.textContent=nx.name;});
+    window._nextTaskId=nx.id;
   } else {
     sv('s-next',function(e){e.textContent='✓';e.style.color='var(--green)';});
     sv('s-next-name',function(e){e.textContent='Tout est fait !';});
@@ -2105,6 +2107,23 @@ function crsLivePull(on){
 document.addEventListener('visibilitychange',function(){
   if(document.hidden||!ghToken())return;
   if(Date.now()-_crsLastPull>30000){_crsLastPull=Date.now();ghSilentPull();}
+});
+
+// ══════════ ACCUEIL : chaque carte mene a son onglet ══════════
+document.addEventListener('click',function(ev){
+  var v=g('view-dash');if(!v||!v.contains(ev.target))return;
+  var t=ev.target;
+  while(t&&t!==v){
+    var tag=t.tagName;
+    if(tag==='BUTTON'||tag==='A'||tag==='INPUT'||tag==='TEXTAREA'||tag==='LABEL'||tag==='SELECT')return;
+    if(t.getAttribute&&(t.getAttribute('onclick')||t.getAttribute('data-k')||t.getAttribute('data-action')||t.getAttribute('data-chg')))return;
+    var id=t.id||'';
+    if(t.classList&&t.classList.contains('ember')){goView('pellet');return;}
+    if(id==='dash-bilan'){goView('budget');return;}
+    if(id==='d-cpt-releve'){goToCpt();return;}
+    if(t.classList&&t.classList.contains('hi-s')){goView('tasks');return;}
+    t=t.parentNode;
+  }
 });
 
 function renderDashBilan(){
@@ -3938,7 +3957,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v34';
+var APP_V='v35';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
