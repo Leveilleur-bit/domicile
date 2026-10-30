@@ -3935,7 +3935,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v31';
+var APP_V='v32';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -5099,10 +5099,13 @@ function loadHomePhoto(){
   var path=homePhoto.path;
   // Reponse JSON de l'API : le contenu arrive en base64, on construit directement l'image
   window._hpState='chargement\u2026';
-  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path+'?ref='+GH_BRANCH,{headers:ghHeaders()}).then(function(r){if(!r.ok){window._hpState='erreur '+r.status;throw 0;}return r.json();})
-  .then(function(j){
-    if(!j||!j.content)throw 0;
-    var u='data:image/jpeg;base64,'+String(j.content).replace(/\s/g,'');_hpUrl=u;
+  // cache:'no-store' + parametre unique : le navigateur avait garde une ancienne reponse (image brute) pour la meme adresse
+  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(),cache:'no-store'}).then(function(r){if(!r.ok){window._hpState='erreur '+r.status;throw 0;}return r.arrayBuffer();})
+  .then(function(buf){
+    var by=new Uint8Array(buf),b64='';
+    if(by.length>2&&by[0]===0xFF&&by[1]===0xD8){var bin='',CH=0x8000;for(var i=0;i<by.length;i+=CH)bin+=String.fromCharCode.apply(null,by.subarray(i,i+CH));b64=btoa(bin);}
+    else{var j=JSON.parse(new TextDecoder('utf-8').decode(by));if(!j||!j.content)throw new Error('contenu absent');b64=String(j.content).replace(/\s/g,'');}
+    var u='data:image/jpeg;base64,'+b64;_hpUrl=u;
     try{localStorage.setItem(HP_IMG,JSON.stringify({path:path,url:u}));}catch(e){}
     window._hpState='charg\u00e9e ('+Math.round(u.length/1024)+' Ko)';applyHomePhoto();}).catch(function(e){window._hpLoading='';if(!/^erreur/.test(window._hpState||''))window._hpState='\u00e9chec : '+((e&&e.message)||'r\u00e9seau');});
 }
@@ -5758,7 +5761,7 @@ function viewInvoice(){
   if(!q||!q.invoice)return;
   if(!ghToken()){toast('Synchro GitHub non configur\u00e9e');return;}
   var w=window.open('','_blank');
-  fetch(invoiceUrl(q.invoice)+'?ref='+GH_BRANCH,{headers:ghHeaders()}).then(function(r){if(!r.ok)throw 0;return r.json();})
+  fetch(invoiceUrl(q.invoice)+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(),cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json();})
   .then(function(j){
     if(!j||!j.content)throw 0;
     var t=/\.pdf$/i.test(q.invoice)?'application/pdf':'image/jpeg';
