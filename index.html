@@ -2671,8 +2671,8 @@ function renderDashEvents(){
     }
     if(isNaN(thisYear.getTime()))return;
     var diff=Math.floor((thisYear-today)/86400000);
-    if(diff>=8&&diff<=30){
-      upcoming.push({title:e.title,type:e.type,diff:diff,date:thisYear,id:e.id});
+    if(diff>=0&&diff<=30){
+      upcoming.push({title:e.title,type:e.type,diff:diff,date:thisYear,id:e.id,time:evtTime(e)});
     }
   });
   upcoming.sort(function(a,b){return a.diff-b.diff;});
@@ -2683,7 +2683,9 @@ function renderDashEvents(){
     var ico=ICO[ev.type]||'&#11088;';
     var col=ev.diff===0?'var(--red)':ev.diff<=3?'var(--amber)':ev.diff<=7?'var(--copper)':'var(--dim)';
     var bg=ev.diff===0?'rgba(224,112,96,.12)':ev.diff<=3?'rgba(240,192,96,.1)':'rgba(255,255,255,.04)';
-    var when=ev.diff===0?'Aujourd\'hui':ev.diff===1?'Demain':'dans '+ev.diff+'j';
+    var tm=ev.time&&ev.type!=='birthday'?' \u00b7 '+ev.time.replace(':','h'):'';
+    var wd=ev.date.toLocaleDateString('fr-FR',{weekday:'long'});
+    var when=(ev.diff===0?'Aujourd\'hui':ev.diff===1?'Demain':ev.diff<=6?wd.charAt(0).toUpperCase()+wd.slice(1):'dans '+ev.diff+'j')+tm;
     h+='<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:'+bg+';border:1px solid '+col+';border-radius:6px;font-size:12px;cursor:pointer;" data-action="dash-evt" data-id="'+ev.id+'">'
       +'<span style="font-size:13px;">'+ico+'</span>'
       +'<div>'
@@ -5310,7 +5312,7 @@ function renderDashWeek(){
     var lbl=i===0?'Aujourd’hui':i===1?'Demain':x.d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric'});
     h+='<div class="wk-day">'+lbl+'</div>';
     if(!x.items.length)h+='<div class="wk-empty">Rien de prévu ce jour-là</div>';
-    var vis=x.items.filter(function(it){return !(wkSel===null&&it.k==='conge'&&it.cont&&i>0);});
+    var vis=x.items.filter(function(it){return (wkSel!==null||it.k!=='evt')&&!(wkSel===null&&it.k==='conge'&&it.cont&&i>0);});
     if(wkSel===null&&!vis.length){h=h.slice(0,h.lastIndexOf('<div class="wk-day">'));return;}
     function row(it,sub){return '<div class="wk-it'+(sub?' sub':'')+(it.k==='charge'?' chg':'')+'" data-k="'+it.k+'" data-id="'+eh(String(it.id||''))+'">'+(it.k==='task'?'<button class="ck" data-done="'+eh(String(it.id))+'" aria-label="Marquer comme faite"></button>':'')+'<span class="ic">'+it.ico+'</span><span class="nm">'+eh(it.name||'')+'</span>'+(it.meta?'<span class="mt">'+eh(it.meta)+'</span>':'')+'</div>';}
     var chg=vis.filter(function(it){return it.k==='charge';});
