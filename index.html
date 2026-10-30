@@ -1623,6 +1623,7 @@ body.light{--purple:#8a5fb8;}
       <div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:8px;font-weight:600;">Photo d'accueil</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;"><button class="bs" type="button" onclick="g('hp-file').click()">&#128247; Changer la photo</button><button class="bs" type="button" onclick="removeHomePhoto()">Retirer</button></div>
       <input type="file" id="hp-file" accept="image/*" style="display:none;" onchange="pickHomePhoto(this)">
+      <div id="hp-state" style="font-size:11px;color:var(--dim);margin-top:6px;"></div>
     </div>
     <div style="margin-bottom:16px;">
       <div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:8px;font-weight:600;">Nom de la maison</div>
@@ -1662,7 +1663,7 @@ body.light{--purple:#8a5fb8;}
         </div>
       </div>
     </div>
-    <div style="text-align:center;font-size:12px;color:var(--dim);margin-top:14px;">DOMICILE v2.0 - 06/05/2026</div>
+    <div style="text-align:center;font-size:12px;color:var(--dim);margin-top:14px;">DOMICILE <span id="app-v"></span></div>
     <div id="last-err" style="text-align:center;font-size:11px;color:var(--red);margin-top:6px;word-break:break-word;"></div>
     <button class="bp" style="width:100%;margin-top:10px;" onclick="closeSettings()">Fermer</button>
   </div>
@@ -3934,12 +3935,14 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v30';
+var APP_V='v31';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
 window.addEventListener('unhandledrejection',function(e){logErr('promesse : '+(e.reason&&e.reason.message||e.reason));});
-function showLastErr(){sv('last-err',function(el){var x=null;try{x=JSON.parse(localStorage.getItem('domicile_last_err')||'null');}catch(e){}el.textContent=x?'Derni\u00e8re erreur ('+x.at+') : '+x.m:'';});}
+function showLastErr(){sv('app-v',function(el){el.textContent=APP_V+' \u00b7 '+(navigator.serviceWorker&&navigator.serviceWorker.controller?'hors ligne OK':'');});
+  sv('hp-state',function(el){el.textContent=window._hpState||(homePhoto&&homePhoto.path?'pas encore charg\u00e9e':'aucune photo');});
+sv('last-err',function(el){var x=null;try{x=JSON.parse(localStorage.getItem('domicile_last_err')||'null');}catch(e){}el.textContent=x?'Derni\u00e8re erreur ('+x.at+') : '+x.m:'';});}
 // Nouvelle version de l'appli : on relit tout le depot une fois, meme sans changement distant
 (function(){try{if(localStorage.getItem('domicile_app_v')!==APP_V){localStorage.setItem('domicile_app_v',APP_V);localStorage.setItem('domicile_dirty','1');window._forceFullPull=true;}}catch(e){}})();
 
@@ -5090,17 +5093,18 @@ function applyHomePhoto(){
 function loadHomePhoto(){
   if(!homePhoto||!homePhoto.path){_hpUrl='';try{localStorage.removeItem(HP_IMG);}catch(e){}applyHomePhoto();return;}
   var c=null;try{c=JSON.parse(localStorage.getItem(HP_IMG)||'null');}catch(e){}
-  if(c&&c.path===homePhoto.path&&c.url){_hpUrl=c.url;applyHomePhoto();return;}
-  if(!ghToken()||typeof fetch!=='function')return;
+  if(c&&c.path===homePhoto.path&&c.url){_hpUrl=c.url;window._hpState='charg\u00e9e (m\u00e9moire)';applyHomePhoto();return;}
+  if(!ghToken()||typeof fetch!=='function'){window._hpState='pas de token';return;}
   if(window._hpLoading===homePhoto.path)return;window._hpLoading=homePhoto.path;
   var path=homePhoto.path;
   // Reponse JSON de l'API : le contenu arrive en base64, on construit directement l'image
-  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path+'?ref='+GH_BRANCH,{headers:ghHeaders()}).then(function(r){if(!r.ok)throw 0;return r.json();})
+  window._hpState='chargement\u2026';
+  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path+'?ref='+GH_BRANCH,{headers:ghHeaders()}).then(function(r){if(!r.ok){window._hpState='erreur '+r.status;throw 0;}return r.json();})
   .then(function(j){
     if(!j||!j.content)throw 0;
     var u='data:image/jpeg;base64,'+String(j.content).replace(/\s/g,'');_hpUrl=u;
     try{localStorage.setItem(HP_IMG,JSON.stringify({path:path,url:u}));}catch(e){}
-    applyHomePhoto();}).catch(function(){window._hpLoading='';});
+    window._hpState='charg\u00e9e ('+Math.round(u.length/1024)+' Ko)';applyHomePhoto();}).catch(function(e){window._hpLoading='';if(!/^erreur/.test(window._hpState||''))window._hpState='\u00e9chec : '+((e&&e.message)||'r\u00e9seau');});
 }
 function pickHomePhoto(inp){
   var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
