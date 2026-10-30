@@ -3975,7 +3975,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v42';
+var APP_V='v43';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4594,10 +4594,8 @@ function renderCout(){
   h+='<div class="mc-row tot"><span>Total à terme'+(dureeMax&&m.prets[0]&&m.prets[0].debut?' ('+(+String(m.prets[0].debut).slice(0,4)+Math.round(dureeMax))+')':'')+'</span><span class="v">'+f(total)+'</span></div>';
   var intPaye=0;loans.forEach(function(L){intPaye+=L.intPaye||0;});
   var moisAssu=assuA.n,assuPaye=assuA.paye,coutAuj=achat+intPaye+assuPaye+travaux;
-  if(moisAssu){var nw=new Date(),poche=(achat?achat-capTot:0)+payeCredit+assuPaye+travaux;
-    h+='<div class="mc-today"><div class="mc-row tot" style="border:0;padding:0;"><span>Coût à ce jour</span><span class="v">'+f(coutAuj)+'</span></div><div class="mc-note" style="margin-top:4px;">Au '+nw.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' : achat '+f(achat)+' · intérêts payés '+f(intPaye)+' · assurance '+(m.assuHist?'':'≈ ')+f(assuPaye)+' · travaux '+f(travaux)+'</div>';
-    if(allOk)h+='<div class="mc-row" style="margin-top:6px;"><span>&#128176; Payé de votre poche</span><span class="v">'+f(poche)+'</span></div><div class="mc-row" style="border:0;"><span>&#127974; Encore dû à la banque</span><span class="v">'+f(restCap)+'</span></div>';
-    h+='</div>';}
+  if(moisAssu&&allOk){var poche=(achat?achat-capTot:0)+payeCredit+assuPaye+travaux;
+    h+='<div class="mc-today"><div class="mc-row tot" style="border:0;padding:0;"><span>Coût à ce jour</span><span class="v">'+f(poche)+'</span></div></div>';}
   if(total>0){var C=[['var(--blue)',achat],['var(--red)',intTot+assuTot],['var(--amber)',travaux]];h+='<div class="mc-bar">'+C.map(function(c){return c[1]>0?'<i style="flex:'+c[1]+';background:'+c[0]+';"></i>':'';}).join('')+'</div><div class="mc-note">&#128998; achat &middot; &#128997; crédit &middot; &#129000; travaux</div>';}
   if(allOk&&m.prets.some(function(l){return l.debut;})){
     var payeTot=(achat?achat-capTot:0)+payeCredit+assuA.paye+travaux;
