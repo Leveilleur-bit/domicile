@@ -3974,7 +3974,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v39';
+var APP_V='v40';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4583,7 +4583,7 @@ function renderCout(){
   h+='<div class="mc-row tot"><span>Total</span><span class="v">'+f(total)+'</span></div>';
   if(total>0){var C=[['var(--blue)',achat],['var(--red)',intTot+assuTot],['var(--amber)',travaux]];h+='<div class="mc-bar">'+C.map(function(c){return c[1]>0?'<i style="flex:'+c[1]+';background:'+c[0]+';"></i>':'';}).join('')+'</div><div class="mc-note">&#128998; achat &middot; &#128997; crédit &middot; &#129000; travaux</div>';}
   if(allOk&&m.prets.some(function(l){return l.debut;})){
-    var payeTot=apport+payeCredit+mcNum(m.assuMois)*Math.min(dureeMax*12,mcMonthsSince(m.prets[0].debut))+travaux;
+    var payeTot=(achat?achat-capTot:0)+payeCredit+mcNum(m.assuMois)*Math.min(dureeMax*12,mcMonthsSince(m.prets[0].debut))+travaux;
     h+='<div class="mc-row" style="margin-top:8px;"><span>Déjà payé (apport, mensualités, travaux)</span><span class="v">'+f(payeTot)+'</span></div>';
     h+='<div class="mc-row"><span>Reste à rembourser</span><span class="v">'+f(restDu)+'</span></div>';
     h+='<div class="mc-row"><span>dont capital restant dû</span><span class="v">'+f(restCap)+'</span></div>';
@@ -4591,7 +4591,7 @@ function renderCout(){
   var allSched=loans.length&&loans.every(function(L){return L.sched;});
   h+='<div class="mc-note" style="margin-top:8px;">'+(allSched?'Intérêts exacts d’après vos tableaux d’amortissement. Assurance estimée au montant mensuel actuel.':'Estimation : les intérêts sont calculés avec un taux fixe ; votre tableau d’amortissement donne les chiffres exacts.')+'</div></div>';
   // Achat
-  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Achat</div><div class="mc-grid">'+inp('prix','Prix d’achat (€)','ex. 180000')+inp('notaire','Frais de notaire (€)','~7-8 % dans l’ancien')+inp('agence','Frais d’agence (€)','si à part')+inp('dateAchat','Date d’achat','','month')+'</div></div>';
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Achat</div><div class="mc-grid">'+inp('prix','Prix d’achat (€)','ex. 180000')+inp('notaire','Frais de notaire (€)','~7-8 % dans l’ancien')+inp('agence','Frais bancaires / agence (€)','dossier, garantie…')+inp('dateAchat','Date d’achat','','month')+'</div></div>';
   // Credits
   h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Crédits</div>';
   m.prets.forEach(function(l,i){var L=loans[i];
