@@ -3975,7 +3975,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v44';
+var APP_V='v45';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -5845,9 +5845,13 @@ function renderMaison(){
     if(!carnet.equip.length){eh2.innerHTML='<div class="empty">Aucun equipement. Ajoutez votre poele, chauffe-eau, electromenager...</div>';}
     else{
       var list=carnet.equip.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      var groups={},order=[];list.forEach(function(q){var r=(q.room||'').trim()||'Autres';if(!groups[r]){groups[r]=[];order.push(r);}groups[r].push(q);});
+      order.sort(function(a,b){if(a==='Autres')return 1;if(b==='Autres')return -1;return groups[b].length-groups[a].length||a.localeCompare(b);});
       var h='';
-      list.forEach(function(q){
-        var sub=[];if(q.brand)sub.push(eh(q.brand));if(q.room)sub.push(eh(q.room));
+      order.forEach(function(r){
+      h+='<div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:'+(h?'14px':'2px')+' 2px 6px;">'+eh(r)+' <span style="font-weight:400;">('+groups[r].length+')</span></div>';
+      groups[r].forEach(function(q){
+        var sub=[];if(q.brand)sub.push(eh(q.brand));
         var meta=[];if(q.buyDate)meta.push('Achat '+fd(q.buyDate));if(q.lastService)meta.push('Entretien '+fd(q.lastService));if(q.price)meta.push(eh(String(q.price))+' EUR');
         h+='<div data-act="eq" data-id="'+eh(q.id)+'" style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:6px;cursor:pointer;">'
           +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
@@ -5856,6 +5860,7 @@ function renderMaison(){
           +(meta.length?'<div style="font-size:12px;color:var(--dim);margin-top:4px;">'+meta.join(' &middot; ')+'</div>':'')
           +'</div>';
       });
+      });
       eh2.innerHTML=h;
     }
   }
@@ -5863,8 +5868,18 @@ function renderMaison(){
     if(!carnet.contacts.length){ch2.innerHTML='<div class="empty">Aucun contact. Ajoutez ramoneur, plombier, electricien...</div>';}
     else{
       var list2=carnet.contacts.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      var CG=[['Artisans & installateurs',/cuisin|poêl|poel|menuis|miroit|vitr|ventil|vmc|plomb|électric|electric|maçon|macon|couvr|chauff|ramon|peint|carrel|artisan|install|charpent|paysag|jardin/i],
+        ['Fournisseurs & location',/matériau|materiau|location|bricol|magasin/i],
+        ['Banque & assurances',/banque|assur|crédit|credit|notaire/i],
+        ['Énergie, eau & internet',/électricité|electricite|eau|gaz|énergie|energie|internet|box|fibre|téléphon/i],
+        ['Voiture',/garag|auto|voiture|carross/i]];
+      function ctGrp(c){var t=(c.trade||'')+' '+(c.name||'');if(/^(électricité|electricite|eau|gaz)$/i.test((c.trade||'').trim())||/énergie|energy/i.test(t))return CG[3][0];for(var i=0;i<CG.length;i++)if(CG[i][1].test(t))return CG[i][0];return 'Autres';}
+      var gg={};list2.forEach(function(c){var k=ctGrp(c);(gg[k]=gg[k]||[]).push(c);});
+      var gord=CG.map(function(x){return x[0];}).concat(['Autres']).filter(function(k){return gg[k];});
       var h2='';
-      list2.forEach(function(c){
+      gord.forEach(function(k){
+      h2+='<div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:'+(h2?'14px':'2px')+' 2px 6px;">'+eh(k)+' <span style="font-weight:400;">('+gg[k].length+')</span></div>';
+      gg[k].forEach(function(c){
         var tel=(c.phone||'').replace(/[^0-9+]/g,'');
         h2+='<div data-act="ct" data-id="'+eh(c.id)+'" style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:6px;cursor:pointer;">'
           +'<div style="flex:1;min-width:0;">'
@@ -5874,6 +5889,7 @@ function renderMaison(){
           +(tel?'<a href="tel:'+eh(tel)+'" class="bi" style="width:34px;height:34px;text-decoration:none;font-size:15px;" title="Appeler">&#128222;</a>':'')
           +(c.email?'<a href="mailto:'+eh(c.email)+'" class="bi" style="width:34px;height:34px;text-decoration:none;font-size:15px;" title="Ecrire">&#9993;</a>':'')
           +'</div>';
+      });
       });
       ch2.innerHTML=h2;
     }
