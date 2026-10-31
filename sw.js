@@ -1,4 +1,4 @@
-const CACHE_NAME = 'domicile-v47';
+const CACHE_NAME = 'domicile-v48';
 const CORE_ASSETS = [
   './',
   './index.html',
