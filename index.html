@@ -3975,7 +3975,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v45';
+var APP_V='v46';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4543,7 +4543,7 @@ function mcAssu(m,dureeMax){
   for(var i=0;i<tot;i++){var ym=y+'-'+('0'+mo).slice(-2),v=cur;
     for(var j=0;j<H.length;j++)if(H[j][0]<=ym)v=H[j][1];
     var paid=(y<nw.getFullYear())||(y===nw.getFullYear()&&(mo<nw.getMonth()+1||(mo===nw.getMonth()+1&&nw.getDate()>=5)));
-    if(paid){o.paye+=v;o.n++;}else v=H.length&&H[H.length-1][0]<=ym?H[H.length-1][1]:cur;
+    if(paid){o.paye+=v;o.n++;}
     o.tot+=v;mo++;if(mo>12){mo=1;y++;}}
   return o;
 }
@@ -4603,7 +4603,7 @@ function renderCout(){
     h+='<div class="mc-row"><span>dont capital restant dû</span><span class="v">'+f(restCap)+'</span></div>';
   }
   var allSched=loans.length&&loans.every(function(L){return L.sched;});
-  h+='<div class="mc-note" style="margin-top:8px;">'+(allSched?'Intérêts exacts d’après vos tableaux d’amortissement. Assurance estimée au montant mensuel actuel.':'Estimation : les intérêts sont calculés avec un taux fixe ; votre tableau d’amortissement donne les chiffres exacts.')+'</div></div>';
+  h+='<div class="mc-note" style="margin-top:8px;">'+(allSched?'Intérêts exacts d’après vos tableaux d’amortissement.'+(m.assuHist&&m.assuHist.length>4?' Assurance : montants réels jusqu’ici, puis projection qui baisse avec le capital restant dû.':' Assurance estimée au montant mensuel actuel.'):'Estimation : les intérêts sont calculés avec un taux fixe ; votre tableau d’amortissement donne les chiffres exacts.')+'</div></div>';
   // Achat
   h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Achat</div><div class="mc-grid">'+inp('prix','Prix d’achat (€)','ex. 180000')+inp('notaire','Frais de notaire (€)','~7-8 % dans l’ancien')+inp('agence','Frais bancaires / agence (€)','dossier, garantie…')+inp('dateAchat','Date d’achat','','month')+'</div></div>';
   // Credits
