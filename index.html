@@ -6066,6 +6066,7 @@ function renderDocs(){
   var L=(carnet.docs||[]).map(function(d){return{id:d.id,title:d.title,date:d.date||'',path:d.path,about:d.about||'',own:true};});
   (typeof depenses!=='undefined'?depenses:[]).forEach(function(x){if(x.doc)L.push({title:x.name,date:x.date||'',path:x.doc,about:fmtEur(x.amount)+' \u00b7 budget'});});
   carnet.equip.forEach(function(q){if(q.invoice)L.push({title:q.invoiceTitle||('Facture \u2013 '+(q.name||'')),date:q.invoiceDate||q.buyDate||'',path:q.invoice,about:q.brand||''});});
+  var seenP={};L=L.filter(function(d){if(!d.path||seenP[d.path])return false;seenP[d.path]=1;return true;});
   if(!L.length){el.innerHTML='<div class="empty">Aucun document. Ajoutez factures, devis, contrats, certificats\u2026</div>';return;}
   L.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
   var h='',yr=null;
