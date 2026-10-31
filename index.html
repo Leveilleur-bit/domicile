@@ -988,7 +988,12 @@ body.light{--purple:#8a5fb8;}
     <div class="stit" style="margin:0;">Contacts &amp; artisans</div>
     <button class="bs" style="padding:6px 12px;font-size:12px;" onclick="openCt(null)">+ Contact</button>
   </div>
-  <div id="ct-list"></div>
+  <div id="ct-list" style="margin-bottom:22px;"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div class="stit" style="margin:0;">Documents</div>
+    <label class="bs" style="padding:6px 12px;font-size:12px;cursor:pointer;">+ Document<input type="file" accept="image/*,application/pdf" style="display:none;" onchange="pickDoc(this)"></label>
+  </div>
+  <div id="doc-list"></div>
 </div>
 
 <!-- HISTORY -->
@@ -2916,7 +2921,8 @@ function ghMerge(local,remote){
     quickzone:mergeQZ(local.quickzone,remote.quickzone),
     carnet:{
       equip:mergeArr(local.carnet&&local.carnet.equip,remote.carnet&&remote.carnet.equip,'id').filter(function(x){return!isDeleted(x.id);}),
-      contacts:mergeArr(local.carnet&&local.carnet.contacts,remote.carnet&&remote.carnet.contacts,'id').filter(function(x){return!isDeleted(x.id);})
+      contacts:mergeArr(local.carnet&&local.carnet.contacts,remote.carnet&&remote.carnet.contacts,'id').filter(function(x){return!isDeleted(x.id);}),
+      docs:mergeArr(local.carnet&&local.carnet.docs,remote.carnet&&remote.carnet.docs,'id').filter(function(x){return!isDeleted(x.id);})
     },
     courses:mergeArr(local.courses,remote.courses,'id').filter(function(x){return!isDeleted(x.id);}),
     homePhoto:((remote.homePhoto&&remote.homePhoto.ts)||0)>((local.homePhoto&&local.homePhoto.ts)||0)?remote.homePhoto:(local.homePhoto||remote.homePhoto||null),
@@ -2988,7 +2994,7 @@ function ghApplyRemote(data,sha){
   if(data.maison&&typeof data.maison==='object'&&(data.maison.ts||0)>((maisonCout&&maisonCout.ts)||0)){maisonCout=data.maison;try{localStorage.setItem(MC_KEY,JSON.stringify(maisonCout));}catch(e){}if(typeof renderCout==='function'&&g('trv-pane-cout')&&g('trv-pane-cout').style.display!=='none')renderCout();}
   if(Array.isArray(data.courses)){courses=data.courses.filter(function(x){return!isDeleted(x.id);});try{localStorage.setItem(CRS_KEY,JSON.stringify(courses));}catch(e){}if(typeof renderCourses==='function')renderCourses();}
   if(data.carnet&&typeof data.carnet==='object'){
-    carnet={equip:(data.carnet.equip||[]).filter(function(x){return!isDeleted(x.id);}),contacts:(data.carnet.contacts||[]).filter(function(x){return!isDeleted(x.id);})};
+    carnet={equip:(data.carnet.equip||[]).filter(function(x){return!isDeleted(x.id);}),contacts:(data.carnet.contacts||[]).filter(function(x){return!isDeleted(x.id);}),docs:(data.carnet.docs||[]).filter(function(x){return!isDeleted(x.id);})};
     try{localStorage.setItem(CARNET_KEY,JSON.stringify(carnet));}catch(e){}
   }
   if(data.quickzone){
@@ -3975,7 +3981,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v46';
+var APP_V='v47';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -5821,13 +5827,13 @@ function renderPCompare(c){
 
 // ══════════ CARNET MAISON ══════════
 var CARNET_KEY='domicile_carnet_v1';
-var carnet={equip:[],contacts:[]};
+var carnet={equip:[],contacts:[],docs:[]};
 var eqEditId=null,ctEditId=null;
 function loadCarnet(){
   try{
     var r=JSON.parse(localStorage.getItem(CARNET_KEY));
-    if(r&&typeof r==='object')carnet={equip:Array.isArray(r.equip)?r.equip:[],contacts:Array.isArray(r.contacts)?r.contacts:[]};
-  }catch(e){carnet={equip:[],contacts:[]};}
+    if(r&&typeof r==='object')carnet={equip:Array.isArray(r.equip)?r.equip:[],contacts:Array.isArray(r.contacts)?r.contacts:[],docs:Array.isArray(r.docs)?r.docs:[]};
+  }catch(e){carnet={equip:[],contacts:[],docs:[]};}
 }
 function saveCarnet(){try{localStorage.setItem(CARNET_KEY,JSON.stringify(carnet));}catch(e){}scheduleGhPush();}
 function eqWarranty(q){
@@ -5894,6 +5900,7 @@ function renderMaison(){
       ch2.innerHTML=h2;
     }
   }
+  renderDocs();
   el.onclick=function(ev){
     var t=ev.target;
     while(t&&t!==el){
@@ -5901,6 +5908,8 @@ function renderMaison(){
       var a=t.getAttribute&&t.getAttribute('data-act');
       if(a==='eq'){openEq(t.getAttribute('data-id'));return;}
       if(a==='ct'){openCt(t.getAttribute('data-id'));return;}
+      var dd=t.getAttribute&&t.getAttribute('data-docdel');if(dd){delDoc(dd);return;}
+      if(a==='doc'){viewDoc(t.getAttribute('data-path'));return;}
       t=t.parentNode;
     }
   };
@@ -5940,7 +5949,10 @@ function uploadInvoice(q,inv){
 }
 function viewInvoice(){
   var q=eqEditId?carnet.equip.find(function(x){return x.id===eqEditId;}):null;
-  if(!q||!q.invoice)return;
+  if(!q||!q.invoice)return;viewDoc(q.invoice);
+}
+function viewDoc(path){
+  var q={invoice:path};
   if(!ghToken()){toast('Synchro GitHub non configur\u00e9e');return;}
   var w=window.open('','_blank');
   fetch(invoiceUrl(q.invoice)+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(),cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json();})
@@ -5953,6 +5965,47 @@ function viewInvoice(){
   }).catch(function(){if(w)w.close();toast('Facture introuvable (hors ligne ?)');});
 }
 
+function pickDoc(inp){
+  var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  var title=prompt('Nom du document (ex. Facture ramonage 2026) :',(f.name||'').replace(/\.[a-z0-9]+$/i,''));
+  if(title===null)return;title=String(title).trim()||'Document';
+  function up(ext,b64){
+    if(!ghToken()){toast('Synchro GitHub non configur\u00e9e : document non envoy\u00e9');return;}
+    var d={id:uid(),title:title,date:tod(),u:Date.now()},path='factures/doc-'+d.id+'-'+Date.now()+'.'+ext;
+    toast('Envoi du document\u2026');
+    fetch(invoiceUrl(path),{method:'PUT',headers:ghHeaders(),body:JSON.stringify({message:'document '+title,content:b64,branch:GH_BRANCH})})
+    .then(function(r){if(r.status!==200&&r.status!==201)throw new Error(r.status);d.path=path;carnet.docs.push(d);saveCarnet();renderMaison();toast('Document enregistr\u00e9');})
+    .catch(function(){toast('Envoi impossible (hors ligne ?)');});
+  }
+  if(f.type==='application/pdf'){if(f.size>8000000){toast('PDF trop lourd (8 Mo max)');return;}var r=new FileReader();r.onload=function(){up('pdf',String(r.result).split(',')[1]);};r.readAsDataURL(f);return;}
+  var img=new Image(),url=URL.createObjectURL(f);
+  img.onload=function(){var mx=1800,w=img.width,h=img.height,k=Math.min(1,mx/Math.max(w,h));var c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);up('jpg',c.toDataURL('image/jpeg',0.72).split(',')[1]);};
+  img.onerror=function(){toast('Image illisible');};img.src=url;
+}
+function delDoc(id){
+  var d=carnet.docs.find(function(x){return x.id===id;});if(!d)return;
+  if(!confirm('Retirer le document « '+(d.title||'')+' » ?'))return;
+  markDeleted(id);carnet.docs=carnet.docs.filter(function(x){return x.id!==id;});saveCarnet();renderMaison();toast('Document retir\u00e9');
+}
+function renderDocs(){
+  var el=g('doc-list');if(!el)return;
+  var L=(carnet.docs||[]).map(function(d){return{id:d.id,title:d.title,date:d.date||'',path:d.path,about:d.about||'',own:true};});
+  carnet.equip.forEach(function(q){if(q.invoice)L.push({title:q.invoiceTitle||('Facture \u2013 '+(q.name||'')),date:q.invoiceDate||q.buyDate||'',path:q.invoice,about:q.brand||''});});
+  if(!L.length){el.innerHTML='<div class="empty">Aucun document. Ajoutez factures, devis, contrats, certificats\u2026</div>';return;}
+  L.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  var h='',yr=null;
+  L.forEach(function(d){
+    var y=(d.date||'').slice(0,4)||'Sans date';
+    if(y!==yr){yr=y;h+='<div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:'+(h?'14px':'2px')+' 2px 6px;">'+eh(y)+'</div>';}
+    h+='<div data-act="doc" data-path="'+eh(d.path)+'" style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:6px;cursor:pointer;">'
+      +'<div style="font-size:18px;">'+(/\.pdf$/i.test(d.path)?'&#128196;':'&#128444;')+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text);font-weight:500;">'+eh(d.title||'Document')+'</div>'
+      +'<div style="font-size:12px;color:var(--dim);margin-top:2px;">'+(d.date?fd(d.date):'')+(d.about?(d.date?' &middot; ':'')+eh(d.about):'')+'</div></div>'
+      +(d.own?'<button class="bi" data-docdel="'+eh(d.id)+'" style="width:30px;height:30px;font-size:13px;" title="Retirer">&#10005;</button>':'')
+      +'</div>';
+  });
+  el.innerHTML=h;
+}
 function openEq(id){
   eqEditId=id;
   var q=id?carnet.equip.find(function(x){return x.id===id;}):null;
