@@ -3975,7 +3975,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v43';
+var APP_V='v44';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4581,7 +4581,7 @@ function renderCout(){
   loans.forEach(function(L,i){capTot+=L.C;intTot+=L.interets;payeCredit+=L.paye;restCap+=L.restantCap||0;restDu+=L.restant||0;mensTot+=L.M;if(!L.ok)allOk=false;});
   var dureeMax=0;m.prets.forEach(function(l,i){dureeMax=Math.max(dureeMax,loans[i].sched?loans[i].n/12:mcNum(l.duree));});
   var assuA=mcAssu(m,dureeMax),assuTot=assuA.tot;
-  var tv=mcTravaux(),travaux=tv.tot+mcNum(m.travauxAvant);
+  var tv=mcTravaux(),ansTot=0,TA=m.travauxAns||{};Object.keys(TA).forEach(function(y){ansTot+=mcNum(TA[y]);});var travaux=tv.tot+ansTot+mcNum(m.travauxAvant);
   var total=achat+intTot+assuTot+travaux;
   var apport=Math.max(0,achat-capTot);
   var h='';
@@ -4622,11 +4622,11 @@ function renderCout(){
   h+='<button class="bs" data-mcadd="1" style="font-size:12px;">+ Ajouter un prêt</button>';
   h+='<div class="mc-grid" style="margin-top:10px;">'+inp('assuMois','Assurance emprunteur (€/mois)','')+'</div></div>';
   // Travaux
-  var ys=Object.keys(tv.byY).sort();
+  var ys=Object.keys(tv.byY).concat(Object.keys(TA)).filter(function(y,i,a){return a.indexOf(y)===i;}).sort();
   h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Travaux</div>';
-  ys.forEach(function(y){h+='<div class="mc-row"><span>'+y+' (dépenses de l’appli)</span><span class="v">'+f(tv.byY[y])+'</span></div>';});
+  ys.forEach(function(y){var a=tv.byY[y]||0,b=mcNum(TA[y]);h+='<div class="mc-row"><span>'+y+' ('+(a&&b?'appli + relevés':a?'dépenses de l’appli':'relevés bancaires')+')</span><span class="v">'+f(a+b)+'</span></div>';});
   h+='<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin:8px 0;"><input type="checkbox" data-mc="inclEquip" style="width:auto;"'+(m.inclEquip?' checked':'')+'> Compter aussi l’équipement (meubles, électroménager…)</label>';
-  h+='<div class="mc-grid">'+inp('travauxAvant','Travaux avant 2025 (€, estimation)','')+'</div></div>';
+  h+='<div class="mc-grid">'+inp('travauxAvant',m.travauxAns?'Autres travaux non listés (€)':'Travaux avant 2025 (€, estimation)','')+'</div></div>';
   el.innerHTML=h;
   if(!el._mcBound){el._mcBound=true;
     var tmr=null;
