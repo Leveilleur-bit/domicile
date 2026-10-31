@@ -4066,7 +4066,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v53';
+var APP_V='v54';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4624,7 +4624,7 @@ function vtSave(){var v=vtD();v.ts=Date.now();try{localStorage.setItem(VT_KEY,JS
 function vtAddM(ds,months){if(!ds)return '';var d=new Date(ds);d.setMonth(d.getMonth()+months);return isoD(d);}
 function vtVeh(id){return vtD().vehicles.filter(function(x){return x.id===id;})[0];}
 function vtDue(v){
-  if(!v){var all=[];vtD().vehicles.forEach(function(x){vtDue(x).forEach(function(o){o.veh=x;all.push(o);});});return all;}
+  if(!v){var all=[];vtD().vehicles.forEach(function(x){if(x.statut==='arret')return;vtDue(x).forEach(function(o){o.veh=x;all.push(o);});});return all;}
   var o=[];
   var ct=v.ctProchain||vtAddM(v.ctDernier,24);
   if(ct)o.push({k:'ct',lbl:'Contrôle technique',date:ct,warn:60});
@@ -4642,11 +4642,13 @@ function renderVoiture(){
   function inp(k,l,ph,type){return '<div><label class="flbl">'+l+'</label><input data-vt="'+k+'" type="'+(type||'text')+'"'+(type?'':' inputmode="'+(/km|annee|Mois|IntKm/.test(k)?'numeric':'text')+'"')+' value="'+eh(String(V[k]==null?'':V[k]))+'" placeholder="'+(ph||'')+'"></div>';}
   var h='<div class="fbar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">'
     +'<button class="fb'+(sel==='all'?' on':'')+'" data-vtsel="all">Tous</button>'
-    +D.vehicles.map(function(x){return '<button class="fb'+(sel===x.id?' on':'')+'" data-vtsel="'+eh(x.id)+'">&#128663; '+eh(x.nom||'Véhicule')+'</button>';}).join('')
+    +D.vehicles.map(function(x){return '<button class="fb'+(sel===x.id?' on':'')+'" data-vtsel="'+eh(x.id)+'">&#128663; '+eh(x.nom||'Véhicule')+(x.statut==='arret'?' <span style="opacity:.6;">(à l’arrêt)</span>':'')+'</button>';}).join('')
     +'<button class="fb" data-vtadd="1">+ Véhicule</button></div>';
   // échéances
   var due=vtDue(V||undefined);
   h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Échéances</div>';
+  if(V&&V.statut==='arret')h+='<div class="mc-note" style="margin-bottom:6px;color:var(--amber);">&#9208; Véhicule à l’arrêt : pas de rappel sur l’accueil. Avant de le remettre sur la route, fais passer le contrôle technique.</div>';
+  var arr=D.vehicles.filter(function(x){return x.statut==='arret';});if(!V&&arr.length)h+='<div class="mc-note" style="margin-bottom:6px;">À l’arrêt (non suivi) : '+arr.map(function(x){return eh(x.nom);}).join(', ')+'</div>';
   if(!due.length)h+='<div class="mc-note">Renseigne la date du dernier contrôle technique et de la dernière révision dans la fiche du véhicule.</div>';
   due.sort(function(a,b){return a.date.localeCompare(b.date);}).forEach(function(x){var dd=Math.round((new Date(x.date)-new Date(td))/864e5),col=dd<0?'var(--red)':dd<=x.warn?'var(--amber)':'var(--green)';
     h+='<div class="mc-row"><span>'+x.lbl+(x.veh?' <span style="color:var(--dim);">· '+eh(x.veh.nom)+'</span>':'')+'</span><span class="v" style="color:'+col+';">'+fd(x.date)+' <span style="font-size:12px;">('+(dd<0?'en retard de '+(-dd)+' j':dd===0?'aujourd’hui':dd<=90?'dans '+dd+' j':'dans '+Math.round(dd/30.4)+' mois')+')</span></span></div>'+(x.km?'<div class="mc-note">ou à '+x.km.toLocaleString('fr-FR')+' km, au premier des deux</div>':'');});
@@ -4678,6 +4680,7 @@ function renderVoiture(){
   // fiche
   if(V){
     h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Fiche · '+eh(V.nom)+'</div><div class="mc-grid">'
+      +'<div><label class="flbl">Statut</label><select data-vt="statut"><option value=""'+(V.statut!=='arret'?' selected':'')+'>En circulation</option><option value="arret"'+(V.statut==='arret'?' selected':'')+'>À l’arrêt</option></select></div>'
       +inp('nom','Nom court','ex. Clio')+inp('modele','Modèle','ex. Renault Clio IV')+inp('immat','Immatriculation','AB-123-CD')+inp('annee','Année / 1re immat.','ex. 2017')+inp('energie','Carburant','essence, diesel…')
       +inp('km','Kilométrage actuel','km')+inp('kmDate','Relevé le','','date')
       +inp('ctDernier','Dernier contrôle technique','','date')+inp('ctProchain','Prochain CT (si différent)','auto : +2 ans','date')
@@ -4690,7 +4693,7 @@ function renderVoiture(){
   if(!el._vtB){el._vtB=true;var tmr=null;
     function cur(){var s1=vtSel();return s1==='all'?null:vtVeh(s1);}
     el.addEventListener('input',function(ev){var t=ev.target,k=t.getAttribute&&t.getAttribute('data-vt'),c=cur();if(!k||!c)return;c[k]=t.value;clearTimeout(tmr);tmr=setTimeout(function(){vtSave();},600);});
-    el.addEventListener('change',function(ev){var t=ev.target,k=t.getAttribute&&t.getAttribute('data-vt'),c=cur();if(!k||!c)return;c[k]=t.value;clearTimeout(tmr);vtSave();if(t.type==='date'||/km|Mois|IntKm|nom/.test(k))renderVoiture();});
+    el.addEventListener('change',function(ev){var t=ev.target,k=t.getAttribute&&t.getAttribute('data-vt'),c=cur();if(!k||!c)return;c[k]=t.value;clearTimeout(tmr);vtSave();if(t.type==='date'||/km|Mois|IntKm|nom|statut/.test(k)){renderVoiture();if(typeof renderDashAlerts==='function')renderDashAlerts();}});
     el.addEventListener('click',function(ev){var t=ev.target;while(t&&t!==el){if(t.getAttribute){
       var sv1=t.getAttribute('data-vtsel');if(sv1){try{localStorage.setItem(VT_SEL_KEY,sv1);}catch(e){}renderVoiture();return;}
       if(t.getAttribute('data-vtadd')){var n=prompt('Nom du véhicule (ex. Master) :','');if(!n)return;var nv={id:'veh-'+uid(),nom:n.trim()};vtD().vehicles.push(nv);vtSave();try{localStorage.setItem(VT_SEL_KEY,nv.id);}catch(e){}renderVoiture();return;}
