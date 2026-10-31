@@ -815,6 +815,7 @@ body.light{--purple:#8a5fb8;}
     <div class="mm-item mm-m" onclick="goView('pellet')" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128293; Poêle</div>
     <div class="mm-item mm-m" onclick="goView('travaux')" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#127959; Travaux</div>
     <div class="mm-item" onclick="goView('maison')" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#127968; Maison</div>
+    <div class="mm-item" onclick="goView('voiture')" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128663; Voiture</div>
     <div class="mm-item" onclick="showView('notes',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128203; Notes</div>
     <div class="mm-item mm-hide" onclick="showView('budget',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128176; Budget</div>
     <div class="mm-item" onclick="showView('cpt',this);toggleMore()" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--dim);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">&#128268; Compteurs</div>
@@ -996,6 +997,9 @@ body.light{--purple:#8a5fb8;}
   </div>
   <div id="doc-list"></div>
 </div>
+
+<!-- VOITURE -->
+<div class="view" id="view-voiture"><div id="vt-root"></div></div>
 
 <!-- HISTORY -->
 <div class="view" id="view-hist">
@@ -1803,6 +1807,7 @@ function showView(v,tab){
   if(v==='cpt')renderCpt();
   if(v==='budget'){loadBudget();renderBudget();}
   if(v==='maison')renderMaison();
+  if(v==='voiture')renderVoiture();
   if(v==='courses'){renderCourses();crsLivePull(true);}else crsLivePull(false);
 }
 
@@ -2165,6 +2170,8 @@ function renderDashAlerts(){
     // garanties qui se terminent dans les 60 jours
     (carnet.equip||[]).forEach(function(q){if(!q.warrantyEnd)return;var w=new Date(q.warrantyEnd),dd=Math.round((w-now)/864e5);
       if(dd>=0&&dd<=60)A.push({k:'gar-'+q.id+'-'+q.warrantyEnd,ico:'&#128737;',t:'Garantie : '+(q.name||''),s:'se termine '+(dd===0?'aujourd\u2019hui':'dans '+dd+' jour'+(dd>1?'s':''))+' ('+fd(q.warrantyEnd)+')',go:'maison'});});
+    // voiture
+    if(typeof vtDue==='function')vtDue().forEach(function(x){var dd=Math.round((new Date(x.date)-new Date(tod()))/864e5);if(dd<=x.warn)A.push({k:'vt-'+x.k+'-'+x.date,ico:'&#128663;',t:x.lbl+' de la voiture',s:dd<0?'en retard depuis le '+fd(x.date):'à faire avant le '+fd(x.date)+' ('+(dd===0?'aujourd’hui':'dans '+dd+' j')+')',go:'voiture'});});
     // rappels annuels
     if(now.getMonth()===10||(now.getMonth()===11&&now.getDate()<=15))A.push({k:'april-'+now.getFullYear(),ico:'&#128196;',t:'Assurance emprunteur : nouvel \u00e9ch\u00e9ancier',s:'April envoie la cotisation '+(now.getFullYear()+1)+' : ajoute-le dans Documents',go:'maison'});
     A=A.filter(function(a){return !hid[a.k];});
@@ -2977,7 +2984,8 @@ function ghMerge(local,remote){
     },
     courses:mergeArr(local.courses,remote.courses,'id').filter(function(x){return!isDeleted(x.id);}),
     homePhoto:((remote.homePhoto&&remote.homePhoto.ts)||0)>((local.homePhoto&&local.homePhoto.ts)||0)?remote.homePhoto:(local.homePhoto||remote.homePhoto||null),
-    maison:((remote.maison&&remote.maison.ts)||0)>((local.maison&&local.maison.ts)||0)?remote.maison:(local.maison||remote.maison||null)
+    maison:((remote.maison&&remote.maison.ts)||0)>((local.maison&&local.maison.ts)||0)?remote.maison:(local.maison||remote.maison||null),
+    voiture:((remote.voiture&&remote.voiture.ts)||0)>((local.voiture&&local.voiture.ts)||0)?remote.voiture:(local.voiture||remote.voiture||null)
   };
 }
 
@@ -3019,7 +3027,8 @@ function ghLocalData(){
     carnet:carnet,
     courses:courses,
     homePhoto:homePhoto,
-    maison:maisonCout
+    maison:maisonCout,
+    voiture:vtData
   };
 }
 
@@ -3042,6 +3051,7 @@ function ghApplyRemote(data,sha){
   }
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
   if(data.homePhoto&&typeof data.homePhoto==='object'&&(data.homePhoto.ts||0)!==((homePhoto&&homePhoto.ts)||0)){homePhoto=data.homePhoto;try{localStorage.setItem(HP_KEY,JSON.stringify(homePhoto));}catch(e){}loadHomePhoto();}
+  if(data.voiture&&typeof data.voiture==='object'&&(data.voiture.ts||0)>((vtData&&vtData.ts)||0)){vtData=data.voiture;try{localStorage.setItem(VT_KEY,JSON.stringify(vtData));}catch(e){}if(_curView==='voiture'&&typeof renderVoiture==='function')renderVoiture();}
   if(data.maison&&typeof data.maison==='object'&&(data.maison.ts||0)>((maisonCout&&maisonCout.ts)||0)){maisonCout=data.maison;try{localStorage.setItem(MC_KEY,JSON.stringify(maisonCout));}catch(e){}if(typeof renderCout==='function'&&g('trv-pane-cout')&&g('trv-pane-cout').style.display!=='none')renderCout();}
   if(Array.isArray(data.courses)){courses=data.courses.filter(function(x){return!isDeleted(x.id);});try{localStorage.setItem(CRS_KEY,JSON.stringify(courses));}catch(e){}if(typeof renderCourses==='function')renderCourses();}
   if(data.carnet&&typeof data.carnet==='object'){
@@ -4051,7 +4061,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v51';
+var APP_V='v52';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4597,6 +4607,71 @@ function trvPct(p){if(!p.steps||!p.steps.length)return p.status==='done-s'?100:0
 function trvSpent(p){return(p.budget_lines||[]).filter(function(b){return b.type==='facture'||b.type==='achat';}).reduce(function(s,b){return s+(parseFloat(b.amount)||0);},0);}
 
 // ══════════ TRAVAUX > COUT DE LA MAISON ══════════
+var VT_KEY='domicile_voiture_v1',vtData=null;
+try{vtData=JSON.parse(localStorage.getItem(VT_KEY)||'null');}catch(e){vtData=null;}
+function vtD(){if(!vtData)vtData={ts:0};return vtData;}
+function vtSave(){var v=vtD();v.ts=Date.now();try{localStorage.setItem(VT_KEY,JSON.stringify(v));}catch(e){}scheduleGhPush();}
+function vtAddM(ds,months){if(!ds)return '';var d=new Date(ds);d.setMonth(d.getMonth()+months);return isoD(d);}
+function vtDue(){
+  var v=vtD(),o=[];
+  var ct=v.ctProchain||vtAddM(v.ctDernier,24);
+  if(ct)o.push({k:'ct',lbl:'Contrôle technique',date:ct,warn:60});
+  var rm=parseInt(v.revMois,10)||12,rv=v.revDate?vtAddM(v.revDate,rm):'';
+  if(rv)o.push({k:'rev',lbl:'Révision',date:rv,warn:30,km:(v.revKm&&v.revIntKm)?(parseInt(v.revKm,10)+parseInt(v.revIntKm,10)):0});
+  return o;
+}
+function vtCatOf(d){var n=(d.name||'').toLowerCase();if(/carbur|essence|gasoil|gazole|station|total ?energ|plein/.test(n))return 'carb';if(/parking|péage|peage|lavage/.test(n))return 'autre';return 'ent';}
+function vtIsAssu(ch){return /voiture|auto|véhicule|vehicule/i.test(ch.name||'')&&(ch.cat==='assurance'||/assur|abeille|maaf|macif|matmut/i.test(ch.name||''));}
+function renderVoiture(){
+  var el=g('vt-root');if(!el)return;
+  var v=vtD(),now=new Date(),td=tod();
+  function inp(k,l,ph,type){return '<div><label class="flbl">'+l+'</label><input data-vt="'+k+'" type="'+(type||'text')+'"'+(type?'':' inputmode="'+(/km|annee|Mois|IntKm/.test(k)?'numeric':'text')+'"')+' value="'+eh(String(v[k]==null?'':v[k]))+'" placeholder="'+(ph||'')+'"></div>';}
+  var h='';
+  // échéances
+  var due=vtDue();
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">&#128663; '+eh(v.modele||'Voiture')+(v.immat?' <span style="font-size:13px;color:var(--dim);font-family:var(--fb);">'+eh(v.immat)+'</span>':'')+'</div>';
+  if(!due.length)h+='<div class="mc-note">Renseigne la date du dernier contrôle technique et de la dernière révision pour suivre les échéances.</div>';
+  due.forEach(function(x){var dd=Math.round((new Date(x.date)-new Date(td))/864e5),col=dd<0?'var(--red)':dd<=x.warn?'var(--amber)':'var(--green)';
+    h+='<div class="mc-row"><span>'+x.lbl+'</span><span class="v" style="color:'+col+';">'+fd(x.date)+' <span style="font-size:12px;">('+(dd<0?'en retard de '+(-dd)+' j':dd===0?'aujourd’hui':dd<=90?'dans '+dd+' j':'dans '+Math.round(dd/30.4)+' mois')+')</span></span></div>'+(x.km?'<div class="mc-note">ou à '+x.km.toLocaleString('fr-FR')+' km, au premier des deux</div>':'');});
+  if(v.km)h+='<div class="mc-row"><span>Kilométrage</span><span class="v">'+parseInt(v.km,10).toLocaleString('fr-FR')+' km'+(v.kmDate?' <span style="font-size:12px;color:var(--dim);">('+fd(v.kmDate)+')</span>':'')+'</span></div>';
+  h+='</div>';
+  // coûts
+  var deps=depenses.filter(function(d){return d.cat==='voiture';});
+  var start=new Date(now.getFullYear(),now.getMonth()-11,1),M=[],tot={carb:0,ent:0,assu:0,autre:0};
+  for(var i=0;i<12;i++){var dm=new Date(start.getFullYear(),start.getMonth()+i,1);M.push({y:dm.getFullYear(),m:dm.getMonth(),v:0});}
+  deps.forEach(function(d){var dt=new Date(d.date);for(var i=0;i<12;i++)if(M[i].y===dt.getFullYear()&&M[i].m===dt.getMonth()){M[i].v+=d.amount||0;tot[vtCatOf(d)]+=d.amount||0;}});
+  charges.forEach(function(ch){if(!vtIsAssu(ch))return;M.forEach(function(x){var a=chargeInMonth(ch,x.y,x.m)||0;x.v+=a;tot.assu+=a;});});
+  var T=tot.carb+tot.ent+tot.assu+tot.autre,mx=1;M.forEach(function(x){if(x.v>mx)mx=x.v;});
+  var MN=['J','F','M','A','M','J','J','A','S','O','N','D'];
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Coût sur 12 mois</div>'
+    +'<div style="font-family:var(--fd);font-size:26px;color:var(--copper);">'+eu(Math.round(T))+'</div><div class="mc-note" style="margin-bottom:8px;">soit '+eu(Math.round(T/12))+' par mois en moyenne</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:3px;height:70px;margin-bottom:4px;">'+M.map(function(x,i){var hh=Math.round(x.v/mx*55);return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:70px;"><div title="'+eu(Math.round(x.v))+'" style="width:100%;height:'+hh+'px;background:'+(i===11?'var(--amber)':'var(--copper)')+';border-radius:2px 2px 0 0;opacity:.85;"></div><div style="font-size:9px;color:var(--dim);">'+MN[x.m]+'</div></div>';}).join('')+'</div>';
+  [['carb','&#9981; Carburant'],['ent','&#128295; Entretien et réparations'],['assu','&#128737; Assurance'],['autre','&#127359; Parking, péage…']].forEach(function(c){if(tot[c[0]])h+='<div class="mc-row"><span>'+c[1]+'</span><span class="v">'+eu(Math.round(tot[c[0]]))+'</span></div>';});
+  var yrs={};deps.forEach(function(d){var y=(d.date||'').slice(0,4);yrs[y]=(yrs[y]||0)+(d.amount||0);});
+  var yk=Object.keys(yrs).sort().reverse();
+  if(yk.length)h+='<div class="mc-note" style="margin-top:8px;">Hors assurance, par année : '+yk.map(function(y){return y+' : '+eu(Math.round(yrs[y]));}).join(' · ')+'</div>';
+  h+='</div>';
+  // historique entretien
+  var hist=deps.filter(function(d){return vtCatOf(d)==='ent';}).sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Entretien et réparations</div>';
+  if(!hist.length)h+='<div class="mc-note">Aucune intervention enregistrée.</div>';
+  hist.forEach(function(d){h+='<div class="mc-row" data-vtdep="'+eh(d.id)+'" style="cursor:pointer;"><span>'+eh(d.name)+(d.doc?' &#128206;':'')+'<br><span style="font-size:12px;color:var(--dim);">'+fd(d.date)+'</span></span><span class="v">'+eu(d.amount)+'</span></div>';});
+  h+='</div>';
+  // fiche
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:12px;"><div class="stit" style="margin-top:0;">Fiche du véhicule</div><div class="mc-grid">'
+    +inp('modele','Modèle','ex. Renault Clio IV')+inp('immat','Immatriculation','AB-123-CD')+inp('annee','Année / 1re immat.','ex. 2017')+inp('energie','Carburant','essence, diesel…')
+    +inp('km','Kilométrage actuel','km')+inp('kmDate','Relevé le','','date')
+    +inp('ctDernier','Dernier contrôle technique','','date')+inp('ctProchain','Prochain CT (si différent)','auto : +2 ans','date')
+    +inp('revDate','Dernière révision','','date')+inp('revKm','Km à la révision','km')+inp('revMois','Révision tous les (mois)','12')+inp('revIntKm','ou tous les (km)','ex. 15000')
+    +inp('garage','Garage habituel','')+inp('assureur','Assureur','')+'</div>'
+    +'<div style="margin-top:8px;"><label class="flbl">Notes</label><textarea data-vt="notes" rows="3" style="width:100%;">'+eh(v.notes||'')+'</textarea></div></div>';
+  el.innerHTML=h;
+  if(!el._vtB){el._vtB=true;var tmr=null;
+    el.addEventListener('input',function(ev){var t=ev.target,k=t.getAttribute&&t.getAttribute('data-vt');if(!k)return;vtD()[k]=t.value;clearTimeout(tmr);tmr=setTimeout(function(){vtSave();},600);});
+    el.addEventListener('change',function(ev){var t=ev.target,k=t.getAttribute&&t.getAttribute('data-vt');if(!k)return;vtD()[k]=t.value;clearTimeout(tmr);vtSave();if(t.type==='date'||/km|Mois|IntKm|modele|immat/.test(k))renderVoiture();});
+    el.addEventListener('click',function(ev){var t=ev.target;while(t&&t!==el){var id=t.getAttribute&&t.getAttribute('data-vtdep');if(id){goView('budget');openDepEdit(id);return;}t=t.parentNode;}});
+  }
+}
 var MC_KEY='domicile_maison_cout',maisonCout=null;
 try{maisonCout=JSON.parse(localStorage.getItem(MC_KEY)||'null');}catch(e){maisonCout=null;}
 function mcData(){
