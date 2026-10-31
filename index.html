@@ -1015,14 +1015,14 @@ body.light{--purple:#8a5fb8;}
     <div class="sc b"><div class="slbl">Projets</div><div class="sval" id="trv-tot">0</div></div>
     <div class="sc a"><div class="slbl">En cours</div><div class="sval" id="trv-wip">0</div></div>
     <div class="sc g"><div class="slbl">Terminés</div><div class="sval" id="trv-done">0</div></div>
-    <div class="sc" style="border-top:2px solid var(--copper)!important;"><div class="slbl">Dépenses mois</div><div class="sval" id="trv-spent-month" style="color:var(--copper);font-size:20px;">-</div><div style="font-size:11px;color:var(--dim);" id="trv-spent-total"></div></div>
+    <div class="sc" style="border-top:2px solid var(--copper)!important;"><div class="slbl" id="trv-year-lbl">Travaux</div><div class="sval" id="trv-spent-month" style="color:var(--copper);font-size:20px;">-</div><div style="font-size:11px;color:var(--dim);" id="trv-spent-total"></div></div>
   </div>
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px;margin-bottom:12px;">
-    <div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:5px;display:flex;justify-content:space-between;font-weight:600;"><span>Budget global</span><span id="trv-budget-display">0 EUR</span></div>
+    <div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:5px;display:flex;justify-content:space-between;font-weight:600;"><span>Projets chiffrés</span><span id="trv-budget-display">-</span></div>
     <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;"><div id="trv-budget-bar" style="height:100%;border-radius:3px;background:var(--green);width:0%;transition:width .4s;"></div></div>
   </div>
   <div class="card" style="padding:12px 14px;margin-bottom:12px;">
-    <div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:8px;font-weight:600;">D&#233;penses travaux par mois</div>
+    <div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:8px;font-weight:600;"><span id="trv-chart-title">D&#233;penses travaux par mois</span></div>
     <div id="trv-month-chart" style="display:flex;align-items:flex-end;gap:3px;height:80px;"></div>
   </div>
   <div class="add-form" style="margin-bottom:12px;">
@@ -2213,8 +2213,8 @@ function renderDash(){
 function trvMiniHtml(p,cls){
   var zone=p.zone?'<span style="font-size:11px;color:var(--dim);">'+eh(p.zone)+'</span>':'';
   var spent=trvSpent(p);
-  var info=spent?spent+' EUR':( p.budget?'Est. '+p.budget+' EUR':'');
-  var SLBL={todo:'A planifier',wip:'En cours',paused:'En pause','done-s':'Termine'};
+  var info=spent?fmtEur(Math.round(spent)):( p.budget?'Est. '+fmtEur(Math.round(parseFloat(p.budget)||0)):'');
+  var SLBL={todo:'A planifier',wip:'En cours',paused:'En pause','done-s':'Terminé',done:'Terminé'};
   var SCOL={todo:'var(--blue)',wip:'var(--amber)',paused:'var(--dim)','done-s':'var(--green)'};
   var sLabel=SLBL[p.status]||p.status;
   var sColor=SCOL[p.status]||'var(--dim)';
@@ -4032,7 +4032,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v48';
+var APP_V='v49';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4709,34 +4709,39 @@ function renderCout(){
 
 function renderTrv(){
   var now=new Date();
+  trvProjs.forEach(function(p){if(p.status==='done')p.status='done-s';});
   var tot=trvProjs.length;
   var wip=trvProjs.filter(function(p){return p.status==='wip';}).length;
   var dn=trvProjs.filter(function(p){return p.status==='done-s';}).length;
-  var totalSpent=trvProjs.reduce(function(s,p){return s+trvSpent(p);},0);
-  var totalEst=trvProjs.reduce(function(s,p){return s+(parseFloat(p.budget)||0);},0);
+  var Y=now.getFullYear(),k0=function(v){v=Math.round(v);return v>=10000?Math.round(v/1000)+'k':v>=1000?(v/1000).toFixed(1).replace('.',',')+'k':String(v);};
+  var bud=trvProjs.filter(function(p){return (parseFloat(p.budget)||0)>0;});
+  var totalEst=bud.reduce(function(s,p){return s+(parseFloat(p.budget)||0);},0);
+  var totalSpent=bud.reduce(function(s,p){return s+trvSpent(p);},0);
   sv('trv-tot',function(e){e.textContent=tot;});
   sv('trv-wip',function(e){e.textContent=wip;});
   sv('trv-done',function(e){e.textContent=dn;});
-  sv('trv-spent',function(e){e.textContent=totalSpent>=1000?(totalSpent/1000).toFixed(1)+'k':totalSpent;});
   sv('trv-budget-display',function(e){
-    var pct=totalEst>0?Math.round(totalSpent/totalEst*100):0;
-    e.textContent=totalSpent+' EUR depense'+(totalEst?' / '+totalEst+' EUR estime':'');
+    var eu2=function(v){return Math.round(v).toLocaleString('fr-FR')+'\u00a0\u20ac';};
+    e.textContent=totalEst?eu2(totalSpent)+' dépensés / '+eu2(totalEst)+' prévus ('+bud.length+' projet'+(bud.length>1?'s':'')+')':'Aucun projet avec budget';
   });
-  var trvMN=['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
-  var trvMon=[];
-  for(var tmi=0;tmi<12;tmi++){
-    var ms=trvProjs.reduce(function(s,p){return s+(p.budget_lines||[]).filter(function(b){return new Date(b.date).getMonth()===tmi&&new Date(b.date).getFullYear()===now.getFullYear();}).reduce(function(s2,b){return s2+(parseFloat(b.amount)||0);},0);},0);
-    trvMon.push({m:trvMN[tmi],v:Math.round(ms)});
-  }
+  // Dépenses réelles de travaux (budget), année en cours
+  var trvMN=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  var trvMon=[],yTot=0;
+  for(var tmi=0;tmi<12;tmi++)trvMon.push({m:trvMN[tmi],v:0});
+  (depenses||[]).forEach(function(d){if(d.cat!=='travaux'||!d.date)return;var dt=new Date(d.date);if(dt.getFullYear()!==Y)return;trvMon[dt.getMonth()].v+=d.amount||0;yTot+=d.amount||0;});
   var curMS=trvMon[now.getMonth()].v;
-  sv('trv-spent-month',function(e){e.textContent=curMS>=1000?(curMS/1000).toFixed(1)+'k':curMS||0;});
-  sv('trv-spent-total',function(e){e.textContent=totalSpent+' EUR total';});
+  sv('trv-year-lbl',function(e){e.textContent='Travaux '+Y;});
+  var eu=function(v){return Math.round(v).toLocaleString('fr-FR')+'\u00a0\u20ac';};
+  sv('trv-spent-month',function(e){e.textContent=eu(yTot);});
+  sv('trv-spent-total',function(e){e.textContent='dont '+eu(curMS)+' ce mois-ci';});
+  sv('trv-chart-title',function(e){e.textContent='Dépenses travaux par mois ('+Y+')';});
+  trvMon.forEach(function(m){m.v=Math.round(m.v);});
   var maxT=1;trvMon.forEach(function(m){if(m.v>maxT)maxT=m.v;});
   var tch='';
   trvMon.forEach(function(m,i){
     var h=maxT>0?Math.round(m.v/maxT*60):0;
     var ic=i===now.getMonth();
-    var lb=m.v>0?(m.v>=1000?(m.v/1000).toFixed(1)+'k':m.v+''):'';
+    var lb=m.v>0?k0(m.v):'';
     tch+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;">'
       +'<div style="font-size:9px;color:'+(ic?'var(--amber)':'var(--dim)')+';height:10px;line-height:10px;text-align:center;">'+lb+'</div>'
       +'<div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:55px;">'
@@ -4749,10 +4754,10 @@ function renderTrv(){
   sv('trv-budget-bar',function(e){
     var pct=totalEst>0?Math.min(100,Math.round(totalSpent/totalEst*100)):0;
     e.style.width=pct+'%';
-    e.style.background=pct>90?'var(--red)':pct>70?'var(--amber)':'var(--green)';
+    var over=totalEst>0&&totalSpent>totalEst*1.001;e.style.background=over?'var(--red)':pct>=90?'var(--green)':'var(--amber)';
   });
   var list=g('trv-list');if(!list)return;
-  var SLBL={todo:'A planifier',wip:'En cours',paused:'En pause','done-s':'Termine'};
+  var SLBL={todo:'A planifier',wip:'En cours',paused:'En pause','done-s':'Terminé',done:'Terminé'};
   var SCOL={todo:'var(--blue)',wip:'var(--amber)',paused:'var(--dim)','done-s':'var(--green)'};
   var filt=trvFilter==='all'?trvProjs.slice():trvProjs.filter(function(p){return p.status===trvFilter;});
   var po={high:0,medium:1,low:2},so={wip:0,todo:1,paused:2,'done-s':3};
@@ -4780,7 +4785,7 @@ function renderTrv(){
       achatsH+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;margin-bottom:4px;">'
         +'<span style="font-size:12px;flex:1;color:var(--text);">'+eh(b.label)+'</span>'
         +'<span style="font-size:12px;color:var(--dim);">'+fd(b.date)+'</span>'
-        +'<span style="font-family:var(--fd);font-size:15px;color:var(--copper);">'+b.amount+' EUR</span>'
+        +'<span style="font-family:var(--fd);font-size:15px;color:var(--copper);">'+fmtEur(parseFloat(b.amount)||0)+'</span>'
         +'<button class="bi del" style="width:22px;height:22px;font-size:12px;" data-action="del-bdg" data-pid="'+p.id+'" data-bid="'+b.id+'">&#10005;</button>'
         +'</div>';
     });
@@ -4793,7 +4798,7 @@ function renderTrv(){
       +'<span class="trv-pri '+priCls+'"></span>'
       +'<div style="flex:1;min-width:0;">'
       +'<div class="trv-name'+(p.status==='done-s'?' dp':'')+'">'+eh(p.name)+'</div>'
-      +'<div style="font-size:12px;color:var(--dim);margin-top:1px;">'+eh(p.zone)+(totalAchats?'<span style="color:var(--copper);margin-left:6px;">'+totalAchats+' EUR</span>':'')+(est&&!totalAchats?'<span style="color:var(--dim);margin-left:6px;">Est. '+est+' EUR</span>':'')+'</div>'
+      +'<div style="font-size:12px;color:var(--dim);margin-top:1px;">'+eh(p.zone)+(totalAchats?'<span style="color:var(--copper);margin-left:6px;">'+fmtEur(Math.round(totalAchats))+'</span>':'')+(est&&!totalAchats?'<span style="color:var(--dim);margin-left:6px;">Est. '+fmtEur(Math.round(est))+'</span>':'')+'</div>'
       +'</div>'
       +'<span style="font-size:11px;padding:3px 8px;border-radius:10px;background:rgba(0,0,0,.25);color:'+sColor+';white-space:nowrap;flex-shrink:0;">'+SLBL[p.status]+'</span>'
       +'<span class="trv-chev">&#9660;</span>'
@@ -4801,7 +4806,7 @@ function renderTrv(){
       +'<div class="trv-body">'+notesH
       +'<div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">'
       +'<select data-action="stat" data-pid="'+p.id+'" style="padding:5px 8px;font-size:12px;width:auto;">'+sopt+'</select>'
-      +(est?'<span style="font-size:12px;color:var(--dim);">Budget: '+est+' EUR</span>':'')
+      +(est?'<span style="font-size:12px;color:var(--dim);">Budget : '+fmtEur(Math.round(est))+'</span>':'')
       +'<button class="bi del" style="margin-left:auto;" data-action="del-proj" data-pid="'+p.id+'">&#10005; Supprimer</button>'
       +'</div>'
       +'<div style="margin-bottom:6px;">'
