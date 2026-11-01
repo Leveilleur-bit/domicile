@@ -184,6 +184,33 @@ main{padding:16px 18px;max-width:960px;margin:0 auto;}
 .sbadge.on{background:rgba(224,112,96,.15);color:var(--red);border:1px solid rgba(224,112,96,.4);}
 .sbadge.off{background:rgba(122,173,204,.1);color:var(--blue);border:1px solid rgba(122,173,204,.3);}
 .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+#view-pellet .pc{margin-bottom:12px;}
+.p2-hero{border:1px solid var(--border);border-radius:16px;padding:16px 16px 14px;margin-bottom:12px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--bg2),var(--bg3));}
+.p2-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--red),var(--amber),var(--copper));}
+.p2-top{display:flex;align-items:center;gap:12px;}
+.p2-top .pflame{font-size:30px;}
+.p2-count{display:flex;align-items:flex-end;gap:10px;margin:14px 0 12px;}
+.p2-big{font-family:var(--fd);font-size:64px;line-height:.9;color:var(--amber);letter-spacing:-.02em;}
+.p2-unit{font-size:13px;color:var(--dim);line-height:1.4;padding-bottom:4px;}
+.p2-main{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:15px;border:0;border-radius:14px;font-family:var(--fb);font-size:17px;font-weight:700;color:#2a1608;background:linear-gradient(135deg,#f6b26b,#e07a3a);box-shadow:0 8px 24px -8px rgba(224,122,58,.7);cursor:pointer;transition:transform .1s;}
+.p2-main:active{transform:scale(.97);}
+.p2-sub{display:flex;gap:8px;margin-top:8px;}
+.p2-sub button{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--fb);font-size:13px;padding:9px;cursor:pointer;}
+.p2-det summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--copper);list-style:none;margin-top:10px;}
+details.pc.p2-det summary{margin-top:0;color:var(--text);}
+.p2-det summary::-webkit-details-marker{display:none;}
+.p2-set{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+.p2-set>label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--text);}
+.p2-set>label>span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);}
+.p2-set input[type=number]{width:72px;padding:6px 8px;font-size:13px;}
+.pw-bars{display:flex;align-items:flex-end;gap:4px;height:64px;}
+.pw-bars>div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:64px;gap:2px;}
+.pw-bars i{display:block;width:100%;border-radius:3px 3px 0 0;background:var(--copper);opacity:.85;}
+.pw-bars b{font-size:9px;font-weight:400;color:var(--dim);}
+#pellet-bg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center 40%;pointer-events:none;opacity:0;transition:opacity .5s ease;}
+#pellet-bg.on{opacity:1;}
+body.has-pbg #view-pellet .p2-glass{background:color-mix(in srgb,var(--bg2) 72%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+body.has-pbg #view-pellet .p2-hero{background:color-mix(in srgb,var(--bg2) 55%,transparent);}
 .pc{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:14px;position:relative;overflow:hidden;}
 .pc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber);}
 .pc.grn::before{background:var(--green);}
@@ -826,6 +853,7 @@ body.light{--purple:#8a5fb8;}
 </div>
 </div>
 <div id="home-bg" aria-hidden="true"></div>
+<div id="pellet-bg" aria-hidden="true"></div>
 <main>
 
 <!-- DASHBOARD -->
@@ -1086,101 +1114,88 @@ body.light{--purple:#8a5fb8;}
 
 <!-- PELLET -->
 <div class="view" id="view-pellet">
-  <div class="phero">
-    <div class="pflame" id="pflame">&#x1F525;</div>
-    <div>
-      <div class="pslbl" id="pslbl-txt">Saison en cours</div>
-      <div class="psn" id="psn">-</div>
-      <div class="psd" id="psd">-</div>
+  <div class="p2-hero p2-glass">
+    <div class="p2-top">
+      <div class="pflame" id="pflame">&#x1F525;</div>
+      <div style="flex:1;min-width:0;">
+        <div class="pslbl" id="pslbl-txt">Saison en cours</div>
+        <div class="psn" id="psn">-</div>
+        <div class="psd" id="psd">-</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="sbadge off" id="pbadge">-</div>
+        <div style="font-size:12px;color:var(--dim);margin-top:4px;" id="pdays">-</div>
+      </div>
     </div>
-    <div style="text-align:right;">
-      <div class="sbadge off" id="pbadge">-</div>
-      <div style="font-size:12px;color:var(--dim);" id="pdays">-</div>
-    </div>
+    <div class="p2-count"><span class="p2-big" id="pcnt">0</span><span class="p2-unit">sac<span id="pcnt-s">s</span> cette saison<br><span id="pkg">0 kg</span></span></div>
+    <button class="p2-main" onclick="pUsed(1)"><span style="font-size:22px;">&#x1F525;</span> J&rsquo;ai mis un sac</button>
+    <div class="p2-sub"><button onclick="pUsed(5)">+5 sacs</button><button onclick="pUsed(-1)">&#8630; Annuler un sac</button></div>
+    <div class="pbar" style="margin-top:14px;"><div class="pbarfill" id="pprog" style="width:0%"></div></div>
+    <div class="pbarlbl" id="pprogl">-</div>
   </div>
   <div id="palert" style="display:none;"></div>
-  <div class="pgrid">
-    <div class="pc" id="pcused">
-      <div class="pclbl">Sacs utilisés - Saison</div>
-      <div style="display:flex;align-items:baseline;gap:8px;">
-        <div class="pval" id="pcnt">0</div>
-        <div class="punit">sacs<br><span id="pkg" style="font-size:11px;">0 kg</span></div>
-      </div>
-      <div class="pbtns">
-        <button class="pbtn p" onclick="pUsed(1)">+</button>
-        <button class="pbtn p w" onclick="pUsed(5)">+5</button>
-        <button class="pbtn m" onclick="pUsed(-1)">-</button>
-      </div>
-      <div class="pbar"><div class="pbarfill" id="pprog" style="width:0%"></div></div>
-      <div class="pbarlbl" id="pprogl">-</div>
-      <div style="margin-top:10px;display:flex;align-items:center;gap:7px;">
-        <label class="flbl" style="margin:0;white-space:nowrap;">Objectif</label>
-        <input type="number" id="ptgt" min="1" style="width:65px;padding:5px 7px;font-size:12px;" onchange="savePT()">
-        <span style="font-size:11px;color:var(--dim);">sacs</span>
-      </div>
-      <div id="pautonomy"></div>
-      <div id="pcompare" style="display:none;margin-top:10px;"></div>
+  <div class="pc p2-glass" id="pcstk">
+    <div class="pclbl">Stock de granulés</div>
+    <div style="display:flex;align-items:baseline;gap:8px;">
+      <div class="pval" id="pstk">0</div>
+      <div class="punit">sacs<br><span id="pskg" style="font-size:11px;">0 kg</span></div>
     </div>
-    <div class="pc grn" id="pcstk">
-      <div class="pclbl">Stock disponible</div>
-      <div style="display:flex;align-items:baseline;gap:8px;">
-        <div class="pval" id="pstk">0</div>
-        <div class="punit">sacs<br><span id="pskg" style="font-size:11px;">0 kg</span></div>
-      </div>
-      <div class="pbtns">
-        <button class="pbtn p" onclick="pStock(1)">+</button>
-        <button class="pbtn p w" onclick="pStock(10)">+10</button>
-        <button class="pbtn p pal" onclick="pPalette()" id="pal-btn">+ Palette</button>
-        <button class="pbtn m" onclick="pStock(-1)">-</button>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--dim);line-height:1.6;">Diminue automatiquement à chaque sac utilisé.</div>
-      <div style="margin-top:8px;display:flex;align-items:center;gap:7px;">
-        <label class="flbl" style="margin:0;white-space:nowrap;">Alerte sous</label>
-        <input type="number" id="pthr" min="1" style="width:52px;padding:5px 7px;font-size:12px;" onchange="savePThr()">
-        <span style="font-size:11px;color:var(--dim);">sacs</span>
-      </div>
-      <div style="margin-top:8px;display:flex;align-items:center;gap:7px;">
-        <label class="flbl" style="margin:0;white-space:nowrap;">Sacs par palette</label>
-        <input type="number" id="ppal" min="1" style="width:65px;padding:5px 7px;" onchange="savePPal()">
-      </div>
+    <div class="pbtns" style="flex-wrap:wrap;">
+      <button class="pbtn p pal" onclick="pPalette()" id="pal-btn">+ Palette</button>
+      <button class="pbtn p w" onclick="pStock(10)">+10</button>
+      <button class="pbtn p" onclick="pStock(1)">+</button>
+      <button class="pbtn m" onclick="pStock(-1)">&minus;</button>
     </div>
-            <div style="margin-top:8px;display:flex;align-items:center;gap:7px;">
-        <label class="flbl" style="margin:0;white-space:nowrap;">Prix du sac</label>
-        <input type="number" id="pprice" min="0" step="0.1" style="width:65px;padding:5px 7px;font-size:12px;" onchange="savePPrice()">
-        <span style="font-size:11px;color:var(--dim);">€</span>
-      </div>
-      <div id="pbudget-chauff" style="margin-top:8px;font-size:12px;line-height:1.5;"></div>
-<div id="pstk-alert" style="display:none;"></div>
-    <div class="pc">
-      <div class="pclbl">Historique saisons</div>
-      <div id="phist"></div>
-      <button class="bs" style="margin-top:10px;font-size:11px;padding:5px 10px;" onclick="pClose()">Cloturer la saison</button>
-    </div>
+    <div style="margin-top:6px;font-size:11px;color:var(--dim);">Le stock baisse tout seul à chaque sac mis dans le poêle.</div>
+    <div id="pautonomy"></div>
+    <div id="pstk-alert" style="display:none;"></div>
   </div>
-  <div class="stit">Entretien &amp; Ramonage</div>
-  <div id="pmaint"></div>
-  <div class="card" style="margin-top:12px;">
-    <div class="stit" style="font-size:12px;">Planifier un entretien</div>
-    <div class="fgrid fg2" style="margin-bottom:8px;">
-      <div><label class="flbl">Type</label>
-        <select id="pmtype">
-          <option>Ramonage conduit</option><option>Nettoyage complet poele</option>
-          <option>Nettoyage pot de combustion</option><option>Vider bac a cendres</option>
-          <option>Verification joint porte</option><option>Controle vis sans fin</option>
-          <option>Revision annuelle</option><option>Autre</option>
-        </select>
-      </div>
-      <div><label class="flbl">Prestataire / Contact</label><input type="text" id="pmprest" placeholder="Ramoneur, technicien..."></div>
-    </div>
-    <div class="fgrid fg3" style="margin-bottom:8px;">
-      <div><label class="flbl">Échéance</label><input type="date" id="pmdate"></div>
-      <div><label class="flbl">Coût (EUR)</label><input type="number" id="pmcout" min="0" placeholder="0"></div>
-      <div><label class="flbl">Notes</label><input type="text" id="pmnotes" placeholder="Ref..."></div>
-    </div>
-    <button class="bp" onclick="addMaint()">+ Planifier</button>
+  <div class="pc p2-glass">
+    <div class="pclbl">Cette saison</div>
+    <div id="pbudget-chauff" style="font-size:13px;line-height:1.6;"></div>
+    <div id="pweek" style="margin-top:12px;"></div>
+    <div id="pcompare" style="display:none;margin-top:10px;"></div>
   </div>
+  <div class="pc p2-glass">
+    <div class="pclbl">Entretien &amp; ramonage</div>
+    <div id="pmaint"></div>
+    <details class="p2-det">
+      <summary>+ Planifier un entretien</summary>
+      <div class="fgrid fg2" style="margin:10px 0 8px;">
+        <div><label class="flbl">Type</label>
+          <select id="pmtype">
+            <option>Ramonage conduit</option><option>Nettoyage complet poele</option>
+            <option>Nettoyage pot de combustion</option><option>Vider bac a cendres</option>
+            <option>Verification joint porte</option><option>Controle vis sans fin</option>
+            <option>Revision annuelle</option><option>Autre</option>
+          </select>
+        </div>
+        <div><label class="flbl">Prestataire / Contact</label><input type="text" id="pmprest" placeholder="Ramoneur, technicien..."></div>
+      </div>
+      <div class="fgrid fg3" style="margin-bottom:8px;">
+        <div><label class="flbl">Échéance</label><input type="date" id="pmdate"></div>
+        <div><label class="flbl">Coût (€)</label><input type="number" id="pmcout" min="0" placeholder="0"></div>
+        <div><label class="flbl">Notes</label><input type="text" id="pmnotes" placeholder="Ref..."></div>
+      </div>
+      <button class="bp" onclick="addMaint()">+ Planifier</button>
+    </details>
+  </div>
+  <div class="pc p2-glass">
+    <div class="pclbl">Saisons précédentes</div>
+    <div id="phist"></div>
+    <button class="bs" style="margin-top:10px;font-size:11px;padding:5px 10px;" onclick="pClose()">Clôturer la saison</button>
+  </div>
+  <details class="pc p2-glass p2-det">
+    <summary>&#9881; Réglages</summary>
+    <div class="p2-set">
+      <label>Objectif de la saison<span><input type="number" id="ptgt" min="1" onchange="savePT()"> sacs</span></label>
+      <label>Prix d’un sac<span><input type="number" id="pprice" min="0" step="0.1" onchange="savePPrice()"> €</span></label>
+      <label>Alerte quand le stock passe sous<span><input type="number" id="pthr" min="1" onchange="savePThr()"> sacs</span></label>
+      <label>Sacs par palette<span><input type="number" id="ppal" min="1" onchange="savePPal()"></span></label>
+      <label>Photo de fond<span><label class="bs" style="padding:5px 10px;font-size:12px;cursor:pointer;">Changer<input type="file" accept="image/*" style="display:none;" onchange="pickPelletPhoto(this)"></label></span></label>
+    </div>
+  </details>
 </div>
-
 <!-- STATS -->
 <div class="view" id="view-stats">
   <div class="stit">Statistiques annuelles</div>
@@ -2989,6 +3004,7 @@ function ghMerge(local,remote){
     },
     courses:mergeArr(local.courses,remote.courses,'id').filter(function(x){return!isDeleted(x.id);}),
     homePhoto:((remote.homePhoto&&remote.homePhoto.ts)||0)>((local.homePhoto&&local.homePhoto.ts)||0)?remote.homePhoto:(local.homePhoto||remote.homePhoto||null),
+    pelletPhoto:((remote.pelletPhoto&&remote.pelletPhoto.ts)||0)>((local.pelletPhoto&&local.pelletPhoto.ts)||0)?remote.pelletPhoto:(local.pelletPhoto||remote.pelletPhoto||null),
     maison:((remote.maison&&remote.maison.ts)||0)>((local.maison&&local.maison.ts)||0)?remote.maison:(local.maison||remote.maison||null),
     voiture:((remote.voiture&&remote.voiture.ts)||0)>((local.voiture&&local.voiture.ts)||0)?remote.voiture:(local.voiture||remote.voiture||null)
   };
@@ -3032,6 +3048,7 @@ function ghLocalData(){
     carnet:carnet,
     courses:courses,
     homePhoto:homePhoto,
+    pelletPhoto:pelletPhoto,
     maison:maisonCout,
     voiture:vtData
   };
@@ -3055,6 +3072,7 @@ function ghApplyRemote(data,sha){
     localStorage.setItem(BUDGET_KEY,JSON.stringify({charges:charges,depenses:depenses}));
   }
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
+  if(data.pelletPhoto&&typeof data.pelletPhoto==='object'&&(data.pelletPhoto.ts||0)!==((pelletPhoto&&pelletPhoto.ts)||0)){pelletPhoto=data.pelletPhoto;_ppUrl='';try{localStorage.setItem(PP_KEY,JSON.stringify(pelletPhoto));}catch(e){}var pb=g('pellet-bg');if(pb)pb._u=0;if(_curView==='pellet')loadPelletPhoto();}
   if(data.homePhoto&&typeof data.homePhoto==='object'&&(data.homePhoto.ts||0)!==((homePhoto&&homePhoto.ts)||0)){homePhoto=data.homePhoto;try{localStorage.setItem(HP_KEY,JSON.stringify(homePhoto));}catch(e){}loadHomePhoto();}
   if(data.voiture&&typeof data.voiture==='object'&&(data.voiture.ts||0)>((vtData&&vtData.ts)||0)){vtData=data.voiture;try{localStorage.setItem(VT_KEY,JSON.stringify(vtData));}catch(e){}if(_curView==='voiture'&&typeof renderVoiture==='function')renderVoiture();}
   if(data.maison&&typeof data.maison==='object'&&(data.maison.ts||0)>((maisonCout&&maisonCout.ts)||0)){maisonCout=data.maison;try{localStorage.setItem(MC_KEY,JSON.stringify(maisonCout));}catch(e){}if(typeof renderCout==='function'&&g('trv-pane-cout')&&g('trv-pane-cout').style.display!=='none')renderCout();}
@@ -3490,17 +3508,20 @@ function renderP(){
   });
   var c=PD.cnt||0,tg=PD.tgt||80,pct=tg>0?Math.min(100,Math.round(c/tg*100)):0;
   sv('pcnt',function(e){e.textContent=c;});
+  sv('pcnt-s',function(e){e.textContent=c>1?'s':'';});
+  renderPWeek();
   sv('pkg',function(e){e.textContent=(c*(PD.kgs||15))+' kg';});
   sv('ptgt',function(e){e.value=tg;});
   sv('pprog',function(e){e.style.width=pct+'%';});
-  sv('pprogl',function(e){e.textContent=pct+'% - '+(tg-c>0?(tg-c)+' sacs restants':'Objectif atteint !');});
+  sv('pprogl',function(e){e.textContent=(tg-c>0?pct+' % de l’objectif ('+tg+' sacs) · encore '+(tg-c):'Objectif de '+tg+' sacs atteint');});
   
   renderPCompare(c);
+  applyPelletPhoto();
   sv('pslbl-txt',function(e){e.textContent=active?'Saison en cours':'Derniere saison';});
   sv('pautonomy',function(e){
     if(!active){e.style.display='none';return;}
     e.style.display='block';
-    if(c<3){e.innerHTML='<span style="color:var(--dim);font-size:12px;">Pas assez de donnees (min. 3 sacs)</span>';return;}
+    if(c<3){e.innerHTML='<span style="color:var(--dim);font-size:12px;">Autonomie calculée à partir de 3 sacs</span>';return;}
     
     var au=pAutonomy();
     var sacPerDay=au?au.perDay:0;
@@ -3550,7 +3571,8 @@ function renderP(){
     if(!price){e.textContent='Renseignez le prix/sac pour le budget';e.style.color='var(--dim)';return;}
     var coutSaison=(c*(price)).toFixed(0);
     var coutAn=((PD.tgt||80)*price).toFixed(0);
-    e.innerHTML='<span style="color:var(--copper);font-weight:500;">'+eu(coutSaison)+'</span> cette saison<br><span style="color:var(--dim);">Objectif saison : '+eu(coutAn)+'</span>';
+    e.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;"><span>Dépensé</span><span style="font-family:var(--fd);font-size:22px;color:var(--copper);">'+eu(coutSaison)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;color:var(--dim);font-size:12px;"><span>'+c+' sac'+(c>1?'s':'')+' × '+eu(price)+'</span><span>budget '+eu(coutAn)+' ('+(PD.tgt||80)+' sacs)</span></div>';
   });
   sv('pcstk',function(e){e.className='pc '+(s===0||s<=th?'low':s<=th*2?'med':'grn');});
   sv('palert',function(e){
@@ -3632,6 +3654,18 @@ function renderP(){
   });
 }
 
+function renderPWeek(){
+  sv('pweek',function(e){
+    var lg=(PD.logs||{})[PD.sk]||{},W=[],t0=new Date();t0.setHours(0,0,0,0);
+    var mon=new Date(t0);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
+    for(var i=7;i>=0;i--){var a=new Date(mon);a.setDate(a.getDate()-7*i);var b=new Date(a);b.setDate(b.getDate()+7);W.push({a:a,b:b,v:0});}
+    Object.keys(lg).forEach(function(ds){var dt=new Date(ds+'T12:00:00');W.forEach(function(w){if(dt>=w.a&&dt<w.b)w.v+=lg[ds]||0;});});
+    var tot=W.reduce(function(s1,w){return s1+w.v;},0);
+    if(!tot){e.innerHTML='<div style="font-size:12px;color:var(--dim);">Le graphique des sacs par semaine apparaîtra au fil de la saison.</div>';return;}
+    var mx=1;W.forEach(function(w){if(w.v>mx)mx=w.v;});
+    e.innerHTML='<div style="font-size:12px;color:var(--dim);margin-bottom:6px;">Sacs par semaine</div><div class="pw-bars">'+W.map(function(w,i){var h=Math.round(w.v/mx*46);return '<div><b style="color:var(--text);">'+(w.v||'')+'</b><i style="height:'+h+'px;'+(i===W.length-1?'background:var(--amber);':'')+'"></i><b>'+w.a.getDate()+'/'+(w.a.getMonth()+1)+'</b></div>';}).join('')+'</div>';
+  });
+}
 function pUsed(d){if(!PD)return;if(d<0&&!(PD.cnt>0))return;PD.cnt=Math.max(0,(PD.cnt||0)+d);pLogBag(d);if(d>0)PD.stk=Math.max(0,(PD.stk||0)-d);else if(d<0)PD.stk=(PD.stk||0)+Math.abs(d);saveP();renderP();var s=PD.stk||0,th=PD.thr||10;if(d>0&&s<=th&&s>0)toast(d+' sac'+(d>1?'s':'')+' utilise - Stock bas: '+s);else if(d>0&&s===0)toast('Stock epuise !');else if(d>0)toast('+'+d+' sac'+(d>1?'s':'')+' utilise');else toast('Correction appliquee');}
 function pStock(d){
   if(!PD)return;
@@ -3984,6 +4018,7 @@ function navOnView(v){
   if(!_navFromPop&&v!==_curView&&window.history&&history.pushState){try{history.pushState({view:v},'');}catch(e){}}
   _curView=v;
   var hb=g('home-bg');if(hb)hb.classList.toggle('on',v==='dash'&&!!_hpUrl);
+  if(typeof applyPelletPhoto==='function')applyPelletPhoto();
 }
 function ovVisible(el){return el&&getComputedStyle(el).display!=='none'&&!el.classList.contains('hidden');}
 function ovSync(){
@@ -4066,7 +4101,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v55';
+var APP_V='v56';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -5482,6 +5517,40 @@ function pickHomePhoto(inp){
   };
   img.src=url;
 }
+var PP_KEY='domicile_pelletphoto',PP_IMG='domicile_pelletphoto_img',pelletPhoto=null,_ppUrl='';
+try{pelletPhoto=JSON.parse(localStorage.getItem(PP_KEY)||'null');}catch(e){pelletPhoto=null;}
+function applyPelletPhoto(){
+  var bg=g('pellet-bg');if(!bg)return;
+  var on=_curView==='pellet'&&!!_ppUrl;
+  if(_ppUrl&&!bg._u){bg.style.backgroundImage='linear-gradient(180deg,color-mix(in srgb,var(--bg) 5%,transparent) 0%,color-mix(in srgb,var(--bg) 25%,transparent) 40%,color-mix(in srgb,var(--bg) 60%,transparent) 100%),url("'+_ppUrl+'")';bg._u=1;}
+  bg.classList.toggle('on',on);document.body.classList.toggle('has-pbg',on);
+  if(_curView==='pellet'&&!_ppUrl&&pelletPhoto&&pelletPhoto.path)loadPelletPhoto();
+}
+function loadPelletPhoto(){
+  if(!pelletPhoto||!pelletPhoto.path)return;
+  var c=null;try{c=JSON.parse(localStorage.getItem(PP_IMG)||'null');}catch(e){}
+  if(c&&c.path===pelletPhoto.path&&c.url){_ppUrl=c.url;g('pellet-bg')._u=0;applyPelletPhoto();return;}
+  if(!ghToken()||typeof fetch!=='function'||window._ppLoading===pelletPhoto.path)return;
+  var path=pelletPhoto.path;window._ppLoading=path;
+  fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(),cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();})
+  .then(function(buf){var by=new Uint8Array(buf),b64='';
+    if(by.length>2&&by[0]===0xFF&&by[1]===0xD8){var bin='',CH=0x8000;for(var i=0;i<by.length;i+=CH)bin+=String.fromCharCode.apply(null,by.subarray(i,i+CH));b64=btoa(bin);}
+    else{var j=JSON.parse(new TextDecoder('utf-8').decode(by));b64=String(j.content).replace(/\s/g,'');}
+    _ppUrl='data:image/jpeg;base64,'+b64;try{localStorage.setItem(PP_IMG,JSON.stringify({path:path,url:_ppUrl}));}catch(e){}
+    var bg=g('pellet-bg');if(bg)bg._u=0;applyPelletPhoto();}).catch(function(){window._ppLoading='';});
+}
+function pickPelletPhoto(inp){
+  var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(!ghToken()){toast('Synchro GitHub non configur\u00e9e');return;}
+  var img=new Image(),url=URL.createObjectURL(f);
+  img.onload=function(){var k=Math.min(1,1200/img.width),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    var data=c.toDataURL('image/jpeg',0.72),path='photos/poele-'+Date.now()+'.jpg';toast('Envoi de la photo\u2026');
+    fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path,{method:'PUT',headers:ghHeaders(),body:JSON.stringify({message:'photo poele',content:data.split(',')[1],branch:GH_BRANCH})})
+    .then(function(r){if(r.status!==200&&r.status!==201)throw 0;pelletPhoto={path:path,ts:Date.now()};try{localStorage.setItem(PP_KEY,JSON.stringify(pelletPhoto));localStorage.setItem(PP_IMG,JSON.stringify({path:path,url:data}));}catch(e){}
+      _ppUrl=data;var bg=g('pellet-bg');if(bg)bg._u=0;applyPelletPhoto();scheduleGhPush();toast('Photo du po\u00eale mise \u00e0 jour');}).catch(function(){toast('Envoi impossible (hors ligne ?)');});};
+  img.src=url;
+}
 function removeHomePhoto(){homePhoto={path:'',ts:Date.now()};try{localStorage.setItem(HP_KEY,JSON.stringify(homePhoto));}catch(e){}_hpUrl='';try{localStorage.removeItem(HP_IMG);}catch(e){}applyHomePhoto();scheduleGhPush();toast('Photo retir\u00e9e');}
 
 function renderDashHello(){
@@ -5990,7 +6059,7 @@ function renderPCompare(c){
   function line(lbl,val){return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:3px 0;"><span style="color:var(--dim);">'+lbl+'</span><span style="color:var(--text);text-align:right;">'+val+'</span></div>';}
   function pctTxt(a,b){var p=Math.round((a-b)/b*100);return ' <span style="color:'+(p>5?'var(--red)':p<-5?'var(--green)':'var(--dim)')+';">('+(p>0?'+':'')+p+'%)</span>';}
   var h='<div style="border-top:1px dashed var(--border);padding-top:8px;">'
-    +'<div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:4px;font-weight:600;">Comparaison saison precedente</div>';
+    +'<div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:4px;font-weight:600;">Comparaison avec la saison précédente</div>';
   h+=line(prev.l||slbl(prevK),prev.c+' sacs');
   if(el>=1&&el<=182){
     var logs=PD.logs&&PD.logs[prevK];
@@ -6004,7 +6073,7 @@ function renderPCompare(c){
       var proj=Math.round(c/el*181);
       h+=line('Au rythme actuel','~'+proj+' sacs'+pctTxt(proj,prev.c));
     } else {
-      h+='<div style="font-size:12px;color:var(--dim);padding-top:3px;">Projection disponible apres 2 semaines de chauffe</div>';
+      h+='<div style="font-size:12px;color:var(--dim);padding-top:3px;">Projection disponible après 2 semaines de chauffe</div>';
     }
   }
   h+='</div>';
