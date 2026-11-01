@@ -209,8 +209,11 @@ details.pc.p2-det summary{margin-top:0;color:var(--text);}
 .pw-bars b{font-size:9px;font-weight:400;color:var(--dim);}
 #pellet-bg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center 40%;pointer-events:none;opacity:0;transition:opacity .5s ease;}
 #pellet-bg.on{opacity:1;}
-body.has-pbg #view-pellet .p2-glass{background:color-mix(in srgb,var(--bg2) 72%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
-body.has-pbg #view-pellet .p2-hero{background:color-mix(in srgb,var(--bg2) 55%,transparent);}
+body.has-pbg #view-pellet .p2-glass{background:color-mix(in srgb,var(--bg2) 45%,transparent);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);border-color:rgba(255,255,255,.12);}
+body.has-pbg #view-pellet .pbtn,body.has-pbg #view-pellet .p2-sub button,body.has-pbg #view-pellet #pmaint>*,body.has-pbg #view-pellet #pautonomy>div{background:color-mix(in srgb,var(--bg3) 50%,transparent)!important;}
+body.has-pbg #view-pellet{text-shadow:0 1px 3px rgba(0,0,0,.45);}
+body.has-pbg #view-pellet .p2-hero{background:color-mix(in srgb,var(--bg2) 30%,transparent);}
+body.has-pbg #view-pellet .p2-main{text-shadow:none;}
 .pc{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:14px;position:relative;overflow:hidden;}
 .pc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber);}
 .pc.grn::before{background:var(--green);}
@@ -3574,7 +3577,7 @@ function renderP(){
     e.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;"><span>Dépensé</span><span style="font-family:var(--fd);font-size:22px;color:var(--copper);">'+eu(coutSaison)+'</span></div>'
       +'<div style="display:flex;justify-content:space-between;color:var(--dim);font-size:12px;"><span>'+c+' sac'+(c>1?'s':'')+' × '+eu(price)+'</span><span>budget '+eu(coutAn)+' ('+(PD.tgt||80)+' sacs)</span></div>';
   });
-  sv('pcstk',function(e){e.className='pc '+(s===0||s<=th?'low':s<=th*2?'med':'grn');});
+  sv('pcstk',function(e){e.className='pc p2-glass '+(s===0||s<=th?'low':s<=th*2?'med':'grn');});
   sv('palert',function(e){
     if(s<=th){e.style.display='flex';e.className='palert';
       e.innerHTML=s===0?'<strong>Stock epuise !</strong> Commandez des sacs.':'<strong>Stock bas:</strong> '+s+' sac'+(s>1?'s':'')+'. Seuil: '+th+'.';}
@@ -4101,7 +4104,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v56';
+var APP_V='v57';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -5522,7 +5525,7 @@ try{pelletPhoto=JSON.parse(localStorage.getItem(PP_KEY)||'null');}catch(e){pelle
 function applyPelletPhoto(){
   var bg=g('pellet-bg');if(!bg)return;
   var on=_curView==='pellet'&&!!_ppUrl;
-  if(_ppUrl&&!bg._u){bg.style.backgroundImage='linear-gradient(180deg,color-mix(in srgb,var(--bg) 5%,transparent) 0%,color-mix(in srgb,var(--bg) 25%,transparent) 40%,color-mix(in srgb,var(--bg) 60%,transparent) 100%),url("'+_ppUrl+'")';bg._u=1;}
+  if(_ppUrl&&!bg._u){bg.style.backgroundImage='linear-gradient(180deg,color-mix(in srgb,var(--bg) 0%,transparent) 0%,color-mix(in srgb,var(--bg) 15%,transparent) 45%,color-mix(in srgb,var(--bg) 45%,transparent) 100%),url("'+_ppUrl+'")';bg._u=1;}
   bg.classList.toggle('on',on);document.body.classList.toggle('has-pbg',on);
   if(_curView==='pellet'&&!_ppUrl&&pelletPhoto&&pelletPhoto.path)loadPelletPhoto();
 }
