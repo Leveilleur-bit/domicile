@@ -1371,7 +1371,7 @@ body.light{--purple:#8a5fb8;}
     <button class="bp" onclick="addDep()">+ Ajouter</button>
   </div>
   <div id="deps-list"></div>
-
+  <div id="perso-wrap" style="display:none;margin-top:22px;"></div>
 </div>
 
 </main>
@@ -1678,6 +1678,9 @@ body.light{--purple:#8a5fb8;}
       <div id="hp-state" style="font-size:11px;color:var(--dim);margin-top:6px;"></div>
     </div>
     <div style="margin-bottom:16px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" id="set-perso" style="width:auto;" onchange="persoToggle(this.checked)"> Afficher mon espace perso dans Budget (sur cet appareil seulement)</label>
+    </div>
+    <div style="margin-bottom:16px;">
       <div style="font-size:11px;letter-spacing:.01em;text-transform:none;color:var(--dim);margin-bottom:8px;font-weight:600;">Nom de la maison</div>
       <div style="display:flex;gap:7px;"><input type="text" id="set-house-name" placeholder="Ex: Notre maison..." style="flex:1;"><button class="bp" onclick="saveHouseName()">OK</button></div>
     </div>
@@ -1824,7 +1827,7 @@ function showView(v,tab){
   if(v==='hist')renderHist();
   if(v==='stats')renderStats2();
   if(v==='cpt')renderCpt();
-  if(v==='budget'){loadBudget();renderBudget();}
+  if(v==='budget'){loadBudget();renderBudget();renderPerso();}
   if(v==='maison')renderMaison();
   if(v==='voiture')renderVoiture();
   if(v==='courses'){renderCourses();crsLivePull(true);}else crsLivePull(false);
@@ -4104,7 +4107,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v58';
+var APP_V='v59';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -4116,6 +4119,7 @@ sv('last-err',function(el){var x=null;try{x=JSON.parse(localStorage.getItem('dom
 (function(){try{if(localStorage.getItem('domicile_app_v')!==APP_V){localStorage.setItem('domicile_app_v',APP_V);localStorage.setItem('domicile_dirty','1');window._forceFullPull=true;}}catch(e){}})();
 
 function openSettings(){
+  sv('set-perso',function(e){e.checked=persoOn();});
   showLastErr();
   var o=g('settings-overlay');if(!o)return;
   sv('set-house-name',function(e){e.value=appSettings.houseName||'';});
@@ -5553,6 +5557,58 @@ function pickPelletPhoto(inp){
     .then(function(r){if(r.status!==200&&r.status!==201)throw 0;pelletPhoto={path:path,ts:Date.now()};try{localStorage.setItem(PP_KEY,JSON.stringify(pelletPhoto));localStorage.setItem(PP_IMG,JSON.stringify({path:path,url:data}));}catch(e){}
       _ppUrl=data;var bg=g('pellet-bg');if(bg)bg._u=0;applyPelletPhoto();scheduleGhPush();toast('Photo du po\u00eale mise \u00e0 jour');}).catch(function(){toast('Envoi impossible (hors ligne ?)');});};
   img.src=url;
+}
+// ══════════ ESPACE PERSO (fichier separe, charge seulement sur les appareils ou il est active) ══════════
+var PS_FLAG='domicile_perso_on',PS_KEY='domicile_perso_v1',PS_PATH='perso-romain.json',psData=null,psSha=null;
+function persoOn(){try{return localStorage.getItem(PS_FLAG)==='1';}catch(e){return false;}}
+function persoToggle(on){try{if(on)localStorage.setItem(PS_FLAG,'1');else{localStorage.removeItem(PS_FLAG);localStorage.removeItem(PS_KEY);psData=null;}}catch(e){}renderPerso();if(on)persoPull();}
+function persoPull(){
+  if(!persoOn()||!ghToken())return;
+  fetch(invoiceUrl(PS_PATH)+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(),cache:'no-store'}).then(function(r){if(r.status===404)return null;if(!r.ok)throw 0;return r.json();})
+  .then(function(j){if(!j)return;psSha=j.sha;var t=decodeURIComponent(escape(atob(String(j.content).replace(/\s/g,''))));var d=JSON.parse(t);
+    if(!psData||(d.ts||0)>=(psData.ts||0)){psData=d;try{localStorage.setItem(PS_KEY,JSON.stringify(d));}catch(e){}renderPerso();}}).catch(function(){});
+}
+function persoPush(){
+  if(!ghToken()||!psData)return;psData.ts=Date.now();try{localStorage.setItem(PS_KEY,JSON.stringify(psData));}catch(e){}
+  var body=function(){return JSON.stringify({message:'perso',content:btoa(unescape(encodeURIComponent(JSON.stringify(psData,null,1)))),branch:GH_BRANCH,sha:psSha||undefined});};
+  fetch(invoiceUrl(PS_PATH),{method:'PUT',headers:ghHeaders(),body:body()}).then(function(r){if(r.status===409||r.status===422){return fetch(invoiceUrl(PS_PATH)+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(),cache:'no-store'}).then(function(x){return x.json();}).then(function(j){psSha=j.sha;return fetch(invoiceUrl(PS_PATH),{method:'PUT',headers:ghHeaders(),body:body()});});}return r;})
+  .then(function(r){return r.json();}).then(function(j){if(j&&j.content&&j.content.sha)psSha=j.content.sha;}).catch(function(){toast('Espace perso : enregistrement impossible (hors ligne ?)');});
+}
+function renderPerso(){
+  var w=g('perso-wrap');if(!w)return;
+  if(!persoOn()){w.style.display='none';w.innerHTML='';return;}
+  w.style.display='block';
+  if(!psData){try{psData=JSON.parse(localStorage.getItem(PS_KEY)||'null');}catch(e){}}
+  if(!psData){w.innerHTML='<div class="mc-note">Espace perso : chargement…</div>';persoPull();return;}
+  var D=psData,sum=function(a){return (a||[]).reduce(function(s1,x){return s1+(parseFloat(x.m)||0);},0);};
+  var rev=sum(D.revenus),sor=sum(D.sorties),r13=(parseFloat(D.treizieme)||0)/12,reste=rev+r13-sor;
+  function rows(k,lbl){return '<div class="mc-note" style="margin:10px 0 4px;font-weight:600;color:var(--text);">'+lbl+'</div>'+(D[k]||[]).map(function(x,i){return '<div style="display:flex;gap:6px;margin-bottom:5px;"><input data-ps="'+k+'" data-i="'+i+'" data-f="l" value="'+eh(x.l||'')+'" style="flex:1;font-size:13px;padding:6px 8px;"><input data-ps="'+k+'" data-i="'+i+'" data-f="m" inputmode="decimal" value="'+eh(String(x.m==null?'':x.m))+'" style="width:84px;font-size:13px;padding:6px 8px;text-align:right;"><button class="bi" data-psdel="'+k+'" data-i="'+i+'" style="width:30px;height:30px;font-size:12px;">&#10005;</button></div>';}).join('')+'<button class="bs" data-psadd="'+k+'" style="font-size:12px;padding:4px 10px;">+ Ajouter</button>';}
+  var h='<details class="card" style="padding:12px 14px;"'+(w._open?' open':'')+'><summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--dim);">&#128274; Perso</span><span style="font-size:13px;color:var(--dim);">'+(w._open?'':'reste ≈ '+eu(Math.round(reste))+'/mois')+'</span></summary>'
+    +'<div style="margin-top:10px;">'
+    +'<div class="mc-row"><span>Revenus du mois</span><span class="v">'+eu(Math.round(rev))+'</span></div>'
+    +(r13?'<div class="mc-row"><span>13e mois lissé</span><span class="v">+'+eu(Math.round(r13))+'</span></div>':'')
+    +'<div class="mc-row"><span>Sorties</span><span class="v">−'+eu(Math.round(sor))+'</span></div>'
+    +'<div class="mc-row tot"><span>Reste par mois</span><span class="v" style="color:'+(reste>=0?'var(--green)':'var(--red)')+';">'+eu(Math.round(reste))+'</span></div>'
+    +'<div class="mc-note">Sans 13e mois : '+eu(Math.round(rev-sor))+'/mois · sur un an : ≈ '+eu(Math.round(reste*12))+'</div>'
+    +rows('revenus','Revenus mensuels')
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px;"><span>13e mois (montant annuel)</span><input data-psk="treizieme" inputmode="decimal" value="'+eh(String(D.treizieme||''))+'" style="width:84px;font-size:13px;padding:6px 8px;text-align:right;"></div>'
+    +rows('sorties','Sorties mensuelles')
+    +rows('epargne','Épargne')
+    +'<div class="mc-row" style="margin-top:6px;"><span>Total épargne</span><span class="v">'+eu(Math.round(sum(D.epargne)))+'</span></div>'
+    +'<div style="margin-top:8px;"><label class="flbl">Notes</label><textarea data-psk="notes" rows="3" style="width:100%;">'+eh(D.notes||'')+'</textarea></div>'
+    +'<div class="mc-note" style="margin-top:6px;">Visible seulement sur les appareils où l’espace perso est activé (Réglages). Les données sont dans un fichier séparé du dépôt privé.</div>'
+    +'</div></details>';
+  w.innerHTML=h;
+  var det=w.querySelector('details');det.addEventListener('toggle',function(){w._open=det.open;var sp=det.querySelector('summary span:last-child');if(sp)sp.textContent=det.open?'':'reste ≈ '+eu(Math.round(reste))+'/mois';});
+  if(!w._b){w._b=1;var tmr=null;
+    w.addEventListener('input',function(ev){var t=ev.target,k=t.getAttribute('data-ps');
+      if(k){psData[k][+t.getAttribute('data-i')][t.getAttribute('data-f')]=t.value;}else if(t.getAttribute('data-psk')){psData[t.getAttribute('data-psk')]=t.value;}else return;
+      clearTimeout(tmr);tmr=setTimeout(persoPush,1200);});
+    w.addEventListener('change',function(ev){var t=ev.target;if(t.getAttribute('data-f')==='m'||t.getAttribute('data-psk')==='treizieme'){clearTimeout(tmr);persoPush();renderPerso();}});
+    w.addEventListener('click',function(ev){var t=ev.target,a=t.getAttribute&&t.getAttribute('data-psadd'),d=t.getAttribute&&t.getAttribute('data-psdel');
+      if(a){(psData[a]=psData[a]||[]).push({l:'',m:''});persoPush();renderPerso();}
+      if(d){if(!confirm('Retirer cette ligne ?'))return;psData[d].splice(+t.getAttribute('data-i'),1);persoPush();renderPerso();}});
+  }
 }
 function removeHomePhoto(){homePhoto={path:'',ts:Date.now()};try{localStorage.setItem(HP_KEY,JSON.stringify(homePhoto));}catch(e){}_hpUrl='';try{localStorage.removeItem(HP_IMG);}catch(e){}applyHomePhoto();scheduleGhPush();toast('Photo retir\u00e9e');}
 
