@@ -341,7 +341,7 @@ html.ov-open,html.ov-open body{overflow:hidden;}
 .cpt-hist-conso.elec{background:rgba(240,192,96,.12);color:var(--amber);}
 .cpt-hist-conso.eau{background:rgba(122,173,204,.12);color:var(--blue);}
 .cpt-hist-note{font-size:12px;color:var(--dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.cpt-bar-chart{display:flex;align-items:flex-end;gap:3px;height:90px;margin-bottom:4px;}
+.cpt-bar-chart{display:flex;align-items:flex-end;gap:3px;height:108px;margin-bottom:4px;}
 .cpt-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
 .cpt-bar{width:100%;border-radius:3px 3px 0 0;transition:height .3s;min-height:2px;}
 .cpt-bar.elec{background:linear-gradient(180deg,#ffe066,var(--amber));}
@@ -3857,8 +3857,25 @@ function renderHero(type,elId,deltaId){
   }
 }
 
+function cptMonthly(data){
+  var pts=(data||[]).filter(function(r){return r&&r.date&&!isNaN(parseFloat(r.index));}).slice().sort(function(a,b){return a.date.localeCompare(b.date);});
+  var ok=[],bad=[];pts.forEach(function(r){if(ok.length&&parseFloat(r.index)<parseFloat(ok[ok.length-1].index))bad.push(r);else ok.push(r);});
+  var out={months:[],bad:bad,cur:false};if(ok.length<2)return out;
+  function T(ds){return new Date(ds+'T00:00:00').getTime();}
+  var P=ok.map(function(r){return {t:T(r.date),v:parseFloat(r.index)};});
+  function at(t){for(var i=1;i<P.length;i++){if(t<=P[i].t){var a=P[i-1],b=P[i];return a.v+(b.v-a.v)*(t-a.t)/((b.t-a.t)||1);}}return null;}
+  var t0=P[0].t,t1=P[P.length-1].t,d0=new Date(t0),y=d0.getFullYear(),m=d0.getMonth();
+  if(d0.getDate()!==1){m++;if(m>11){m=0;y++;}}
+  while(true){var s0=new Date(y,m,1).getTime(),e0=new Date(y,m+1,1).getTime();if(s0>=t1)break;
+    if(e0<=t1){out.months.push({y:y,m:m,val:at(e0)-at(s0)});}
+    else{var dn=(t1-s0)/864e5,dm=(e0-s0)/864e5,v=at(t1)-at(s0),last=P[P.length-1],prev=P[P.length-2],rate=(last.v-prev.v)/(((last.t-prev.t)/864e5)||1);
+      out.months.push({y:y,m:m,val:v,cur:true,proj:v+rate*(dm-dn)});out.cur=true;}
+    m++;if(m>11){m=0;y++;}}
+  return out;
+}
 function renderCpt(){
   if(!cptData)return;
+  ['elec','eau'].forEach(function(t){if(Array.isArray(cptData[t]))cptData[t].sort(function(x,y){return (x.date||'').localeCompare(y.date||'');});});
 
   renderHero('elec','cpt-elec-last','cpt-elec-delta');
   renderHero('eau','cpt-eau-last','cpt-eau-delta');
@@ -3867,27 +3884,21 @@ function renderCpt(){
   var unit=cptTab==='elec'?'kWh':'m3';
   var color=cptTab;
 
-  var consos=[];
-  for(var i=1;i<data.length;i++){
-    var conso=data[i].index-data[i-1].index;
-    var d=new Date(data[i].date);
-    var lbl=(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(2);
-    consos.push({lbl:lbl,val:conso,date:data[i].date});
-  }
-
-  var recent=consos.slice(-12);
-  var maxV=1;recent.forEach(function(r){if(r.val>maxV)maxV=r.val;});
-  var chartH='',labelsH='';
+  var MM=cptMonthly(data),recent=MM.months.slice(-12);
+  var maxV=1;recent.forEach(function(r){var v=r.proj||r.val;if(v>maxV)maxV=v;});
+  var chartH='',labelsH='',MN=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
   if(!recent.length){
-    chartH='<div style="color:var(--dim);font-size:12px;padding:20px 0;text-align:center;width:100%;">Ajoutez au moins 2 releves pour voir le graphique</div>';
+    chartH='<div style="color:var(--dim);font-size:12px;padding:20px 0;text-align:center;width:100%;">Ajoutez au moins 2 relevés pour voir le graphique</div>';
   } else {
     recent.forEach(function(r){
-      var h=Math.round(r.val/maxV*80);
-      chartH+='<div class="cpt-bar-wrap"><div class="cpt-bar '+color+'" style="height:'+h+'px;" title="'+r.val+' '+unit+'"></div><div class="cpt-bar-lbl">'+r.lbl+'</div></div>';
+      var v=r.cur?r.proj:r.val,h=Math.max(2,Math.round(v/maxV*72)),fv=v>=100?Math.round(v):Math.round(v*10)/10;
+      chartH+='<div class="cpt-bar-wrap" title="'+(r.cur?'en cours, projection : ':'')+fv+' '+unit+'"><div style="font-size:9px;color:var(--dim);margin-bottom:2px;">'+(r.cur?'~':'')+String(fv).replace('.',',')+'</div><div class="cpt-bar '+color+'" style="height:'+h+'px;'+(r.cur?'opacity:.35;border:1px dashed currentColor;':'')+'"></div><div class="cpt-bar-lbl">'+MN[r.m]+(r.m===0?' '+String(r.y).slice(2):'')+'</div></div>';
     });
   }
   sv('cpt-chart',function(e){e.innerHTML=chartH;});
-  sv('cpt-chart-title',function(e){e.textContent='Consommation '+(cptTab==='elec'?'electrique':'eau')+' entre releves';});
+  sv('cpt-chart-title',function(e){var full=MM.months.filter(function(x){return !x.cur;}),avg=full.length?full.reduce(function(s1,x){return s1+x.val;},0)/full.length:0;
+    e.innerHTML='Consommation '+(cptTab==='elec'?'électrique':'d’eau')+' par mois'+(avg?' <span style="font-weight:400;color:var(--dim);">· moyenne '+(unit==='kWh'?Math.round(avg):(Math.round(avg*10)/10).toString().replace('.',','))+' '+unit+'/mois</span>':'')
+      +'<div style="font-weight:400;font-size:11px;color:var(--dim);margin-top:2px;">Réparti au prorata des jours entre deux relevés'+(MM.cur?' · mois en cours en pointillés (projection)':'')+(MM.bad.length?' · <span style="color:var(--amber);">'+MM.bad.length+' relevé'+(MM.bad.length>1?'s':'')+' incohérent'+(MM.bad.length>1?'s':'')+' ignoré'+(MM.bad.length>1?'s':'')+' ('+MM.bad.map(function(x){return fd(x.date)+' : '+x.index;}).join(', ')+')</span>':'')+'</div>';});
 
   var hist=g('cpt-hist-list');if(!hist)return;
   if(!data.length){hist.innerHTML='<div class="empty"><div class="eico">&#128202;</div>Aucun releve enregistre</div>';return;}
@@ -4107,7 +4118,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v59';
+var APP_V='v60';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
