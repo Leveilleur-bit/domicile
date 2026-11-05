@@ -1274,6 +1274,7 @@ body.light{--purple:#8a5fb8;}
     <div class="cpt-bar-chart" id="cpt-chart"></div>
     <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim);" id="cpt-chart-labels"></div>
   </div>
+  <div class="card" style="padding:14px;margin-bottom:14px;" id="nrj-card"></div>
 
   <div class="stit" style="font-size:12px;">Historique des relevés</div>
   <div class="card" style="padding:0;overflow:hidden;">
@@ -1292,6 +1293,8 @@ body.light{--purple:#8a5fb8;}
     <div class="bdg-card travaux"><div class="slbl">Travaux</div><div class="sval" id="bdg-travaux-ann">0</div><div class="ssub">€ / an</div></div>
     <div class="bdg-card entretien"><div class="slbl">Entretien</div><div class="sval" id="bdg-entretien-ann">0</div><div class="ssub">€ / an</div></div>
   </div>
+
+  <details class="card" id="sim-card" style="padding:12px 14px;margin-bottom:14px;"><summary style="cursor:pointer;list-style:none;font-size:13px;font-weight:600;color:var(--text);">&#129518; Simulateur 2027 <span style="font-weight:400;color:var(--dim);" id="sim-sum"></span></summary><div id="sim-body" style="margin-top:10px;"></div></details>
 
   <!-- Graphe 12 mois -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div class="stit" style="margin:0;">Dépenses sur 12 mois</div><select id="budget-year-sel" onchange="setBudgetYear(this.value)" style="width:auto;padding:4px 8px;font-size:12px;"></select></div>
@@ -1827,7 +1830,7 @@ function showView(v,tab){
   if(v==='hist')renderHist();
   if(v==='stats')renderStats2();
   if(v==='cpt')renderCpt();
-  if(v==='budget'){loadBudget();renderBudget();renderPerso();}
+  if(v==='budget'){loadBudget();renderBudget();renderPerso();renderSim();}
   if(v==='maison')renderMaison();
   if(v==='voiture')renderVoiture();
   if(v==='courses'){renderCourses();crsLivePull(true);}else crsLivePull(false);
@@ -2194,6 +2197,7 @@ function renderDashAlerts(){
       if(dd>=0&&dd<=60)A.push({k:'gar-'+q.id+'-'+q.warrantyEnd,ico:'&#128737;',t:'Garantie : '+(q.name||''),s:'se termine '+(dd===0?'aujourd\u2019hui':'dans '+dd+' jour'+(dd>1?'s':''))+' ('+fd(q.warrantyEnd)+')',go:'maison'});});
     // voiture
     if(typeof vtDue==='function')vtDue().forEach(function(x){var dd=Math.round((new Date(x.date)-new Date(tod()))/864e5);if(dd<=x.warn)A.push({k:'vt-'+x.veh.id+'-'+x.k+'-'+x.date,ico:'&#128663;',t:x.lbl+' : '+(x.veh.nom||'véhicule'),s:dd<0?'en retard depuis le '+fd(x.date):'à faire avant le '+fd(x.date)+' ('+(dd===0?'aujourd’hui':'dans '+dd+' j')+')',go:'voiture'});});
+    if(typeof cptAlerts==='function')cptAlerts().forEach(function(a){A.push(a);});
     // rappels annuels
     if(now.getMonth()===10||(now.getMonth()===11&&now.getDate()<=15))A.push({k:'april-'+now.getFullYear(),ico:'&#128196;',t:'Assurance emprunteur : nouvel \u00e9ch\u00e9ancier',s:'April envoie la cotisation '+(now.getFullYear()+1)+' : ajoute-le dans Documents',go:'maison'});
     A=A.filter(function(a){return !hid[a.k];});
@@ -3012,7 +3016,8 @@ function ghMerge(local,remote){
     homePhoto:((remote.homePhoto&&remote.homePhoto.ts)||0)>((local.homePhoto&&local.homePhoto.ts)||0)?remote.homePhoto:(local.homePhoto||remote.homePhoto||null),
     pelletPhoto:((remote.pelletPhoto&&remote.pelletPhoto.ts)||0)>((local.pelletPhoto&&local.pelletPhoto.ts)||0)?remote.pelletPhoto:(local.pelletPhoto||remote.pelletPhoto||null),
     maison:((remote.maison&&remote.maison.ts)||0)>((local.maison&&local.maison.ts)||0)?remote.maison:(local.maison||remote.maison||null),
-    voiture:((remote.voiture&&remote.voiture.ts)||0)>((local.voiture&&local.voiture.ts)||0)?remote.voiture:(local.voiture||remote.voiture||null)
+    voiture:((remote.voiture&&remote.voiture.ts)||0)>((local.voiture&&local.voiture.ts)||0)?remote.voiture:(local.voiture||remote.voiture||null),
+    energie:((remote.energie&&remote.energie.ts)||0)>((local.energie&&local.energie.ts)||0)?remote.energie:(local.energie||remote.energie||null)
   };
 }
 
@@ -3056,7 +3061,8 @@ function ghLocalData(){
     homePhoto:homePhoto,
     pelletPhoto:pelletPhoto,
     maison:maisonCout,
-    voiture:vtData
+    voiture:vtData,
+    energie:nrjData
   };
 }
 
@@ -3080,6 +3086,7 @@ function ghApplyRemote(data,sha){
   if(Array.isArray(data.conges)){conges=data.conges;localStorage.setItem(CONGE_KEY,JSON.stringify(conges));}
   if(data.pelletPhoto&&typeof data.pelletPhoto==='object'&&(data.pelletPhoto.ts||0)!==((pelletPhoto&&pelletPhoto.ts)||0)){pelletPhoto=data.pelletPhoto;_ppUrl='';try{localStorage.setItem(PP_KEY,JSON.stringify(pelletPhoto));}catch(e){}var pb=g('pellet-bg');if(pb)pb._u=0;if(_curView==='pellet')loadPelletPhoto();}
   if(data.homePhoto&&typeof data.homePhoto==='object'&&(data.homePhoto.ts||0)!==((homePhoto&&homePhoto.ts)||0)){homePhoto=data.homePhoto;try{localStorage.setItem(HP_KEY,JSON.stringify(homePhoto));}catch(e){}loadHomePhoto();}
+  if(data.energie&&typeof data.energie==='object'&&(data.energie.ts||0)>((nrjData&&nrjData.ts)||0)){nrjData=data.energie;try{localStorage.setItem(NRJ_KEY,JSON.stringify(nrjData));}catch(e){}}
   if(data.voiture&&typeof data.voiture==='object'&&(data.voiture.ts||0)>((vtData&&vtData.ts)||0)){vtData=data.voiture;try{localStorage.setItem(VT_KEY,JSON.stringify(vtData));}catch(e){}if(_curView==='voiture'&&typeof renderVoiture==='function')renderVoiture();}
   if(data.maison&&typeof data.maison==='object'&&(data.maison.ts||0)>((maisonCout&&maisonCout.ts)||0)){maisonCout=data.maison;try{localStorage.setItem(MC_KEY,JSON.stringify(maisonCout));}catch(e){}if(typeof renderCout==='function'&&g('trv-pane-cout')&&g('trv-pane-cout').style.display!=='none')renderCout();}
   if(Array.isArray(data.courses)){courses=data.courses.filter(function(x){return!isDeleted(x.id);});try{localStorage.setItem(CRS_KEY,JSON.stringify(courses));}catch(e){}if(typeof renderCourses==='function')renderCourses();}
@@ -3873,6 +3880,74 @@ function cptMonthly(data){
     m++;if(m>11){m=0;y++;}}
   return out;
 }
+var NRJ_KEY='domicile_energie_v1',nrjData=null;
+try{nrjData=JSON.parse(localStorage.getItem(NRJ_KEY)||'null');}catch(e){}
+function nrjD(){if(!nrjData)nrjData={ts:0,prixKwh:'0.20',prixM3:'4.50'};return nrjData;}
+function pelletByMonth(){var o={};var L=(PD&&PD.logs)||{};Object.keys(L).forEach(function(sk){Object.keys(L[sk]||{}).forEach(function(ds){var k=ds.slice(0,7);o[k]=(o[k]||0)+(L[sk][ds]||0);});});return o;}
+function renderNrj(){
+  var el=g('nrj-card');if(!el||!cptData)return;
+  var N=nrjD(),pk=parseFloat(N.prixKwh)||0,pm=parseFloat(N.prixM3)||0,ps=(PD&&parseFloat(PD.price))||0;
+  var E=cptMonthly(cptData.elec),W=cptMonthly(cptData.eau),P=pelletByMonth(),rows={};
+  function key(r){return r.y+'-'+('0'+(r.m+1)).slice(-2);}
+  E.months.forEach(function(r){var k=key(r);(rows[k]=rows[k]||{k:k,cur:r.cur}).e=r.cur?r.proj:r.val;});
+  W.months.forEach(function(r){var k=key(r);(rows[k]=rows[k]||{k:k,cur:r.cur}).w=r.cur?r.proj:r.val;});
+  Object.keys(rows).forEach(function(k){rows[k].p=P[k]||0;});
+  var ks=Object.keys(rows).sort().slice(-6),MN=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+  var h='<div class="stit" style="font-size:12px;margin-top:0;">Coût de l’énergie par mois</div>';
+  if(!ks.length)h+='<div class="mc-note">Disponible après deux relevés.</div>';
+  else{
+    h+='<div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr 1fr;gap:4px 6px;font-size:12px;align-items:center;">'
+      +'<div style="color:var(--dim);"></div><div style="color:var(--dim);text-align:right;">&#9889; Élec</div><div style="color:var(--dim);text-align:right;">&#128167; Eau</div><div style="color:var(--dim);text-align:right;">&#128293; Granulés</div><div style="color:var(--dim);text-align:right;">Total</div>';
+    ks.forEach(function(k){var r=rows[k],m=+k.slice(5)-1,ce=(r.e||0)*pk,cw=(r.w||0)*pm,cp=(r.p||0)*ps,t=ce+cw+cp;
+      h+='<div style="color:var(--text);">'+MN[m]+(r.cur?' <span style="color:var(--dim);">(proj.)</span>':'')+'</div>'
+        +'<div style="text-align:right;">'+eu(Math.round(ce))+'</div><div style="text-align:right;">'+eu(Math.round(cw))+'</div><div style="text-align:right;">'+(r.p?eu(Math.round(cp)):'–')+'</div><div style="text-align:right;font-weight:600;color:var(--copper);">'+eu(Math.round(t))+'</div>';});
+    h+='</div>';
+  }
+  h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--dim);align-items:center;">'
+    +'<label style="display:flex;align-items:center;gap:4px;">kWh <input data-nrj="prixKwh" inputmode="decimal" value="'+eh(String(N.prixKwh))+'" style="width:64px;padding:4px 6px;font-size:12px;"> €</label>'
+    +'<label style="display:flex;align-items:center;gap:4px;">m³ <input data-nrj="prixM3" inputmode="decimal" value="'+eh(String(N.prixM3))+'" style="width:64px;padding:4px 6px;font-size:12px;"> €</label>'
+    +'<span>sac : '+eu(ps)+' (onglet Poêle)</span></div>'
+    +'<div class="mc-note" style="margin-top:4px;">Prix à vérifier sur vos factures Octopus et SAUR. Les granulés sont comptés le mois où le sac est mis dans le poêle.</div>';
+  el.innerHTML=h;
+  if(!el._b){el._b=1;el.addEventListener('change',function(ev){var k=ev.target.getAttribute('data-nrj');if(!k)return;var N2=nrjD();N2[k]=String(ev.target.value).replace(',','.');N2.ts=Date.now();try{localStorage.setItem(NRJ_KEY,JSON.stringify(N2));}catch(e){}scheduleGhPush();renderNrj();});}
+}
+function cptAlerts(){
+  var A=[];if(!cptData)return A;
+  [['elec','&#9889;','Électricité','kWh'],['eau','&#128167;','Eau','m³']].forEach(function(c){
+    var M=cptMonthly(cptData[c[0]]),full=M.months.filter(function(x){return !x.cur;});if(full.length<3)return;
+    var last=full[full.length-1],prev=full.slice(0,-1).slice(-6),avg=prev.reduce(function(s1,x){return s1+x.val;},0)/prev.length;if(!avg)return;
+    var MN=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    var cur=M.months.filter(function(x){return x.cur;})[0],today=new Date().getDate();
+    if(cur&&today>=10&&cur.proj>avg*1.4)A.push({k:'cpt-'+c[0]+'-'+cur.y+'-'+cur.m+'-p',ico:c[1],t:c[2]+' : consommation en hausse ce mois-ci',s:'≈ '+Math.round(cur.proj)+' '+c[3]+' prévus, +'+Math.round((cur.proj/avg-1)*100)+' % vs la moyenne'+(c[0]==='eau'?' — vérifier une fuite ?':''),go:'cpt'});
+    else if(last.val>avg*1.3)A.push({k:'cpt-'+c[0]+'-'+last.y+'-'+last.m,ico:c[1],t:c[2]+' : '+MN[last.m]+' au-dessus de la normale',s:(Math.round(last.val*10)/10).toString().replace('.',',')+' '+c[3]+', +'+Math.round((last.val/avg-1)*100)+' % vs la moyenne'+(c[0]==='eau'?' — vérifier une fuite ?':''),go:'cpt'});
+  });
+  return A;
+}
+function simD(){var d=null;try{d=JSON.parse(localStorage.getItem('domicile_sim27')||'null');}catch(e){}return d||{vers:1800,caf:152.25,trav:0,ci:true};}
+function renderSim(){
+  var body=g('sim-body');if(!body)return;
+  var S=simD(),Y=2027,fix=0,inv=0,creche=0;
+  charges.forEach(function(ch){if(!chargeActive(ch,Y,0))return;var m=chargeAnnual(ch)/12;if(ch.cat==='investissement')inv+=m;else{fix+=m;if(/cr[eè]che/i.test(ch.name||''))creche+=m;}});
+  var now=new Date(),st=new Date(now.getFullYear(),now.getMonth()-12,1),en=new Date(now.getFullYear(),now.getMonth(),1),cour=0,trv=0;
+  depenses.forEach(function(d){var dt=new Date(d.date);if(dt<st||dt>=en)return;if(d.cat==='travaux'||d.cat==='equipement')trv+=d.amount||0;else cour+=d.amount||0;});
+  cour/=12;trv/=12;
+  var ci=S.ci?Math.min(creche*12,3500)*0.5/12:0,inn=S.vers*2+(+S.caf||0),out=fix+inv+cour+(+S.trav||0),marge=inn+ci-out;
+  function r(l,v,sg,note){return '<div class="mc-row"><span>'+l+(note?' <span style="color:var(--dim);font-size:11px;">'+note+'</span>':'')+'</span><span class="v">'+(sg||'')+eu(Math.round(v))+'</span></div>';}
+  var h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+[1800,1900,2000,2100].map(function(v){return '<button class="fb'+(+S.vers===v?' on':'')+'" data-simv="'+v+'">'+v.toLocaleString('fr-FR')+' € chacun</button>';}).join('')+'</div>'
+    +r('Vos versements (×2)',S.vers*2,'+')+r('Allocations familiales',+S.caf||0,'+')
+    +(S.ci?r('Crédit d’impôt garde (lissé)',ci,'+','versé avec 1 an de décalage'):'')
+    +r('Charges fixes 2027',fix,'−',creche?'dont crèche '+eu(Math.round(creche)):'')
+    +r('Épargne automatique',inv,'−')+r('Dépenses courantes',cour,'−','moyenne 12 mois')
+    +'<div class="mc-row"><span>Travaux prévus / mois</span><span class="v"><input data-simk="trav" inputmode="numeric" value="'+eh(String(S.trav||0))+'" style="width:80px;padding:4px 6px;font-size:13px;text-align:right;"> €</span></div>'
+    +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);margin:6px 0;"><input type="checkbox" data-simk="ci" style="width:auto;"'+(S.ci?' checked':'')+'> Compter le crédit d’impôt garde</label>'
+    +'<div class="mc-row tot"><span>Marge par mois</span><span class="v" style="color:'+(marge>=0?'var(--green)':'var(--red)')+';">'+(marge>=0?'+':'−')+eu(Math.abs(Math.round(marge)))+'</span></div>'
+    +'<div class="mc-note">Sur 2027 : '+(marge>=0?'≈ '+eu(Math.round(marge*12))+' disponibles (réserve voiture, imprévus)':'≈ '+eu(Math.round(-marge*12))+' à trouver')+'. Pour info, les travaux et équipements ont coûté '+eu(Math.round(trv))+'/mois en moyenne sur les 12 derniers mois.</div>';
+  body.innerHTML=h;
+  sv('sim-sum',function(e){e.textContent='· '+S.vers.toLocaleString('fr-FR')+' € chacun → '+(marge>=0?'+':'−')+Math.abs(Math.round(marge))+' €/mois';});
+  if(!body._b){body._b=1;
+    body.addEventListener('click',function(ev){var v=ev.target.getAttribute&&ev.target.getAttribute('data-simv');if(!v)return;var S2=simD();S2.vers=+v;try{localStorage.setItem('domicile_sim27',JSON.stringify(S2));}catch(e){}renderSim();});
+    body.addEventListener('change',function(ev){var k=ev.target.getAttribute('data-simk');if(!k)return;var S2=simD();S2[k]=ev.target.type==='checkbox'?ev.target.checked:(parseFloat(ev.target.value)||0);try{localStorage.setItem('domicile_sim27',JSON.stringify(S2));}catch(e){}renderSim();});}
+}
 function renderCpt(){
   if(!cptData)return;
   ['elec','eau'].forEach(function(t){if(Array.isArray(cptData[t]))cptData[t].sort(function(x,y){return (x.date||'').localeCompare(y.date||'');});});
@@ -3896,6 +3971,7 @@ function renderCpt(){
     });
   }
   sv('cpt-chart',function(e){e.innerHTML=chartH;});
+  renderNrj();
   sv('cpt-chart-title',function(e){var full=MM.months.filter(function(x){return !x.cur;}),avg=full.length?full.reduce(function(s1,x){return s1+x.val;},0)/full.length:0;
     e.innerHTML='Consommation '+(cptTab==='elec'?'électrique':'d’eau')+' par mois'+(avg?' <span style="font-weight:400;color:var(--dim);">· moyenne '+(unit==='kWh'?Math.round(avg):(Math.round(avg*10)/10).toString().replace('.',','))+' '+unit+'/mois</span>':'')
       +'<div style="font-weight:400;font-size:11px;color:var(--dim);margin-top:2px;">Réparti au prorata des jours entre deux relevés'+(MM.cur?' · mois en cours en pointillés (projection)':'')+(MM.bad.length?' · <span style="color:var(--amber);">'+MM.bad.length+' relevé'+(MM.bad.length>1?'s':'')+' incohérent'+(MM.bad.length>1?'s':'')+' ignoré'+(MM.bad.length>1?'s':'')+' ('+MM.bad.map(function(x){return fd(x.date)+' : '+x.index;}).join(', ')+')</span>':'')+'</div>';});
@@ -4118,7 +4194,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v60';
+var APP_V='v61';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
