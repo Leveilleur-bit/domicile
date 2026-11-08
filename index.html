@@ -2508,63 +2508,31 @@ function renderHist(){
 
 function renderDashCpt(){
   var el=g('d-cpt-releve');if(!el)return;
-  var today=new Date();
   var crq=cptNeedsReleve(),isFirst=crq.any;
-  var elecData=cptData.elec||[];
-  var eauData=cptData.eau||[];
+  function srt(a){return (a||[]).slice().sort(function(x,y){return (x.date||'').localeCompare(y.date||'');});}
+  var elecData=srt(cptData.elec),eauData=srt(cptData.eau);
   var hasData=elecData.length>0||eauData.length>0;
   if(!hasData&&!isFirst){el.innerHTML='';return;}
-  var h='<div class="cpt-dash">';
-  h+='<div class="cpt-dash-header"><span class="cpt-dash-title">Compteurs</span>';
-  h+='<button class="bs" style="font-size:11px;padding:4px 9px;" onclick="goToCpt()">Voir tout</button></div>';
-  h+='<div class="cpt-dash-cards">';
-  var lastE=elecData.length?elecData[elecData.length-1]:null;
-  var prevE=elecData.length>=2?elecData[elecData.length-2]:null;
-  var deltaE=lastE&&prevE?lastE.index-prevE.index:null;
-  h+='<div class="cpt-dash-card elec">'
-    +'<div class="cpt-dash-ico">&#9889;</div>'
-    +'<div class="cpt-dash-lbl">Electricite</div>'
-    +'<div class="cpt-dash-val">'+(lastE?lastE.index.toLocaleString('fr-FR'):'-')+'</div>'
-    +(deltaE!==null?'<div class="cpt-dash-delta">'+(deltaE>=0?'+':'')+deltaE+' kWh</div>':'')
-    +'<div class="cpt-dash-date">'+(lastE?fd(lastE.date):'Aucun releve')+'</div>'
-    +'</div>';
-  var lastW=eauData.length?eauData[eauData.length-1]:null;
-  var prevW=eauData.length>=2?eauData[eauData.length-2]:null;
-  var deltaW=lastW&&prevW?lastW.index-prevW.index:null;
-  h+='<div class="cpt-dash-card eau">'
-    +'<div class="cpt-dash-ico">&#128167;</div>'
-    +'<div class="cpt-dash-lbl">Eau</div>'
-    +'<div class="cpt-dash-val">'+(lastW?lastW.index.toLocaleString('fr-FR'):'-')+'</div>'
-    +(deltaW!==null?'<div class="cpt-dash-delta">'+(deltaW>=0?'+':'')+deltaW+' m3</div>':'')
-    +'<div class="cpt-dash-date">'+(lastW?fd(lastW.date):'Aucun releve')+'</div>'
-    +'</div>';
-  h+='</div>';
-  if(elecData.length>=2||eauData.length>=2){
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
-    h+='<div>';
-    if(elecData.length>=2){
-      var econsos=[];
-      for(var ei=1;ei<elecData.length;ei++){var ed=new Date(elecData[ei].date);econsos.push({val:elecData[ei].index-elecData[ei-1].index,lbl:(ed.getMonth()+1)+'/'+String(ed.getFullYear()).slice(2)});}
-      var recentE=econsos.slice(-6);var maxE=1;recentE.forEach(function(r){if(r.val>maxE)maxE=r.val;});
-      h+='<div style="font-size:11px;color:var(--amber);letter-spacing:.02em;margin-bottom:4px;">&#9889; kWh</div>';
-      h+='<div class="cpt-mini-chart">';
-      recentE.forEach(function(r){var hh=Math.round(r.val/maxE*44);h+='<div class="cpt-mini-bar-wrap"><div class="cpt-mini-bar elec" style="height:'+hh+'px;" title="'+r.val+' kWh"></div><div class="cpt-mini-lbl">'+r.lbl+'</div></div>';});
-      h+='</div>';
-    }
-    h+='</div><div>';
-    if(eauData.length>=2){
-      var wconsos=[];
-      for(var wi=1;wi<eauData.length;wi++){var wd=new Date(eauData[wi].date);wconsos.push({val:eauData[wi].index-eauData[wi-1].index,lbl:(wd.getMonth()+1)+'/'+String(wd.getFullYear()).slice(2)});}
-      var recentW=wconsos.slice(-6);var maxW=1;recentW.forEach(function(r){if(r.val>maxW)maxW=r.val;});
-      h+='<div style="font-size:11px;color:var(--blue);letter-spacing:.02em;margin-bottom:4px;">&#128167; m3</div>';
-      h+='<div class="cpt-mini-chart">';
-      recentW.forEach(function(r){var hh=Math.round(r.val/maxW*44);h+='<div class="cpt-mini-bar-wrap"><div class="cpt-mini-bar eau" style="height:'+hh+'px;" title="'+r.val+' m3"></div><div class="cpt-mini-lbl">'+r.lbl+'</div></div>';});
-      h+='</div>';
-    }
-    h+='</div></div>';
+  var MN=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+  function card(cls,ico,lbl,data,unit){
+    var M=cptMonthly(data),full=M.months.filter(function(x){return !x.cur;}),lastM=full[full.length-1],last=data[data.length-1];
+    var fv=function(v){return unit==='kWh'?Math.round(v).toLocaleString('fr-FR'):String(Math.round(v*10)/10).replace('.',',');};
+    return '<div class="cpt-dash-card '+cls+'"><div class="cpt-dash-ico">'+ico+'</div><div class="cpt-dash-lbl">'+lbl+'</div>'
+      +'<div class="cpt-dash-val">'+(last?Number(last.index).toLocaleString('fr-FR'):'-')+'</div>'
+      +(lastM?'<div class="cpt-dash-delta">'+fv(lastM.val)+' '+unit+' en '+MN[lastM.m]+'</div>':'')
+      +'<div class="cpt-dash-date">'+(last?'relevé le '+fd(last.date):'Aucun relevé')+'</div></div>';
   }
-  h+='</div>';
-  el.innerHTML=h;
+  function mini(cls,col,ico,data,unit){
+    var M=cptMonthly(data),R=M.months.slice(-6);if(!R.length)return '';
+    var mx=1;R.forEach(function(r){var v=r.cur?r.proj:r.val;if(v>mx)mx=v;});
+    var h='<div style="font-size:11px;color:'+col+';letter-spacing:.02em;margin-bottom:4px;">'+ico+' '+unit+' par mois</div><div class="cpt-mini-chart">';
+    R.forEach(function(r){var v=r.cur?r.proj:r.val,hh=Math.max(2,Math.round(v/mx*44));h+='<div class="cpt-mini-bar-wrap"><div class="cpt-mini-bar '+cls+'" style="height:'+hh+'px;'+(r.cur?'opacity:.35;':'')+'" title="'+(r.cur?'projection ':'')+(Math.round(v*10)/10)+' '+unit+'"></div><div class="cpt-mini-lbl">'+MN[r.m]+'</div></div>';});
+    return h+'</div>';
+  }
+  var h='<div class="cpt-dash"><div class="cpt-dash-header"><span class="cpt-dash-title">Compteurs</span><button class="bs" style="font-size:11px;padding:4px 9px;" onclick="goToCpt()">Voir tout</button></div>'
+    +'<div class="cpt-dash-cards">'+card('elec','&#9889;','Électricité',elecData,'kWh')+card('eau','&#128167;','Eau',eauData,'m³')+'</div>';
+  if(elecData.length>=2||eauData.length>=2)h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div>'+(elecData.length>=2?mini('elec','var(--amber)','&#9889;',elecData,'kWh'):'')+'</div><div>'+(eauData.length>=2?mini('eau','var(--blue)','&#128167;',eauData,'m³'):'')+'</div></div>';
+  el.innerHTML=h+'</div>';
 }
 
 function goToCpt(){
@@ -4194,7 +4162,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v62';
+var APP_V='v63';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
