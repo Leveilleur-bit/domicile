@@ -3168,7 +3168,7 @@ function ghSilentPull(){
   if(!ghToken())return;
   ghFetch(function(remoteData,sha,err){
     if(err||!remoteData)return;
-    if(sha===_ghSha&&!window._forceFullPull){try{if(localStorage.getItem('domicile_dirty'))scheduleGhPush();}catch(e){}return;}
+    if(sha===_ghSha&&!window._forceFullPull){var dty=false;try{dty=!!localStorage.getItem('domicile_dirty');}catch(e){}if(dty)scheduleGhPush();else{saveGhConfig();try{renderStats();}catch(e){}}return;}
     window._forceFullPull=false;
     
     var local=ghLocalData();
@@ -4194,7 +4194,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v61';
+var APP_V='v62';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
