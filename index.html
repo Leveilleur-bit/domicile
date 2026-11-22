@@ -4164,7 +4164,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v64';
+var APP_V='v65';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
@@ -5646,7 +5646,7 @@ function renderPerso(){
     +'<div class="mc-row"><span>Revenus du mois</span><span class="v">'+eu(Math.round(rev))+'</span></div>'
     +(r13?'<div class="mc-row"><span>13e mois lissé</span><span class="v">+'+eu(Math.round(r13))+'</span></div>':'')
     +'<div class="mc-row"><span>Sorties</span><span class="v">−'+eu(Math.round(sor))+'</span></div>'
-    +'<div class="mc-row tot"><span>Reste par mois</span><span class="v" style="color:'+(reste>=0?'var(--green)':'var(--red)')+';">'+eu(Math.round(reste))+'</span></div>'
+    +'<div class="mc-row tot"><span>Reste pour les dépenses perso</span><span class="v" style="color:'+(reste>=0?'var(--green)':'var(--red)')+';">'+eu(Math.round(reste))+'</span></div>'
     +'<div class="mc-note">Sans 13e mois : '+eu(Math.round(rev-sor))+'/mois · sur un an : ≈ '+eu(Math.round(reste*12))+'</div>'
     +rows('revenus','Revenus mensuels')
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px;"><span>13e mois (montant annuel)</span><input data-psk="treizieme" inputmode="decimal" value="'+eh(String(D.treizieme||''))+'" style="width:84px;font-size:13px;padding:6px 8px;text-align:right;"></div>'
