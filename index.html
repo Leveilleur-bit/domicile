@@ -2014,7 +2014,7 @@ function renderStats(){
   if(upcoming.length){
     var nx=upcoming[0];
     var daysLeft=Math.ceil((new Date(nx.date)-new Date())/(86400000));
-    sv('s-next',function(e){e.textContent=daysLeft<=0?'Auj':daysLeft+'j';e.style.color=daysLeft<=0?'var(--red)':daysLeft<=7?'var(--amber)':'var(--green)';});
+    sv('s-next',function(e){e.textContent=daysLeft<0?'En retard':daysLeft===0?'Auj':daysLeft+'j';e.style.color=daysLeft<=0?'var(--red)':daysLeft<=7?'var(--amber)':'var(--green)';});
     sv('s-next-name',function(e){e.textContent=nx.name;});
     window._nextTaskId=nx.id;
   } else {
@@ -3437,6 +3437,8 @@ function ensureMaintIds(arr){
   arr.forEach(function(x,i){if(x&&!x.id)x.id='m_'+(x.date||'')+'_'+(x.name||x.t||'')+'_'+i;});
 }
 function pRepair(){
+  // Le compteur de la saison = somme du journal (le journal est fusionné jour par jour entre appareils)
+  if(PD&&PD.sk&&PD.logs&&PD.logs[PD.sk]){var sm=0,lg=PD.logs[PD.sk];Object.keys(lg).forEach(function(k){sm+=lg[k]||0;});if(sm!==PD.cnt){PD.cnt=sm;try{localStorage.setItem(PK,JSON.stringify(PD));}catch(e){}}}
   // Saisons d'historique enregistrees avec une annee de trop, et sacs utilises apres la fin de la saison precedente
   if(!PD||!PD.sk)return false;
   var ch=false,cur=curSeasonKey(),cy=parseInt(cur,10);
@@ -3471,7 +3473,7 @@ function pAutoRollover(){
   PD.sk=cur;PD.cnt=0;
   saveP();
 }
-function saveP(){if(PD){PD.u=Date.now();localStorage.setItem(PK,JSON.stringify(PD));}}
+function saveP(){if(PD){PD.u=Date.now();localStorage.setItem(PK,JSON.stringify(PD));if(typeof scheduleGhPush==='function')scheduleGhPush();}}
 function slbl(sk){var p=sk.split('-');return'Nov '+p[0]+' - Avr '+p[1];}
 
 function renderP(){
@@ -4164,7 +4166,7 @@ function applySettings(){
   sv('house-name-display',function(e){e.textContent=appSettings.houseName?'\u00b7 '+appSettings.houseName:'';});
 }
 // ══════════ ROBUSTESSE : une erreur d'affichage ne doit jamais bloquer la synchro ══════════
-var APP_V='v65';
+var APP_V='v66';
 function logErr(m){try{localStorage.setItem('domicile_last_err',JSON.stringify({m:String(m).slice(0,300),at:new Date().toLocaleString('fr-FR')}));}catch(e){}}
 function safeRenderAll(){try{renderAll();}catch(e){logErr((e&&e.message)+' @'+((e&&e.stack)||'').split('\n')[1]);}}
 window.addEventListener('error',function(e){logErr((e.message||'erreur')+' @'+(e.lineno||''));});
